@@ -18,6 +18,13 @@ defmodule TicketSplitterWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    
+    scope "/ticket_splitter" do
+      live "/users", TicketSplitter.UserLive.Index, :index
+      live "/users/new", TicketSplitter.UserLive.Form, :new
+      live "/users/:id", TicketSplitter.UserLive.Show, :show
+      live "/users/:id/edit", TicketSplitter.UserLive.Form, :edit
+    end
   end
 
   # Other scopes may use custom stacks.
