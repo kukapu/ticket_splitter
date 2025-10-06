@@ -117,3 +117,10 @@ if config_env() == :prod do
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
 end
+
+
+# OpenRouter configuration for all environments
+config :ticket_splitter,
+  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
+  openrouter_model: System.get_env("OPENROUTER_MODEL") || "openai/gpt-4o",
+  openrouter_prompt: System.get_env("OPENROUTER_PROMPT") || "Analiza esta imagen de un ticket o recibo. Extrae todos los elementos de la compra, precios, total, fecha, establecimiento y cualquier otra información relevante. Responde en formato JSON estructurado."

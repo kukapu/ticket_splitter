@@ -17,8 +17,8 @@ defmodule TicketSplitterWeb.Router do
   scope "/", TicketSplitterWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-    
+    live "/", HomeLive
+
     scope "/ticket_splitter" do
       live "/users", TicketSplitter.UserLive.Index, :index
       live "/users/new", TicketSplitter.UserLive.Form, :new

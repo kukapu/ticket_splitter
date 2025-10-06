@@ -87,3 +87,8 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# OpenRouter configuration
+config :ticket_splitter,
+  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
+  openrouter_model: System.get_env("OPENROUTER_MODEL") || "openai/gpt-4o"
