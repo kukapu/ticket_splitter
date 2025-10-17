@@ -500,13 +500,17 @@ defmodule TicketSplitter.Tickets do
           end)
 
         if assignment do
-          # Calculate based on units_assigned
+          # Calculate based on units_assigned and percentage for shared groups
           # Each unit costs: total_price / total_units
           unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
           units = assignment.units_assigned || Decimal.new("0")
           share = Decimal.mult(unit_cost, units)
 
-          Decimal.add(acc, share)
+          # Apply percentage for shared groups
+          percentage = Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
+          final_share = Decimal.mult(share, percentage)
+
+          Decimal.add(acc, final_share)
         else
           acc
         end
