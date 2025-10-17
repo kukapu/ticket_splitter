@@ -51,14 +51,32 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
-  def handle_event("toggle_product", %{"product_id" => product_id}, socket) do
+  def handle_event("toggle_product", %{"product_id" => product_id, "action" => action} = params, socket) do
     participant_name = socket.assigns.participant_name
     color = socket.assigns.participant_color
 
     unless participant_name do
       {:noreply, assign(socket, :show_name_modal, true)}
     else
-      case Tickets.toggle_participant_assignment(product_id, participant_name, color) do
+      result = case action do
+        "add_unit" ->
+          # Añadir 1 unidad desde el pool
+          Tickets.add_participant_unit(product_id, participant_name, color)
+
+        "remove_unit" ->
+          # Quitar 1 unidad (devolver al pool)
+          Tickets.remove_participant_unit(product_id, participant_name)
+
+        "join_group" ->
+          # Unirse a un grupo existente (compartir)
+          group_id = Map.get(params, "group_id")
+          Tickets.join_assignment_group(group_id, participant_name, color)
+
+        _ ->
+          {:error, :invalid_action}
+      end
+
+      case result do
         {:ok, _} ->
           # Broadcast a todos los usuarios conectados
           broadcast_ticket_update(socket.assigns.ticket.id)
@@ -215,6 +233,27 @@ defmodule TicketSplitterWeb.TicketLive do
     )
   end
 
+  defp group_assignments_by_group_id(assignments) do
+    assignments
+    |> Enum.group_by(fn pa -> pa.assignment_group_id end)
+    |> Enum.map(fn {group_id, group_assignments} ->
+      # All assignments in a group share the same units
+      units = (hd(group_assignments).units_assigned || Decimal.new("0"))
+
+      %{
+        group_id: group_id,
+        units_assigned: units,
+        participants: Enum.map(group_assignments, fn pa ->
+          %{
+            name: pa.participant_name,
+            color: pa.assigned_color,
+            percentage: pa.percentage
+          }
+        end)
+      }
+    end)
+  end
+
   defp calculate_my_total(socket) do
     participant_name = socket.assigns.participant_name
 
@@ -239,7 +278,8 @@ defmodule TicketSplitterWeb.TicketLive do
       %{
         name: pa.participant_name,
         color: pa.assigned_color,
-        percentage: pa.percentage
+        percentage: pa.percentage,
+        units_assigned: pa.units_assigned
       }
     end)
   end

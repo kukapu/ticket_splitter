@@ -177,39 +177,241 @@ defmodule TicketSplitter.Tickets do
   end
 
   @doc """
-  Assigns a participant to a product with equal percentage distribution.
-  If the participant is already assigned, removes the assignment.
-  Recalculates percentages for all participants on this product.
+  Adds one unit from the pool to a participant.
+  Creates a new assignment group.
   """
-  def toggle_participant_assignment(product_id, participant_name, color) do
-    existing =
-      ParticipantAssignment
-      |> where([pa], pa.product_id == ^product_id and pa.participant_name == ^participant_name)
-      |> Repo.one()
+  def add_participant_unit(product_id, participant_name, color) do
+    product = get_product!(product_id)
 
-    result =
-      if existing do
-        # Remove assignment
-        Repo.delete(existing)
+    # Calculate total units already assigned
+    total_assigned = get_total_assigned_units(product_id)
+    available = Decimal.sub(Decimal.new(product.units), total_assigned)
+
+    # Check if there are available units
+    if Decimal.compare(available, Decimal.new("1")) in [:gt, :eq] do
+      # Check if participant has a solo (unshared) assignment
+      existing_solo =
+        ParticipantAssignment
+        |> where([pa], pa.product_id == ^product_id and pa.participant_name == ^participant_name)
+        |> Repo.all()
+        |> Enum.find(fn pa ->
+          # Solo assignment: either no group_id or is the only one in the group
+          if pa.assignment_group_id do
+            group_count =
+              ParticipantAssignment
+              |> where([pa2], pa2.assignment_group_id == ^pa.assignment_group_id)
+              |> Repo.aggregate(:count)
+
+            group_count == 1
+          else
+            true
+          end
+        end)
+
+      if existing_solo do
+        # Add one more unit to existing solo assignment
+        current_units = existing_solo.units_assigned || Decimal.new("0")
+        new_units = Decimal.add(current_units, Decimal.new("1"))
+        update_participant_assignment(existing_solo, %{units_assigned: new_units})
       else
-        # Add assignment
+        # Create new assignment with 1 unit and new group
+        group_id = Ecto.UUID.generate()
         create_participant_assignment(%{
           product_id: product_id,
           participant_name: participant_name,
-          percentage: Decimal.new("0"),
-          assigned_color: color
+          units_assigned: Decimal.new("1"),
+          percentage: Decimal.new("100"),
+          assigned_color: color,
+          assignment_group_id: group_id
         })
       end
-
-    case result do
-      {:ok, _} ->
-        # Recalculate percentages for all participants
-        recalculate_percentages(product_id)
-        {:ok, :toggled}
-
-      {:error, changeset} ->
-        {:error, changeset}
+    else
+      {:error, :no_units_available}
     end
+  end
+
+  @doc """
+  Joins an existing assignment group (shares units with others).
+  """
+  def join_assignment_group(assignment_group_id, participant_name, color) do
+    # Get existing assignments in this group
+    group_assignments =
+      ParticipantAssignment
+      |> where([pa], pa.assignment_group_id == ^assignment_group_id)
+      |> Repo.all()
+
+    if length(group_assignments) == 0 do
+      {:error, :group_not_found}
+    else
+      # Check if participant is already in this group
+      already_in_group =
+        Enum.any?(group_assignments, fn pa -> pa.participant_name == participant_name end)
+
+      if already_in_group do
+        {:error, :already_in_group}
+      else
+        # Get units_assigned from the group (they all share the same units)
+        units = (hd(group_assignments).units_assigned || Decimal.new("0"))
+        product_id = hd(group_assignments).product_id
+
+        # Create new assignment in the same group
+        result =
+          create_participant_assignment(%{
+            product_id: product_id,
+            participant_name: participant_name,
+            units_assigned: units,
+            percentage: Decimal.new("0"),
+            assigned_color: color,
+            assignment_group_id: assignment_group_id
+          })
+
+        case result do
+          {:ok, _} ->
+            # Recalculate percentages for all in the group
+            recalculate_group_percentages(assignment_group_id)
+            {:ok, :joined}
+
+          error ->
+            error
+        end
+      end
+    end
+  end
+
+  @doc """
+  Removes a participant from an assignment group.
+  If it's the last participant, removes the group entirely.
+  """
+  def remove_from_assignment_group(assignment_group_id, participant_name) do
+    # Get participant's assignment in this group
+    assignment =
+      ParticipantAssignment
+      |> where([pa], pa.assignment_group_id == ^assignment_group_id and pa.participant_name == ^participant_name)
+      |> Repo.one()
+
+    if assignment do
+      # Delete this participant's assignment
+      Repo.delete(assignment)
+
+      # Check how many are left in the group
+      remaining =
+        ParticipantAssignment
+        |> where([pa], pa.assignment_group_id == ^assignment_group_id)
+        |> Repo.all()
+
+      if length(remaining) > 0 do
+        # Recalculate percentages for remaining participants
+        recalculate_group_percentages(assignment_group_id)
+      end
+
+      {:ok, :removed}
+    else
+      {:error, :not_in_group}
+    end
+  end
+
+  @doc """
+  Removes one unit from a participant.
+  If solo and has multiple units: subtract 1
+  If solo and has 1 unit: remove assignment
+  If shared: leave the group
+  """
+  def remove_participant_unit(product_id, participant_name) do
+    # Find participant's assignments for this product
+    assignments =
+      ParticipantAssignment
+      |> where([pa], pa.product_id == ^product_id and pa.participant_name == ^participant_name)
+      |> Repo.all()
+
+    if length(assignments) == 0 do
+      {:error, :no_assignment}
+    else
+      # Get the first assignment (prioritize solo ones)
+      assignment = hd(assignments)
+
+      # Check if it's shared
+      if assignment.assignment_group_id do
+        group_count =
+          ParticipantAssignment
+          |> where([pa], pa.assignment_group_id == ^assignment.assignment_group_id)
+          |> Repo.aggregate(:count)
+
+        if group_count > 1 do
+          # It's shared - remove from group
+          remove_from_assignment_group(assignment.assignment_group_id, participant_name)
+        else
+          # Solo - check units
+          current_units = assignment.units_assigned || Decimal.new("0")
+
+          if Decimal.compare(current_units, Decimal.new("1")) == :eq do
+            # Only 1 unit - remove completely
+            Repo.delete(assignment)
+          else
+            # More than 1 unit - subtract one
+            new_units = Decimal.sub(current_units, Decimal.new("1"))
+            update_participant_assignment(assignment, %{units_assigned: new_units})
+          end
+        end
+      else
+        # No group (old data) - treat as solo
+        current_units = assignment.units_assigned || Decimal.new("0")
+
+        if Decimal.compare(current_units, Decimal.new("1")) == :eq do
+          Repo.delete(assignment)
+        else
+          new_units = Decimal.sub(current_units, Decimal.new("1"))
+          update_participant_assignment(assignment, %{units_assigned: new_units})
+        end
+      end
+    end
+  end
+
+  @doc """
+  Recalculates percentages for all participants in an assignment group.
+  Distributes equally.
+  """
+  def recalculate_group_percentages(assignment_group_id) do
+    assignments =
+      ParticipantAssignment
+      |> where([pa], pa.assignment_group_id == ^assignment_group_id)
+      |> Repo.all()
+
+    count = length(assignments)
+
+    if count > 0 do
+      percentage = Decimal.div(Decimal.new("100"), Decimal.new(count))
+
+      Enum.each(assignments, fn assignment ->
+        update_participant_assignment(assignment, %{percentage: percentage})
+      end)
+    end
+
+    :ok
+  end
+
+  @doc """
+  Gets total units assigned to all participants for a product.
+  Groups are counted only once (not per participant).
+  """
+  def get_total_assigned_units(product_id) do
+    ParticipantAssignment
+    |> where([pa], pa.product_id == ^product_id)
+    |> Repo.all()
+    |> Enum.group_by(fn pa -> pa.assignment_group_id end)
+    |> Enum.reduce(Decimal.new("0"), fn {_group_id, assignments}, acc ->
+      # All assignments in a group share the same units, so just take the first one
+      units = (hd(assignments).units_assigned || Decimal.new("0"))
+      Decimal.add(acc, units)
+    end)
+  end
+
+  @doc """
+  Gets available (unassigned) units for a product.
+  """
+  def get_available_units(product_id) do
+    product = get_product!(product_id)
+    total_assigned = get_total_assigned_units(product_id)
+    Decimal.sub(Decimal.new(product.units), total_assigned)
   end
 
   @doc """
@@ -278,6 +480,7 @@ defmodule TicketSplitter.Tickets do
 
   @doc """
   Calculates the total amount a participant owes on a ticket.
+  Uses units_assigned to calculate the cost.
   """
   def calculate_participant_total(ticket_id, participant_name) do
     ticket = get_ticket_with_products!(ticket_id)
@@ -297,9 +500,11 @@ defmodule TicketSplitter.Tickets do
           end)
 
         if assignment do
-          # Calculate based on percentage
-          share =
-            Decimal.mult(product.total_price, Decimal.div(assignment.percentage, Decimal.new("100")))
+          # Calculate based on units_assigned
+          # Each unit costs: total_price / total_units
+          unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+          units = assignment.units_assigned || Decimal.new("0")
+          share = Decimal.mult(unit_cost, units)
 
           Decimal.add(acc, share)
         else
