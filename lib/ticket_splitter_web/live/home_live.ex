@@ -34,6 +34,13 @@ defmodule TicketSplitterWeb.HomeLive do
       IO.puts("    Done: #{entry.done?}")
     end)
 
+    # Activar el loader inmediatamente cuando se selecciona una imagen
+    socket = if length(socket.assigns.uploads.image.entries) > 0 do
+      assign(socket, :processing, true)
+    else
+      socket
+    end
+
     {:noreply, socket}
   end
 
@@ -48,6 +55,7 @@ defmodule TicketSplitterWeb.HomeLive do
       socket
       |> assign(:result, nil)
       |> assign(:error, nil)
+      |> assign(:processing, false)
       |> assign(:uploaded_files, [])
 
     {:noreply, socket}

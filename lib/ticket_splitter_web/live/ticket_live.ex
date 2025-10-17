@@ -10,6 +10,11 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def mount(%{"id" => ticket_id}, _session, socket) do
+    # Suscribirse al tópico del ticket para recibir actualizaciones en tiempo real
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(TicketSplitter.PubSub, "ticket:#{ticket_id}")
+    end
+
     ticket = Tickets.get_ticket_with_products!(ticket_id)
 
     socket =
@@ -55,6 +60,9 @@ defmodule TicketSplitterWeb.TicketLive do
     else
       case Tickets.toggle_participant_assignment(product_id, participant_name, color) do
         {:ok, _} ->
+          # Broadcast a todos los usuarios conectados
+          broadcast_ticket_update(socket.assigns.ticket.id)
+
           # Recargar ticket con productos actualizados
           ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
@@ -78,6 +86,9 @@ defmodule TicketSplitterWeb.TicketLive do
 
     case Tickets.toggle_product_common(product) do
       {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
         # Recargar ticket
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
@@ -100,6 +111,9 @@ defmodule TicketSplitterWeb.TicketLive do
       {num, _} when num > 0 ->
         case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: num}) do
           {:ok, ticket} ->
+            # Broadcast a todos los usuarios conectados
+            broadcast_ticket_update(socket.assigns.ticket.id)
+
             socket =
               socket
               |> assign(:ticket, ticket)
@@ -146,6 +160,9 @@ defmodule TicketSplitterWeb.TicketLive do
 
     Tickets.update_custom_percentages(updates)
 
+    # Broadcast a todos los usuarios conectados
+    broadcast_ticket_update(socket.assigns.ticket.id)
+
     # Recargar ticket
     ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
@@ -168,6 +185,34 @@ defmodule TicketSplitterWeb.TicketLive do
       # Mostrar modal para pedir nombre
       {:noreply, assign(socket, :show_name_modal, true)}
     end
+  end
+
+  @impl true
+  def handle_info({:ticket_updated, ticket_id}, socket) do
+    # Recibir actualización del ticket desde otro usuario
+    if ticket_id == socket.assigns.ticket.id do
+      ticket = Tickets.get_ticket_with_products!(ticket_id)
+
+      socket =
+        socket
+        |> assign(:ticket, ticket)
+        |> assign(:products, ticket.products)
+        |> calculate_my_total()
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # Private functions
+
+  defp broadcast_ticket_update(ticket_id) do
+    Phoenix.PubSub.broadcast(
+      TicketSplitter.PubSub,
+      "ticket:#{ticket_id}",
+      {:ticket_updated, ticket_id}
+    )
   end
 
   defp calculate_my_total(socket) do
