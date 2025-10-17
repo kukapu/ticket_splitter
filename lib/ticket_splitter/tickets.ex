@@ -447,6 +447,44 @@ defmodule TicketSplitter.Tickets do
   end
 
   @doc """
+  Updates split percentages for a 2-person group.
+  Used by the interactive divider feature.
+  """
+  def update_split_percentages(group_id, participant1_percentage, participant2_percentage) do
+    # Get all assignments in this group, ordered by participant name for consistency
+    assignments =
+      ParticipantAssignment
+      |> where([pa], pa.assignment_group_id == ^group_id)
+      |> order_by([pa], asc: pa.participant_name)
+      |> Repo.all()
+
+    if length(assignments) == 2 do
+      # Convert percentages to decimals
+      p1_decimal = Decimal.new(to_string(participant1_percentage))
+      p2_decimal = Decimal.new(to_string(participant2_percentage))
+
+      # Update each assignment based on order (alphabetical by participant name)
+      assignments
+      |> Enum.with_index()
+      |> Enum.each(fn {assignment, index} ->
+        new_percentage = if index == 0 do
+          # First assignment (alphabetically) gets participant1_percentage
+          p1_decimal
+        else
+          # Second assignment gets participant2_percentage
+          p2_decimal
+        end
+
+        update_participant_assignment(assignment, %{percentage: new_percentage})
+      end)
+
+      :ok
+    else
+      {:error, :invalid_group_size}
+    end
+  end
+
+  @doc """
   Creates a ticket from OpenRouter JSON response.
   """
   def create_ticket_from_json(products_json, image_url \\ nil) do

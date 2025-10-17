@@ -73,6 +73,164 @@ Hooks.SwipeHandler = {
   }
 }
 
+// SplitDivider Hook - Interactive divider for adjusting percentage splits
+Hooks.SplitDivider = {
+  mounted() {
+    let isDragging = false
+    let hasDragged = false
+    let startX = 0
+    let startPercentage = 0
+    let containerWidth = 0
+    let divider = this.el
+    let container = divider.parentElement
+
+    const updateSplit = (clientX) => {
+      const deltaX = clientX - startX
+      const percentageChange = (deltaX / containerWidth) * 100
+      let newPercentage = startPercentage + percentageChange
+
+      // Clamp between 5% and 95%
+      newPercentage = Math.max(5, Math.min(95, newPercentage))
+
+      // Update visual positions
+      divider.style.left = `${newPercentage}%`
+
+      // Find and update participant sections
+      const participant1 = container.querySelector('[id^="participant-"][id$="-0"]')
+      const participant2 = container.querySelector('[id^="participant-"][id$="-1"]')
+
+      if (participant1 && participant2) {
+        participant1.style.width = `${newPercentage}%`
+        participant2.style.width = `${100 - newPercentage}%`
+
+        // Update percentage displays
+        const percent1Display = participant1.querySelector('.percentage-display')
+        const percent2Display = participant2.querySelector('.percentage-display')
+
+        if (percent1Display) percent1Display.textContent = `${Math.round(newPercentage)}%`
+        if (percent2Display) percent2Display.textContent = `${Math.round(100 - newPercentage)}%`
+      }
+
+      return Math.round(newPercentage)
+    }
+
+    const handleStart = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      isDragging = true
+      hasDragged = false // Reset at start of drag
+      containerWidth = container.offsetWidth
+      startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+
+      const currentLeft = parseFloat(divider.style.left) || 50
+      startPercentage = currentLeft
+
+      divider.style.cursor = 'grabbing'
+      divider.classList.add('dragging')
+    }
+
+    const handleMove = (e) => {
+      if (!isDragging) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      // Mark as dragged if we move more than 3 pixels
+      const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX
+      if (Math.abs(clientX - startX) > 3) {
+        hasDragged = true
+      }
+
+      const newPercentage = updateSplit(clientX)
+
+      // Throttle updates to LiveView
+      if (!this.updateTimeout) {
+        this.updateTimeout = setTimeout(() => {
+          this.pushEvent("adjust_split_percentage", {
+            group_id: divider.dataset.groupId,
+            product_id: divider.dataset.productId,
+            participant1_percentage: newPercentage,
+            participant2_percentage: 100 - newPercentage
+          })
+          this.updateTimeout = null
+        }, 100) // Update every 100ms while dragging
+      }
+    }
+
+    const handleEnd = (e) => {
+      if (!isDragging) return
+
+      e.preventDefault()
+      e.stopPropagation()
+
+      isDragging = false
+      divider.style.cursor = 'ew-resize'
+      divider.classList.remove('dragging')
+
+      // Final update
+      if (this.updateTimeout) {
+        clearTimeout(this.updateTimeout)
+        this.updateTimeout = null
+      }
+
+      const clientX = e.type.includes('touch') ?
+        e.changedTouches[0].clientX :
+        divider.getBoundingClientRect().left + (divider.offsetWidth / 2)
+      const finalPercentage = updateSplit(clientX)
+
+      this.pushEvent("adjust_split_percentage", {
+        group_id: divider.dataset.groupId,
+        product_id: divider.dataset.productId,
+        participant1_percentage: finalPercentage,
+        participant2_percentage: 100 - finalPercentage
+      })
+
+      // Prevent click event if we dragged
+      setTimeout(() => {
+        hasDragged = false
+      }, 100)
+    }
+
+    // Prevent click on container if we just finished dragging
+    const handleContainerClick = (e) => {
+      if (hasDragged) {
+        e.preventDefault()
+        e.stopPropagation()
+        return false
+      }
+    }
+
+    // Mouse events
+    divider.addEventListener('mousedown', handleStart)
+    document.addEventListener('mousemove', handleMove)
+    document.addEventListener('mouseup', handleEnd)
+
+    // Touch events
+    divider.addEventListener('touchstart', handleStart, { passive: false })
+    document.addEventListener('touchmove', handleMove, { passive: false })
+    document.addEventListener('touchend', handleEnd)
+
+    // Prevent clicks on the parent container during/after drag
+    container.addEventListener('click', handleContainerClick, true)
+
+    // Cleanup on unmount
+    this.handleDestroy = () => {
+      document.removeEventListener('mousemove', handleMove)
+      document.removeEventListener('mouseup', handleEnd)
+      document.removeEventListener('touchmove', handleMove)
+      document.removeEventListener('touchend', handleEnd)
+      container.removeEventListener('click', handleContainerClick, true)
+    }
+  },
+
+  destroyed() {
+    if (this.handleDestroy) {
+      this.handleDestroy()
+    }
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,

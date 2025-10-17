@@ -397,6 +397,56 @@
   animation: slideInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Interactive Divider Styles */
+.interactive-divider {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.interactive-divider:hover {
+  width: 3px !important;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.interactive-divider.dragging {
+  width: 4px !important;
+  background-color: #fbbf24 !important;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+}
+
+.interactive-divider.dragging > div:first-child {
+  background-color: #fbbf24;
+  transform: translateX(-50%) translateY(-50%) scale(1.2);
+}
+
+/* Prevent text selection during drag */
+.split-card-row.dragging {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Smooth transitions for participant sections during resize */
+.split-card-participant {
+  transition: width 0.1s ease-out;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+  .interactive-divider {
+    width: 8px !important;
+  }
+
+  .interactive-divider:hover {
+    width: 10px !important;
+  }
+
+  .interactive-divider.dragging {
+    width: 12px !important;
+  }
+}
+
 /* Touch-friendly mobile styles */
 @media (max-width: 640px) {
   .colored-card {

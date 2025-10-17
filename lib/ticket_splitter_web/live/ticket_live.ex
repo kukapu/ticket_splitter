@@ -173,6 +173,30 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
+  def handle_event("adjust_split_percentage", %{"group_id" => group_id, "participant1_percentage" => p1_percentage, "participant2_percentage" => p2_percentage}, socket) do
+    # Update participant percentages in the database
+    case Tickets.update_split_percentages(group_id, p1_percentage, p2_percentage) do
+      :ok ->
+        # Broadcast update to all users
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Reload ticket data
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> calculate_my_total()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("open_edit_percentages", %{"product_id" => product_id}, socket) do
     {:noreply, assign(socket, :editing_percentages_product_id, product_id)}
   end
@@ -281,23 +305,7 @@ defmodule TicketSplitterWeb.TicketLive do
     assign(socket, :my_total, total)
   end
 
-  defp product_assigned_to_me?(product, participant_name) do
-    Enum.any?(product.participant_assignments, fn pa ->
-      pa.participant_name == participant_name
-    end)
-  end
-
-  defp get_product_participants(product) do
-    Enum.map(product.participant_assignments, fn pa ->
-      %{
-        name: pa.participant_name,
-        color: pa.assigned_color,
-        percentage: pa.percentage,
-        units_assigned: pa.units_assigned
-      }
-    end)
-  end
-
+  
   defp format_decimal(decimal) do
     decimal
     |> Decimal.round(2)
