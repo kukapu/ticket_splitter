@@ -1,0 +1,282 @@
+<div
+  class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100"
+  phx-hook="ParticipantStorage"
+  id="ticket-container"
+>
+  <div class="max-w-2xl mx-auto px-4 py-6">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 mb-4">
+      <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold text-gray-900">Ticket</h1>
+        <button
+          phx-click="show_summary"
+          class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+        >
+          <.icon name="hero-information-circle" class="w-5 h-5 inline mr-1" /> Info
+        </button>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <label class="text-sm font-medium text-gray-700">Total participantes:</label>
+        <input
+          type="number"
+          min="1"
+          value={@ticket.total_participants}
+          phx-change="update_total_participants"
+          phx-debounce="500"
+          class="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        />
+      </div>
+    </div>
+    <!-- My Total -->
+    <%= if @participant_name do %>
+      <div class="bg-white rounded-2xl shadow-xl p-6 mb-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-3">
+            <div
+              class="w-4 h-4 rounded-full"
+              style={"background-color: #{@participant_color}"}
+            >
+            </div>
+            <span class="text-lg font-semibold text-gray-900">{@participant_name}</span>
+          </div>
+          <div class="text-right">
+            <p class="text-sm text-gray-600">Tu total</p>
+            <p class="text-2xl font-bold text-indigo-600">€{format_decimal(@my_total)}</p>
+          </div>
+        </div>
+      </div>
+    <% end %>
+    <!-- Products List -->
+    <div class="space-y-3">
+      <%= for product <- @products do %>
+        <div
+          class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-200 hover:shadow-xl"
+          id={"product-#{product.id}"}
+          phx-hook="SwipeHandler"
+          data-product-id={product.id}
+        >
+          <div class="p-4" phx-click="toggle_product" phx-value-product_id={product.id}>
+            <!-- Product Header -->
+            <div class="flex justify-between items-start mb-2">
+              <div class="flex-1">
+                <h3 class="text-lg font-semibold text-gray-900">{product.name}</h3>
+                <p class="text-sm text-gray-600">
+                  {product.units} x €{format_decimal(product.unit_price)}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-xl font-bold text-gray-900">€{format_decimal(product.total_price)}</p>
+              </div>
+            </div>
+            <!-- Common Badge -->
+            <%= if product.is_common do %>
+              <div class="flex items-center gap-2 mb-2">
+                <span class="px-3 py-1 bg-purple-100 text-purple-800 text-xs font-semibold rounded-full">
+                  <.icon name="hero-users" class="w-3 h-3 inline mr-1" /> COMÚN - Dividido entre {
+                    @ticket.total_participants
+                  }
+                </span>
+              </div>
+            <% end %>
+            <!-- Participants -->
+            <%= if !product.is_common && length(product.participant_assignments) > 0 do %>
+              <div class="flex flex-wrap gap-2 mt-3">
+                <%= for participant <- get_product_participants(product) do %>
+                  <div class="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full">
+                    <div
+                      class="w-3 h-3 rounded-full"
+                      style={"background-color: #{participant.color}"}
+                    >
+                    </div>
+                    <span class="text-xs font-medium text-gray-700">
+                      {participant.name} ({format_decimal(participant.percentage)}%)
+                    </span>
+                  </div>
+                <% end %>
+
+                <%= if length(product.participant_assignments) > 1 && @participant_name && product_assigned_to_me?(
+                      product,
+                      @participant_name
+                    ) do %>
+                  <button
+                    phx-click="open_edit_percentages"
+                    phx-value-product_id={product.id}
+                    class="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full hover:bg-indigo-200 transition-colors"
+                  >
+                    <.icon name="hero-pencil" class="w-3 h-3 inline" /> Editar %
+                  </button>
+                <% end %>
+              </div>
+            <% end %>
+            <!-- Assignment Indicator -->
+            <%= if @participant_name && product_assigned_to_me?(product, @participant_name) && !product.is_common do %>
+              <div class="mt-3 flex items-center gap-2 text-sm text-green-700">
+                <.icon name="hero-check-circle" class="w-4 h-4" /> Asignado a ti
+              </div>
+            <% end %>
+          </div>
+
+          <div class="px-4 pb-3 text-xs text-gray-500 border-t border-gray-100 pt-2">
+            <p>👆 Click para asignar | 👉 Swipe para marcar como común</p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+    <!-- Instructions -->
+    <div class="mt-6 bg-blue-50 rounded-xl p-4 text-sm text-blue-800">
+      <p class="font-semibold mb-2">Instrucciones:</p>
+      <ul class="space-y-1 list-disc list-inside">
+        <li>Haz click en un plato para asignártelo</li>
+        <li>Desliza a la derecha para marcarlo como común</li>
+        <li>Los platos comunes se dividen entre todos los participantes</li>
+        <li>Puedes editar los porcentajes de platos compartidos</li>
+      </ul>
+    </div>
+  </div>
+  <!-- Name Modal -->
+  <%= if @show_name_modal do %>
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+        <h2 class="text-2xl font-bold text-gray-900 mb-4">¿Cómo te llamas?</h2>
+        <p class="text-gray-600 mb-6">
+          Introduce tu nombre para empezar a dividir la cuenta. Intenta usar un nombre único para evitar confusiones.
+        </p>
+        <form phx-submit="set_participant_name">
+          <input
+            type="text"
+            name="name"
+            placeholder="Tu nombre"
+            required
+            autofocus
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 mb-4"
+          />
+          <button
+            type="submit"
+            class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Continuar
+          </button>
+        </form>
+      </div>
+    </div>
+  <% end %>
+  <!-- Summary Modal -->
+  <%= if @show_summary_modal do %>
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-6">
+          <h2 class="text-2xl font-bold text-gray-900">Resumen</h2>
+          <button
+            phx-click="close_summary"
+            class="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <.icon name="hero-x-mark" class="w-6 h-6" />
+          </button>
+        </div>
+        <!-- Participants -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">Participantes</h3>
+          <div class="space-y-2">
+            <%= for participant <- get_all_participants(assigns) do %>
+              <% summary = calculate_participant_summary(@ticket.id, participant) %>
+              <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-3">
+                  <div
+                    class="w-4 h-4 rounded-full"
+                    style={"background-color: #{participant.color}"}
+                  >
+                  </div>
+                  <span class="font-medium text-gray-900">{summary.name}</span>
+                </div>
+                <span class="text-lg font-semibold text-gray-900">
+                  €{format_decimal(summary.total)}
+                </span>
+              </div>
+            <% end %>
+          </div>
+        </div>
+        <!-- Totals -->
+        <div class="border-t border-gray-200 pt-4 space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Total del ticket:</span>
+            <span class="font-semibold">€{format_decimal(calculate_ticket_total(@products))}</span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-600">Total asignado:</span>
+            <span class="font-semibold">€{format_decimal(calculate_total_assigned(@products))}</span>
+          </div>
+          <div class="flex justify-between text-lg font-bold pt-2 border-t">
+            <span>Pendiente:</span>
+            <span class="text-red-600">
+              €{format_decimal(
+                Decimal.sub(
+                  calculate_ticket_total(@products),
+                  calculate_total_assigned(@products)
+                )
+              )}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+  <!-- Edit Percentages Modal -->
+  <%= if @editing_percentages_product_id do %>
+    <% product = Enum.find(@products, &(&1.id == @editing_percentages_product_id)) %>
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
+        <div class="flex justify-between items-start mb-6">
+          <h2 class="text-xl font-bold text-gray-900">Editar porcentajes</h2>
+          <button
+            phx-click="close_edit_percentages"
+            class="text-gray-500 hover:text-gray-700 transition-colors"
+          >
+            <.icon name="hero-x-mark" class="w-6 h-6" />
+          </button>
+        </div>
+
+        <p class="text-sm text-gray-600 mb-4">{product.name}</p>
+
+        <form phx-submit="save_percentages">
+          <div class="space-y-3 mb-6">
+            <%= for assignment <- product.participant_assignments do %>
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-3 h-3 rounded-full flex-shrink-0"
+                  style={"background-color: #{assignment.assigned_color}"}
+                >
+                </div>
+                <span class="text-sm font-medium text-gray-700 flex-1">
+                  {assignment.participant_name}
+                </span>
+                <input
+                  type="number"
+                  name={"assignments[#{assignment.id}]"}
+                  value={format_decimal(assignment.percentage)}
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  required
+                  class="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-right"
+                />
+                <span class="text-sm text-gray-600">%</span>
+              </div>
+            <% end %>
+          </div>
+
+          <p class="text-xs text-gray-500 mb-4">
+            Los porcentajes deben sumar 100%
+          </p>
+
+          <button
+            type="submit"
+            class="w-full px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Guardar
+          </button>
+        </form>
+      </div>
+    </div>
+  <% end %>
+</div>

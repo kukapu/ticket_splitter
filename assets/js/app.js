@@ -25,11 +25,59 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/ticket_splitter"
 import topbar from "../vendor/topbar"
 
+// Custom Hooks
+const Hooks = {}
+
+// ParticipantStorage Hook - Manages participant name in localStorage
+Hooks.ParticipantStorage = {
+  mounted() {
+    const name = localStorage.getItem('participant_name')
+    this.pushEvent("participant_name_from_storage", { name: name || "" })
+
+    this.handleEvent("save_participant_name", ({ name }) => {
+      localStorage.setItem('participant_name', name)
+    })
+  }
+}
+
+// SwipeHandler Hook - Detects swipe right gestures
+Hooks.SwipeHandler = {
+  mounted() {
+    let startX = 0
+    let startY = 0
+    let el = this.el
+
+    el.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+    }, { passive: true })
+
+    el.addEventListener('touchend', (e) => {
+      const endX = e.changedTouches[0].clientX
+      const endY = e.changedTouches[0].clientY
+      const diffX = endX - startX
+      const diffY = endY - startY
+
+      // Swipe right detected (horizontal swipe > 100px, vertical < 50px)
+      if (diffX > 100 && Math.abs(diffY) < 50) {
+        const productId = el.dataset.productId
+        this.pushEvent("toggle_common", { product_id: productId })
+
+        // Visual feedback
+        el.style.transform = 'translateX(20px)'
+        setTimeout(() => {
+          el.style.transform = 'translateX(0)'
+        }, 200)
+      }
+    }, { passive: true })
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...Hooks},
 })
 
 // Show progress bar on live navigation and form submits

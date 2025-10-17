@@ -1,6 +1,8 @@
 defmodule TicketSplitterWeb.HomeLive do
   use TicketSplitterWeb, :live_view
 
+  alias TicketSplitter.Tickets
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -13,7 +15,8 @@ defmodule TicketSplitterWeb.HomeLive do
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
         max_file_size: 10_000_000,
-        auto_upload: true
+        auto_upload: true,
+        progress: &handle_progress/3
       )
 
     {:ok, socket}
@@ -21,6 +24,16 @@ defmodule TicketSplitterWeb.HomeLive do
 
   @impl true
   def handle_event("validate", _params, socket) do
+    IO.puts("🔍 Validating upload...")
+    IO.puts("📝 Entries: #{length(socket.assigns.uploads.image.entries)}")
+
+    Enum.each(socket.assigns.uploads.image.entries, fn entry ->
+      IO.puts("  - Entry: #{entry.client_name} (#{entry.client_size} bytes)")
+      IO.puts("    Valid: #{entry.valid?}")
+      IO.puts("    Progress: #{entry.progress}%")
+      IO.puts("    Done: #{entry.done?}")
+    end)
+
     {:noreply, socket}
   end
 
@@ -81,10 +94,32 @@ defmodule TicketSplitterWeb.HomeLive do
     case make_openrouter_request(uploaded_file) do
       {:ok, response} ->
         IO.puts("✅ Respuesta exitosa de OpenRouter")
-        socket
-        |> assign(:result, response)
-        |> assign(:processing, false)
-        |> assign(:error, nil)
+
+        # Parsear el JSON de la respuesta
+        case parse_openrouter_response(response) do
+          {:ok, products_json} ->
+            # Guardar el ticket en la base de datos
+            case Tickets.create_ticket_from_json(products_json, uploaded_file.filename) do
+              {:ok, ticket} ->
+                IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
+                # Redirigir a la página del ticket
+                push_navigate(socket, to: "/tickets/#{ticket.id}")
+
+              {:error, error} ->
+                IO.puts("❌ Error guardando ticket: #{inspect(error)}")
+                socket
+                |> assign(:error, "Error guardando el ticket: #{inspect(error)}")
+                |> assign(:processing, false)
+                |> assign(:result, nil)
+            end
+
+          {:error, error} ->
+            IO.puts("❌ Error parseando JSON: #{inspect(error)}")
+            socket
+            |> assign(:error, "Error parseando la respuesta: #{error}")
+            |> assign(:processing, false)
+            |> assign(:result, nil)
+        end
 
       {:error, error} ->
         IO.puts("❌ Error en OpenRouter: #{inspect(error)}")
@@ -92,6 +127,46 @@ defmodule TicketSplitterWeb.HomeLive do
         |> assign(:error, "Error procesando la imagen: #{inspect(error)}")
         |> assign(:processing, false)
         |> assign(:result, nil)
+    end
+  end
+
+  defp parse_openrouter_response(response) do
+    IO.puts("\n🔍 Parseando respuesta de OpenRouter...")
+
+    with {:ok, choices} <- Map.fetch(response, "choices"),
+         [first_choice | _] <- choices,
+         {:ok, message} <- Map.fetch(first_choice, "message"),
+         {:ok, content} <- Map.fetch(message, "content") do
+      IO.puts("📝 Content recibido (primeros 500 chars):")
+      IO.puts(String.slice(content, 0, 500))
+
+      # Limpiar markdown code blocks (```json ... ```)
+      cleaned_content =
+        content
+        |> String.replace(~r/^```json\s*/m, "")
+        |> String.replace(~r/```\s*$/m, "")
+        |> String.trim()
+
+      IO.puts("\n🧹 Content limpiado (primeros 500 chars):")
+      IO.puts(String.slice(cleaned_content, 0, 500))
+
+      # El content debería ser un JSON string
+      case Jason.decode(cleaned_content) do
+        {:ok, json} ->
+          IO.puts("✅ JSON parseado exitosamente:")
+          IO.inspect(json, pretty: true, limit: :infinity)
+          {:ok, json}
+
+        {:error, error} ->
+          IO.puts("❌ Error al parsear JSON:")
+          IO.inspect(error)
+          {:error, "El contenido no es JSON válido"}
+      end
+    else
+      error ->
+        IO.puts("❌ Error en el formato de respuesta:")
+        IO.inspect(error)
+        {:error, "Formato de respuesta inválido"}
     end
   end
 
@@ -127,7 +202,7 @@ defmodule TicketSplitterWeb.HomeLive do
             ]
           }
         ],
-        "max_tokens" => 1000
+        "max_tokens" => 10000
       }
 
       headers = [
@@ -146,6 +221,8 @@ defmodule TicketSplitterWeb.HomeLive do
            ) do
         {:ok, %{status: 200, body: body}} ->
           IO.puts("✅ Respuesta HTTP 200 recibida")
+          IO.puts("📦 Body completo de OpenRouter:")
+          IO.inspect(body, pretty: true, limit: :infinity)
           {:ok, body}
 
         {:ok, %{status: status, body: body}} ->

@@ -25,7 +25,7 @@ Output: one single valid JSON object only, following this schema:
 
 3. **Modifiers with +/-**:  
    - If a line has a price and starts with `+` or `-`, or contains keywords like "EXTRA", "SIDE", "GUARNICION", attach it to the nearest main product above (within 2 lines).  
-   - Adjust the product's total_price (subtract negatives, add positives).  
+   - Adjust the product’s total_price (subtract negatives, add positives).  
    - Do not create a separate product for modifiers.  
    - Final `unit_price` = adjusted total / units.
 
