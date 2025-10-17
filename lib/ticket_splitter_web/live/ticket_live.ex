@@ -25,6 +25,7 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:participant_color, nil)
       |> assign(:show_name_modal, false)
       |> assign(:show_summary_modal, false)
+      |> assign(:show_instructions, false)
       |> assign(:editing_percentages_product_id, nil)
       |> assign(:my_total, Decimal.new("0"))
 
@@ -156,6 +157,11 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("close_summary", _params, socket) do
     {:noreply, assign(socket, :show_summary_modal, false)}
+  end
+
+  @impl true
+  def handle_event("toggle_instructions", _params, socket) do
+    {:noreply, assign(socket, :show_instructions, !socket.assigns.show_instructions)}
   end
 
   @impl true

@@ -171,3 +171,372 @@
     transform: rotate(360deg);
   }
 }
+
+/* Visual colored cards styles */
+.colored-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.colored-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.colored-card:hover::before {
+  opacity: 1;
+}
+
+.colored-card:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Split card styles */
+.split-card {
+  min-height: 100px;
+  display: flex;
+  position: relative;
+}
+
+.split-card-participant {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.split-card-participant::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.split-card-participant:last-child::after {
+  display: none;
+}
+
+.split-card-participant:hover {
+  z-index: 10;
+  transform: scale(1.05);
+}
+
+/* Participant indicator dots */
+.participant-dot {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.participant-dot:hover {
+  transform: scale(1.2);
+  z-index: 20;
+}
+
+.participant-dot.has-checkmark::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 8px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Available units card */
+.available-units-card {
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #374151 0%, #1F2937 100%);
+  border-style: dashed;
+  position: relative;
+  overflow: hidden;
+}
+
+.available-units-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.1) 0%, transparent 70%);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+.available-units-card:hover {
+  border-color: #8B5CF6;
+  border-style: solid;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.3);
+}
+
+/* Product header improvements */
+.product-header {
+  background: linear-gradient(135deg, #1F2937 0%, #111827 100%);
+  position: relative;
+}
+
+.product-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #4B5563, transparent);
+}
+
+/* Stack layout for full-width rows */
+.cards-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Split card row styles */
+.split-card-row {
+  min-height: 56px;
+  width: 100%;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.split-card-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* Stacked row effect with shadow layers */
+.cards-stack .colored-card {
+  position: relative;
+  z-index: 1;
+}
+
+.cards-stack .colored-card:nth-child(1) { z-index: 5; }
+.cards-stack .colored-card:nth-child(2) { z-index: 4; }
+.cards-stack .colored-card:nth-child(3) { z-index: 3; }
+.cards-stack .colored-card:nth-child(4) { z-index: 2; }
+.cards-stack .colored-card:nth-child(5) { z-index: 1; }
+
+/* Subtle overlay effect for stacked appearance */
+.cards-stack .colored-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cards-stack .colored-card:hover::after {
+  opacity: 1;
+}
+
+/* Enhanced split card row styling */
+.split-card-row .split-card-participant {
+  min-height: 56px;
+  position: relative;
+}
+
+.split-card-row .split-card-participant::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+}
+
+.split-card-row .split-card-participant:last-child::before {
+  display: none;
+}
+
+/* Full-width card enhancements */
+.cards-stack .colored-card {
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.cards-stack .colored-card:last-child {
+  margin-bottom: 0;
+}
+
+/* Animation for new cards appearing */
+@keyframes slideInScale {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.new-card {
+  animation: slideInScale 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Touch-friendly mobile styles */
+@media (max-width: 640px) {
+  .colored-card {
+    min-height: 48px;
+    padding: 0.5rem;
+  }
+
+  .split-card-row {
+    min-height: 48px;
+  }
+
+  .split-card-row .split-card-participant {
+    padding: 0.5rem;
+    min-height: 48px;
+  }
+
+  .cards-stack {
+    gap: 0.2rem;
+  }
+
+  .cards-stack .colored-card {
+    margin-bottom: 0.2rem;
+  }
+
+  /* Adjust text sizes for mobile */
+  .split-card-row .text-base {
+    font-size: 0.8rem;
+  }
+
+  .split-card-row .text-lg {
+    font-size: 0.85rem;
+  }
+
+  .split-card-row .text-sm {
+    font-size: 0.7rem;
+  }
+
+  /* Compact participant dots on mobile */
+  .participant-dot {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .split-card-row {
+    min-height: 44px;
+  }
+
+  .split-card-row .split-card-participant {
+    padding: 0.4rem;
+    min-height: 44px;
+  }
+
+  .cards-stack .colored-card {
+    padding: 0.4rem 0.4rem 0.4rem 0.8rem;
+  }
+
+  .cards-stack .colored-card .p-4 {
+    padding: 0.5rem !important;
+  }
+
+  .cards-stack .colored-card .pl-6 {
+    padding-left: 0.8rem !important;
+  }
+
+  /* Even smaller text for very small screens */
+  .split-card-row .text-base {
+    font-size: 0.75rem;
+  }
+
+  .split-card-row .text-lg {
+    font-size: 0.8rem;
+  }
+
+  .participant-dot {
+    width: 16px !important;
+    height: 16px !important;
+  }
+}
+
+/* Smooth transitions for collapsible instructions */
+.instructions-content {
+  transition: all 0.3s ease;
+  max-height: 0;
+  overflow: hidden;
+}
+
+.instructions-content.show {
+  max-height: 200px;
+}
+
+/* Compact scrollbar for better mobile experience */
+.ticket-container {
+  scrollbar-width: thin;
+  scrollbar-color: #4B5563 #1F2937;
+}
+
+.ticket-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ticket-container::-webkit-scrollbar-track {
+  background: #1F2937;
+}
+
+.ticket-container::-webkit-scrollbar-thumb {
+  background: #4B5563;
+  border-radius: 3px;
+}
+
+.ticket-container::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .ticket-product-row {
+    padding: 0.5rem;
+  }
+
+  .ticket-unit-card {
+    padding: 0.5rem;
+    min-width: 60px;
+  }
+
+  .participant-avatars {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ticket-product-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .ticket-unit-card {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
