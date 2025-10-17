@@ -159,7 +159,21 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("show_summary", _params, socket) do
-    {:noreply, assign(socket, :show_summary_modal, true)}
+    # Pre-calcular todos los datos que necesita el modal
+    participants = get_all_participants(socket.assigns)
+    participant_summaries = Enum.map(participants, fn participant ->
+      calculate_participant_summary(socket.assigns.ticket.id, participant)
+    end)
+    total_ticket = calculate_ticket_total(socket.assigns.products)
+    total_assigned = calculate_total_assigned(socket.assigns.products)
+    pending = Decimal.sub(total_ticket, total_assigned)
+
+    {:noreply, socket
+      |> assign(:show_summary_modal, true)
+      |> assign(:participants_for_summary, participant_summaries)
+      |> assign(:total_ticket_for_summary, total_ticket)
+      |> assign(:total_assigned_for_summary, total_assigned)
+      |> assign(:pending_for_summary, pending)}
   end
 
   @impl true
@@ -312,8 +326,12 @@ defmodule TicketSplitterWeb.TicketLive do
     |> Decimal.to_string()
   end
 
-  defp get_all_participants(socket) do
-    Tickets.get_ticket_participants(socket.assigns.ticket.id)
+  defp get_all_participants(%{assigns: assigns}) do
+    Tickets.get_ticket_participants(assigns.ticket.id)
+  end
+
+  defp get_all_participants(assigns) when is_map(assigns) do
+    Tickets.get_ticket_participants(assigns.ticket.id)
   end
 
   defp calculate_participant_summary(ticket_id, participant) do
