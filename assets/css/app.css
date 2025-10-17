@@ -590,3 +590,66 @@
     justify-content: space-between;
   }
 }
+
+/* LongPressHandler specific styles */
+.available-units-card[data-is-common="false"] {
+  cursor: pointer;
+}
+
+.available-units-card[data-is-common="false"]:active {
+  transform: scale(0.98);
+}
+
+/* Visual feedback for long press */
+.available-units-card.long-pressing {
+  animation: longPressPulse 0.8s ease-in-out;
+}
+
+@keyframes longPressPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+  }
+  100% {
+    transform: scale(1.02);
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
+  }
+}
+
+/* Enhanced tooltip for long press instruction */
+.available-units-card[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(31, 41, 55, 0.95);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 1000;
+  pointer-events: none;
+  margin-bottom: 0.5rem;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* Purple glow effect for common indicator */
+.available-units-card:hover .bg-purple-600 {
+  animation: purpleGlow 2s ease-in-out infinite;
+}
+
+@keyframes purpleGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
+  }
+}

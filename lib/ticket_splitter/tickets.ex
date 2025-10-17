@@ -29,7 +29,7 @@ defmodule TicketSplitter.Tickets do
   def get_ticket_with_products!(id) do
     Ticket
     |> Repo.get!(id)
-    |> Repo.preload(products: [:participant_assignments])
+    |> Repo.preload(products: from(p in Product, order_by: [asc: p.position], preload: [:participant_assignments]))
   end
 
   @doc """
@@ -119,6 +119,27 @@ defmodule TicketSplitter.Tickets do
   """
   def toggle_product_common(%Product{} = product) do
     update_product(product, %{is_common: !product.is_common})
+  end
+
+  @doc """
+  Makes a product common if it has no assignments.
+  Returns error if product already has participant assignments.
+  """
+  def make_product_common(%Product{} = product) do
+    assignments = list_assignments_by_product(product.id)
+
+    if length(assignments) == 0 do
+      update_product(product, %{is_common: true})
+    else
+      {:error, :has_assignments}
+    end
+  end
+
+  @doc """
+  Makes a product not common (removes from common status).
+  """
+  def make_product_not_common(%Product{} = product) do
+    update_product(product, %{is_common: false})
   end
 
   ## ParticipantAssignment functions
@@ -500,7 +521,7 @@ defmodule TicketSplitter.Tickets do
       # Create products from JSON
       products = products_json["products"] || []
 
-      Enum.each(products, fn product_data ->
+      Enum.with_index(products, fn product_data, index ->
         create_product(%{
           ticket_id: ticket.id,
           name: product_data["name"],
@@ -508,7 +529,8 @@ defmodule TicketSplitter.Tickets do
           unit_price: Decimal.new(to_string(product_data["unit_price"])),
           total_price: Decimal.new(to_string(product_data["total_price"])),
           confidence: Decimal.new(to_string(product_data["confidence"] || 0)),
-          is_common: false
+          is_common: false,
+          position: index
         })
       end)
 

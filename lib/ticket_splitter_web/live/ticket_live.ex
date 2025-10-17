@@ -48,8 +48,31 @@ defmodule TicketSplitterWeb.TicketLive do
       get_deterministic_color(name, existing_participants)
     end
 
+    # Actualizar automáticamente el número de participantes si es necesario
+    current_participants_count = length(existing_participants)
+
+    # Si el participante ya existe, no aumentar el conteo
+    final_participants_count = if Enum.any?(existing_participants, fn p -> p.name == name end) do
+      current_participants_count
+    else
+      current_participants_count + 1
+    end
+
+    # Actualizar el ticket si el número de participantes es mayor que el configurado
+    ticket = if final_participants_count > socket.assigns.ticket.total_participants do
+      {:ok, updated_ticket} = Tickets.update_ticket(socket.assigns.ticket, %{total_participants: final_participants_count})
+
+      # Broadcast a todos los usuarios sobre el cambio
+      broadcast_ticket_update(socket.assigns.ticket.id)
+
+      updated_ticket
+    else
+      socket.assigns.ticket
+    end
+
     socket =
       socket
+      |> assign(:ticket, ticket)
       |> assign(:participant_name, name)
       |> assign(:participant_color, color)
       |> assign(:show_name_modal, false)
@@ -133,10 +156,75 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
+  def handle_event("make_common", %{"product_id" => product_id}, socket) do
+    product = Tickets.get_product!(product_id)
+
+    case Tickets.make_product_common(product) do
+      {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recargar ticket
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> calculate_my_total()
+
+        {:noreply, socket}
+
+      {:error, :has_assignments} ->
+        # El producto ya tiene asignaciones, no se puede hacer común
+        socket =
+          socket
+          |> put_flash(:error, "Este producto ya tiene asignaciones y no puede hacerse común")
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_from_common", %{"product_id" => product_id}, socket) do
+    product = Tickets.get_product!(product_id)
+
+    case Tickets.make_product_not_common(product) do
+      {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recargar ticket
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> calculate_my_total()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_event("update_total_participants", %{"value" => value}, socket) do
     case Integer.parse(value) do
       {num, _} when num > 0 ->
-        case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: num}) do
+        # Obtener el número real de participantes actuales
+        current_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id) |> length()
+
+        # El mínimo debe ser el número real de participantes
+        min_participants = max(current_participants, 1)
+        final_num = max(num, min_participants)
+
+        case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: final_num}) do
           {:ok, ticket} ->
             # Broadcast a todos los usuarios conectados
             broadcast_ticket_update(socket.assigns.ticket.id)
@@ -165,7 +253,7 @@ defmodule TicketSplitterWeb.TicketLive do
       calculate_participant_summary(socket.assigns.ticket.id, participant)
     end)
     total_ticket = calculate_ticket_total(socket.assigns.products)
-    total_assigned = calculate_total_assigned(socket.assigns.products)
+    total_assigned = calculate_total_assigned(socket.assigns.products, socket.assigns.ticket.total_participants)
     pending = Decimal.sub(total_ticket, total_assigned)
 
     {:noreply, socket
@@ -339,23 +427,29 @@ defmodule TicketSplitterWeb.TicketLive do
     %{name: participant.name, color: participant.color, total: total}
   end
 
-  defp calculate_total_assigned(products) do
+  defp calculate_total_assigned(products, total_participants) do
     Enum.reduce(products, Decimal.new("0"), fn product, acc ->
       if product.is_common do
+        # For common products, add the FULL price (it's completely assigned)
         Decimal.add(acc, product.total_price)
       else
-        product_total =
-          Enum.reduce(product.participant_assignments, Decimal.new("0"), fn pa, prod_acc ->
-            share =
-              Decimal.mult(
-                product.total_price,
-                Decimal.div(pa.percentage, Decimal.new("100"))
-              )
-
-            Decimal.add(prod_acc, share)
+        # For non-common products, calculate based on assigned units
+        # Get all unique assignment groups for this product
+        assigned_groups =
+          product.participant_assignments
+          |> Enum.group_by(fn pa -> pa.assignment_group_id end)
+          |> Enum.map(fn {_group_id, assignments} ->
+            # All assignments in a group share the same units
+            units = (hd(assignments).units_assigned || Decimal.new("0"))
+            # Calculate cost for these units
+            unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+            Decimal.mult(unit_cost, units)
+          end)
+          |> Enum.reduce(Decimal.new("0"), fn group_cost, total ->
+            Decimal.add(total, group_cost)
           end)
 
-        Decimal.add(acc, product_total)
+        Decimal.add(acc, assigned_groups)
       end
     end)
   end
