@@ -34,11 +34,19 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("set_participant_name", %{"name" => name}, socket) do
-    # Asignar color único al participante
+    # Asignar color consistente basado en el nombre del usuario
     existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
-    used_colors = Enum.map(existing_participants, & &1.color)
-    available_colors = @colors -- used_colors
-    color = Enum.random(available_colors || @colors)
+
+    # Primero, verificar si el usuario ya tiene asignaciones previas con un color
+    existing_user_color = get_existing_user_color(socket.assigns.ticket.id, name)
+
+    color = if existing_user_color do
+      # Usar el color existente del usuario
+      existing_user_color
+    else
+      # Generar color determinista basado en el nombre
+      get_deterministic_color(name, existing_participants)
+    end
 
     socket =
       socket
@@ -330,5 +338,46 @@ defmodule TicketSplitterWeb.TicketLive do
     Enum.reduce(products, Decimal.new("0"), fn product, acc ->
       Decimal.add(acc, product.total_price)
     end)
+  end
+
+  # Obtiene el color existente de un usuario basado en sus asignaciones previas
+  defp get_existing_user_color(ticket_id, participant_name) do
+    # Buscar todas las asignaciones del usuario en este ticket
+    assignments =
+      TicketSplitter.Tickets.get_participant_assignments_by_ticket(ticket_id, participant_name)
+
+    # Si tiene asignaciones, usar el color de la primera
+    case assignments do
+      [first_assignment | _] -> first_assignment.assigned_color
+      [] -> nil
+    end
+  end
+
+  # Genera un color determinista basado en el nombre del usuario
+  defp get_deterministic_color(name, existing_participants) do
+    # Obtener colores ya usados
+    used_colors = Enum.map(existing_participants, & &1.color)
+
+    # Generar hash del nombre para obtener siempre el mismo índice
+    name_hash = :erlang.phash2(name)
+    color_index = rem(name_hash, length(@colors))
+
+    # Encontrar un color disponible empezando desde el índice determinista
+    color = get_available_color_from_index(color_index, used_colors)
+
+    color
+  end
+
+  # Encuentra el siguiente color disponible desde un índice inicial
+  defp get_available_color_from_index(start_index, used_colors) do
+    # Probar colores desde el índice inicial en adelante
+    {color, _} =
+      Stream.iterate(start_index, &rem(&1 + 1, length(@colors)))
+      |> Stream.map(&Enum.at(@colors, &1))
+      |> Stream.reject(&(&1 in used_colors))
+      |> Enum.take(1)
+      |> List.pop_at(0) || {Enum.at(@colors, start_index), start_index}
+
+    color
   end
 end
