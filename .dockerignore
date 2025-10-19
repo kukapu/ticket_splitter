@@ -1,0 +1,47 @@
+# Build artifacts
+_build/
+deps/
+*.beam
+*.dump
+erl_crash.dump
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+
+# Runtime data
+pids/
+*.pid
+*.seed
+
+# Documentation
+doc/
+*.txt
+
+# Static files (built in production)
+priv/static/
+
+# Test coverage
+cover/
+*.cover
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

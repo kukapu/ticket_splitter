@@ -1,0 +1,66 @@
+services:
+  app:
+    env_file:
+      - .env.dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: ticket_splitter:dev
+    container_name: ticket_splitter_dev
+    restart: unless-stopped
+    environment:
+      - MIX_ENV=dev_docker
+      - PORT=4000
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/ticket_splitter_dev
+      - SECRET_KEY_BASE=91ZG1WKwd0Yp5Q4KFzGbUHi/+bUaoA9IbmqrY4orfVIpHsWAfrRb63LB14Kyz/OB
+      - PHX_HOST=localhost
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o}
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - app_deps:/app/deps
+      - app_build:/app/_build
+    networks:
+      - ticket_network
+    command: >
+      sh -c "
+        mix deps.get &&
+        mix ecto.create &&
+        mix ecto.migrate &&
+        mix phx.server
+      "
+
+  db:
+    image: postgres:15-alpine
+    container_name: ticket_splitter_db_dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ticket_splitter_dev
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - ticket_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_dev_data:
+  app_deps:
+  app_build:
+
+networks:
+  ticket_network:
+    driver: bridge

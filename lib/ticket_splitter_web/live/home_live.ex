@@ -188,8 +188,9 @@ defmodule TicketSplitterWeb.HomeLive do
     IO.puts("🤖 Modelo: #{model}")
     IO.puts("💬 Prompt: #{String.slice(prompt, 0, 50)}...")
 
-    unless api_key do
-      {:error, "API key no configurada"}
+    unless api_key && api_key != "" && !String.starts_with?(api_key, "your_") do
+      IO.puts("❌ API key no configurada o inválida")
+      {:error, "API key de OpenRouter no configurada. Por favor, configura OPENROUTER_API_KEY en el archivo .env.dev"}
     else
       payload = %{
         "model" => model,
