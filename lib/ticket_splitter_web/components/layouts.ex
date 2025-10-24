@@ -35,14 +35,14 @@ defmodule TicketSplitterWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="bg-gray-900 border-b border-gray-800">
+    <header class="bg-base-300 border-b border-base-content/20">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <a href="/" class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <span class="text-white text-sm font-bold">TS</span>
+            <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+              <span class="text-primary-content text-sm font-bold">TS</span>
             </div>
-            <span class="text-xl font-bold text-white">Ticket Splitter</span>
+            <span class="text-xl font-bold text-base-content">Ticket Splitter</span>
           </a>
           <div>
             <.theme_toggle />
@@ -51,7 +51,7 @@ defmodule TicketSplitterWeb.Layouts do
       </div>
     </header>
 
-    <main>
+    <main class="bg-base-100 min-h-screen">
       {render_slot(@inner_block)}
     </main>
 
@@ -110,7 +110,7 @@ defmodule TicketSplitterWeb.Layouts do
   def theme_toggle(assigns) do
     ~H"""
     <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left] shadow-md" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"

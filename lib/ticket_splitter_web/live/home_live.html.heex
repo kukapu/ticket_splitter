@@ -1,5 +1,5 @@
 <Layouts.app flash={@flash}>
-  <div class="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+  <div class="min-h-screen bg-base-100 flex items-center justify-center px-4">
     <div class="max-w-md w-full">
       <!-- Hidden upload input (siempre presente para que funcione auto_upload) -->
       <form id="upload-form" phx-submit="validate" phx-change="validate" class="hidden">
@@ -11,26 +11,26 @@
       <!-- Processing Loader -->
       <%= if @processing do %>
         <div class="text-center py-12">
-          <div class="inline-block w-16 h-16 border-4 border-gray-700 border-t-purple-500 rounded-full animate-spin mb-6"></div>
-          <p class="text-gray-300 text-lg font-medium animate-pulse">
+          <div class="inline-block w-16 h-16 border-4 border-base-300 border-t-primary rounded-full animate-spin mb-6"></div>
+          <p class="text-base-content/70 text-lg font-medium animate-pulse">
             Analizando tu ticket...
           </p>
         </div>
       <% else %>
         <!-- Upload Area -->
-        <div class="bg-gray-800 rounded-3xl shadow-2xl border border-gray-700 overflow-hidden">
+        <div class="bg-base-200 rounded-3xl shadow-2xl border border-base-300 overflow-hidden">
           <div class="p-8">
             <!-- Simple Upload Button -->
             <div class="text-center space-y-6">
-              <div class="mx-auto w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-                <.icon name="hero-camera" class="w-12 h-12 text-white" />
+              <div class="mx-auto w-24 h-24 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-lg">
+                <.icon name="hero-camera" class="w-12 h-12 text-primary-content" />
               </div>
 
               <div>
-                <h3 class="text-xl font-semibold text-white mb-2">
+                <h3 class="text-xl font-semibold text-base-content mb-2">
                   Sube tu ticket
                 </h3>
-                <p class="text-gray-400 text-sm">
+                <p class="text-base-content/50 text-sm">
                   JPG, PNG o WEBP (máx. 10MB)
                 </p>
               </div>
@@ -39,7 +39,7 @@
               <div class="space-y-3">
                 <button
                   type="button"
-                  class="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  class="w-full px-6 py-4 bg-gradient-to-r from-primary to-secondary text-primary-content font-semibold rounded-xl hover:from-primary/90 hover:to-secondary/90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   onclick="document.querySelector('#upload-form input[type=file]').click()"
                 >
                   <.icon name="hero-photo" class="w-5 h-5 inline mr-2" />
@@ -49,7 +49,7 @@
                 <!-- Camera Button (Mobile) -->
                 <button
                   type="button"
-                  class="w-full px-6 py-4 bg-gray-700 text-white font-semibold rounded-xl hover:bg-gray-600 transition-all duration-200 shadow-lg sm:hidden"
+                  class="w-full px-6 py-4 bg-base-300 text-base-content font-semibold rounded-xl hover:bg-base-300/80 transition-all duration-200 shadow-lg sm:hidden"
                   onclick="document.querySelector('#upload-form input[type=file]').setAttribute('capture', 'environment'); document.querySelector('#upload-form input[type=file]').click();"
                 >
                   <.icon name="hero-camera" class="w-5 h-5 inline mr-2" />
@@ -59,7 +59,7 @@
 
               <!-- Upload Errors -->
               <%= for err <- upload_errors(@uploads.image) do %>
-                <div class="mt-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-sm text-red-300">
+                <div class="mt-4 p-3 bg-error/20 border border-error rounded-lg text-sm text-error-content">
                   {error_to_string(err)}
                 </div>
               <% end %>
@@ -70,15 +70,15 @@
 
       <!-- Error Display -->
       <%= if @error do %>
-        <div class="mt-6 bg-red-900/50 border border-red-700 rounded-xl p-6 text-center">
-          <div class="mx-auto w-12 h-12 bg-red-800 rounded-full flex items-center justify-center mb-3">
-            <.icon name="hero-exclamation-triangle" class="w-6 h-6 text-red-300" />
+        <div class="mt-6 bg-error/20 border border-error rounded-xl p-6 text-center">
+          <div class="mx-auto w-12 h-12 bg-error rounded-full flex items-center justify-center mb-3">
+            <.icon name="hero-exclamation-triangle" class="w-6 h-6 text-error-content" />
           </div>
-          <h3 class="text-lg font-semibold text-red-200 mb-2">Error</h3>
-          <p class="text-red-300 text-sm mb-4">{@error}</p>
+          <h3 class="text-lg font-semibold text-error-content mb-2">Error</h3>
+          <p class="text-error-content/80 text-sm mb-4">{@error}</p>
           <button
             phx-click="clear-result"
-            class="px-4 py-2 bg-red-700 text-white font-medium rounded-lg hover:bg-red-600 transition-colors duration-200"
+            class="px-4 py-2 bg-error text-error-content font-medium rounded-lg hover:bg-error/80 transition-colors duration-200"
           >
             Reintentar
           </button>
