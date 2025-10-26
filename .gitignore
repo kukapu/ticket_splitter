@@ -37,3 +37,8 @@ npm-debug.log
 
 .env*
 !.env.example
+!.env.dev.example
+
+# MDs
+*.md
+!README.md
