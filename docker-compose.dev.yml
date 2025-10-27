@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    image: ticket_splitter:dev
     container_name: ticket_splitter_dev
     restart: unless-stopped
     environment:
