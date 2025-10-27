@@ -61,6 +61,34 @@ defmodule TicketSplitterWeb.HomeLive do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_info({ref, result}, socket) when is_reference(ref) do
+    # Limpiar el task completado
+    Process.demonitor(ref, [:flush])
+
+    case result do
+      {:ok, ticket} ->
+        IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
+        {:noreply, push_navigate(socket, to: "/tickets/#{ticket.id}")}
+
+      {:error, error} ->
+        IO.puts("❌ Error procesando imagen: #{inspect(error)}")
+        socket =
+          socket
+          |> assign(:error, "Error procesando la imagen: #{error}")
+          |> assign(:processing, false)
+          |> assign(:result, nil)
+
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    # Task terminado (normal o con error)
+    {:noreply, socket}
+  end
+
   def handle_progress(:image, entry, socket) do
     IO.puts("📤 Progress: #{entry.progress}% - #{entry.client_name}")
 
@@ -80,11 +108,14 @@ defmodule TicketSplitterWeb.HomeLive do
           }}
         end)
 
+      # Iniciar tarea asíncrona para procesar la imagen
+      task = Task.async(fn -> process_image_async(uploaded_file) end)
+
       socket =
         socket
         |> update(:uploaded_files, &(&1 ++ [uploaded_file]))
         |> assign(:processing, true)
-        |> process_image(uploaded_file)
+        |> assign(:processing_task, task)
 
       {:noreply, socket}
     else
@@ -92,49 +123,22 @@ defmodule TicketSplitterWeb.HomeLive do
     end
   end
 
-  defp process_image(socket, uploaded_file) do
+  defp process_image_async(uploaded_file) do
     # Log para debug
     IO.puts("🔄 Procesando imagen: #{uploaded_file.filename}")
     IO.puts("📁 Tipo de contenido: #{uploaded_file.content_type}")
     IO.puts("📊 Tamaño base64: #{String.length(uploaded_file.base64)} caracteres")
 
     # Aquí haremos la petición a OpenRouter
-    case make_openrouter_request(uploaded_file) do
-      {:ok, response} ->
-        IO.puts("✅ Respuesta exitosa de OpenRouter")
-
-        # Parsear el JSON de la respuesta
-        case parse_openrouter_response(response) do
-          {:ok, products_json} ->
-            # Guardar el ticket en la base de datos
-            case Tickets.create_ticket_from_json(products_json, uploaded_file.filename) do
-              {:ok, ticket} ->
-                IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
-                # Redirigir a la página del ticket
-                push_navigate(socket, to: "/tickets/#{ticket.id}")
-
-              {:error, error} ->
-                IO.puts("❌ Error guardando ticket: #{inspect(error)}")
-                socket
-                |> assign(:error, "Error guardando el ticket: #{inspect(error)}")
-                |> assign(:processing, false)
-                |> assign(:result, nil)
-            end
-
-          {:error, error} ->
-            IO.puts("❌ Error parseando JSON: #{inspect(error)}")
-            socket
-            |> assign(:error, "Error parseando la respuesta: #{error}")
-            |> assign(:processing, false)
-            |> assign(:result, nil)
-        end
-
+    with {:ok, response} <- make_openrouter_request(uploaded_file),
+         {:ok, products_json} <- parse_openrouter_response(response),
+         {:ok, ticket} <- Tickets.create_ticket_from_json(products_json, uploaded_file.filename) do
+      IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
+      {:ok, ticket}
+    else
       {:error, error} ->
-        IO.puts("❌ Error en OpenRouter: #{inspect(error)}")
-        socket
-        |> assign(:error, "Error procesando la imagen: #{inspect(error)}")
-        |> assign(:processing, false)
-        |> assign(:result, nil)
+        IO.puts("❌ Error: #{inspect(error)}")
+        {:error, inspect(error)}
     end
   end
 
@@ -225,7 +229,7 @@ defmodule TicketSplitterWeb.HomeLive do
       case Req.post("https://openrouter.ai/api/v1/chat/completions",
              json: payload,
              headers: headers,
-             receive_timeout: 30_000
+             receive_timeout: 60_000
            ) do
         {:ok, %{status: 200, body: body}} ->
           IO.puts("✅ Respuesta HTTP 200 recibida")
