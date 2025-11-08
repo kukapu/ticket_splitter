@@ -324,6 +324,7 @@ Hooks.SplitDivider = {
     let containerWidth = 0
     let divider = this.el
     let container = divider.parentElement
+    let debounceTimeout = null
 
     const updateSplit = (clientX) => {
       const deltaX = clientX - startX
@@ -353,6 +354,24 @@ Hooks.SplitDivider = {
       }
 
       return Math.round(newPercentage)
+    }
+
+    const debouncedUpdate = (percentage) => {
+      // Cancel any pending update
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+      }
+
+      // Schedule new update after 150ms of inactivity
+      debounceTimeout = setTimeout(() => {
+        this.pushEvent("adjust_split_percentage", {
+          group_id: divider.dataset.groupId,
+          product_id: divider.dataset.productId,
+          participant1_percentage: percentage,
+          participant2_percentage: 100 - percentage
+        })
+        debounceTimeout = null
+      }, 150)
     }
 
     const handleStart = (e) => {
@@ -385,18 +404,8 @@ Hooks.SplitDivider = {
 
       const newPercentage = updateSplit(clientX)
 
-      // Throttle updates to LiveView
-      if (!this.updateTimeout) {
-        this.updateTimeout = setTimeout(() => {
-          this.pushEvent("adjust_split_percentage", {
-            group_id: divider.dataset.groupId,
-            product_id: divider.dataset.productId,
-            participant1_percentage: newPercentage,
-            participant2_percentage: 100 - newPercentage
-          })
-          this.updateTimeout = null
-        }, 100) // Update every 100ms while dragging
-      }
+      // Use debounce to update LiveView
+      debouncedUpdate(newPercentage)
     }
 
     const handleEnd = (e) => {
@@ -409,23 +418,13 @@ Hooks.SplitDivider = {
       divider.style.cursor = 'ew-resize'
       divider.classList.remove('dragging')
 
-      // Final update
-      if (this.updateTimeout) {
-        clearTimeout(this.updateTimeout)
-        this.updateTimeout = null
-      }
-
       const clientX = e.type.includes('touch') ?
         e.changedTouches[0].clientX :
         divider.getBoundingClientRect().left + (divider.offsetWidth / 2)
       const finalPercentage = updateSplit(clientX)
 
-      this.pushEvent("adjust_split_percentage", {
-        group_id: divider.dataset.groupId,
-        product_id: divider.dataset.productId,
-        participant1_percentage: finalPercentage,
-        participant2_percentage: 100 - finalPercentage
-      })
+      // Use debounce for final update too
+      debouncedUpdate(finalPercentage)
 
       // Prevent click event if we dragged
       setTimeout(() => {
@@ -457,6 +456,11 @@ Hooks.SplitDivider = {
 
     // Cleanup on unmount
     this.handleDestroy = () => {
+      // Clear any pending debounce
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+        debounceTimeout = null
+      }
       document.removeEventListener('mousemove', handleMove)
       document.removeEventListener('mouseup', handleEnd)
       document.removeEventListener('touchmove', handleMove)
