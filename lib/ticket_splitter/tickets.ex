@@ -514,7 +514,6 @@ defmodule TicketSplitter.Tickets do
       {:ok, ticket} =
         create_ticket(%{
           image_url: image_url,
-          products_json: products_json,
           total_participants: 1
         })
 

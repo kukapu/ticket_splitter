@@ -2,13 +2,11 @@ import Config
 
 # Configure your database
 config :ticket_splitter, TicketSplitter.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "ticket_splitter_dev",
+  url: System.get_env("DATABASE_URL") || "ecto://postgres:postgres@localhost/ticket_splitter_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  pool_size: 10,
+  ssl: [verify: :verify_none]
 
 
 # For development, we disable any cache and enable

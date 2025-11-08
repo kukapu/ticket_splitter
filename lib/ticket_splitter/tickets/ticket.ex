@@ -6,7 +6,6 @@ defmodule TicketSplitter.Tickets.Ticket do
   @foreign_key_type :binary_id
   schema "tickets" do
     field :image_url, :string
-    field :products_json, :map
     field :total_participants, :integer, default: 1
 
     has_many :products, TicketSplitter.Tickets.Product
@@ -17,7 +16,7 @@ defmodule TicketSplitter.Tickets.Ticket do
   @doc false
   def changeset(ticket, attrs) do
     ticket
-    |> cast(attrs, [:image_url, :products_json, :total_participants])
+    |> cast(attrs, [:image_url, :total_participants])
     |> validate_required([:total_participants])
     |> validate_number(:total_participants, greater_than: 0)
   end
