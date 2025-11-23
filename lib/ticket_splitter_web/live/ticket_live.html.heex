@@ -80,51 +80,46 @@
             <% available_units = Tickets.get_available_units(product.id) %>
             <% available_decimal = Decimal.to_float(available_units) %>
 
-            <!-- Product Header -->
-            <%= if available_decimal > 0 do %>
-              <!-- Toda la fila es clicable cuando hay unidades disponibles -->
-              <div
-                class="product-header bg-base-200 border border-base-300 rounded-xl p-2 cursor-pointer transition-all duration-200 hover:border-primary hover:bg-base-300"
-                id={"available-units-#{product.id}"}
-                phx-click="toggle_product"
-                phx-value-product_id={product.id}
-                phx-value-action="add_unit"
-                phx-hook="LongPressHandler"
-                data-product-id={product.id}
-                data-is-common="false"
-                title="Click para tomar 1 unidad o mantén presionado para hacer común"
-              >
-                <div class="flex justify-between items-center">
-                  <div>
-                    <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
-                    <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
-                  </div>
+            <!-- Product Container - agrupa header y asignaciones -->
+            <div class="bg-base-200 border border-base-300 rounded-xl p-2 space-y-1">
+              <!-- Product Header -->
+              <%= if available_decimal > 0 do %>
+                <!-- Toda la fila es clicable cuando hay unidades disponibles -->
+                <div
+                  class="product-header bg-primary/10 border-2 border-dashed border-primary rounded-lg p-3 cursor-pointer transition-all duration-200 active:scale-[0.98] active:bg-primary/20"
+                  id={"available-units-#{product.id}"}
+                  phx-click="toggle_product"
+                  phx-value-product_id={product.id}
+                  phx-value-action="add_unit"
+                  phx-hook="LongPressHandler"
+                  data-product-id={product.id}
+                  data-is-common="false"
+                  title="Click para tomar 1 unidad o mantén presionado para hacer común"
+                >
+                  <div class="flex justify-between items-center">
+                    <div class="flex-1">
+                      <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
+                      <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
+                    </div>
 
-                  <!-- Available Units to Take -->
-                  <div class="available-units-card bg-base-300 border-2 border-dashed border-primary rounded-lg px-4 py-2 transition-all duration-200">
-                    <div class="flex flex-col items-center relative">
-                      <span class="text-lg font-bold text-base-content">{format_decimal(available_units)}</span>
-                      <span class="text-xs text-base-content/50">disponibles</span>
-                      <.icon name="hero-plus-circle" class="w-5 h-5 text-primary mt-1" />
+                    <!-- Available Units Info - sin aspecto de botón -->
+                    <div class="text-right">
+                      <span class="text-2xl font-bold text-primary">{format_decimal(available_units)}</span>
+                      <p class="text-xs text-base-content/60 font-medium">disponibles</p>
                     </div>
                   </div>
                 </div>
-              </div>
-            <% else %>
-              <!-- Si no hay unidades disponibles, la fila no es clicable -->
-              <div class="product-header bg-base-200 border border-base-300 rounded-xl p-2">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
-                    <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
-                  </div>
+              <% else %>
+                <!-- Si no hay unidades disponibles, solo mostrar el nombre -->
+                <div class="product-header bg-base-200 rounded-lg px-3 py-2">
+                  <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
+                  <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
                 </div>
-              </div>
-            <% end %>
+              <% end %>
 
               <!-- Participant Colored Cards -->
               <%= if length(product.participant_assignments) > 0 do %>
-                <div class="mt-2 cards-stack">
+                <div class="cards-stack space-y-1">
                   <%= for group <- group_assignments_by_group_id(product.participant_assignments) do %>
                     <% has_me = Enum.any?(group.participants, fn p -> p.name == @participant_name end) %>
                     <% unit_cost = Decimal.div(product.total_price, Decimal.new(product.units)) %>
@@ -134,7 +129,7 @@
                     <%= if is_shared && length(group.participants) == 2 do %>
                       <!-- Split Card for 2 Users - Full Width Row with Interactive Divider -->
                       <div
-                        class="colored-card split-card-row rounded-lg overflow-hidden border-2 cursor-pointer new-card mb-1"
+                        class="colored-card split-card-row rounded-lg overflow-hidden border-2 cursor-pointer new-card"
                         style={"border-color: #{hd(group.participants).color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -200,7 +195,7 @@
                         card_color = main_participant.color
                       %>
                       <div
-                        class="colored-card rounded-lg overflow-hidden border-2 cursor-pointer new-card mb-1"
+                        class="colored-card rounded-lg overflow-hidden border-2 cursor-pointer new-card"
                         style={"background-color: #{card_color}15; border-color: #{card_color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -262,6 +257,7 @@
                   <% end %>
                 </div>
               <% end %>
+            </div>
           <% else %>
             <!-- Common Product -->
             <div
