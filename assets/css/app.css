@@ -104,6 +104,25 @@
 
 /* This file is for your main application CSS */
 
+/* Dynamic Viewport Height - Mobile friendly */
+@utility min-h-screen-dynamic {
+  min-height: 100dvh; /* Dynamic viewport height - adapta a barra navegador */
+}
+
+@utility h-screen-dynamic {
+  height: 100dvh;
+}
+
+/* Fallback para navegadores que no soportan dvh */
+@supports not (height: 100dvh) {
+  .min-h-screen-dynamic {
+    min-height: 100vh;
+  }
+  .h-screen-dynamic {
+    height: 100vh;
+  }
+}
+
 /* Custom styles for file upload */
 .upload-area {
   position: relative;
@@ -651,5 +670,65 @@
   }
   50% {
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
+  }
+}
+
+/* Mobile-specific improvements for better UX */
+@media (max-width: 640px) {
+  /* Optimize user info header for mobile */
+  .bg-base-200.border.border-base-300.rounded-xl.shadow-lg {
+    padding: 0.75rem;
+  }
+
+  /* Improve readability on small screens */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Better tap targets for mobile */
+  button, a, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+  }
+
+  /* Prevent text size adjustment on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Improve scrolling performance */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Extra small devices optimization */
+@media (max-width: 375px) {
+  /* Further reduce padding on very small screens */
+  .max-w-4xl.mx-auto {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  /* Ensure buttons remain touchable */
+  .interactive-divider {
+    width: 10px !important;
+  }
+}
+
+/* Landscape mobile optimization */
+@media (max-width: 768px) and (orientation: landscape) {
+  /* Reduce vertical padding in landscape */
+  .py-4 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* Support for safe area insets (notch/dynamic island) */
+@supports (padding: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }

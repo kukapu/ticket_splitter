@@ -1,76 +1,89 @@
 <Layouts.app flash={@flash}>
   <div
-    class="min-h-screen bg-base-100"
+    class="w-full bg-base-200 min-h-screen"
     phx-hook="ParticipantStorage"
     id="ticket-container"
   >
-    <div class="max-w-4xl mx-auto px-3 py-4">
-      <!-- Enhanced User Info Header -->
-      <div class="bg-base-200 border border-base-300 rounded-xl shadow-lg p-4 mb-4">
-        <!-- User Info Section -->
-        <div class="flex justify-between items-center mb-4">
-          <%= if @participant_name do %>
-            <div class="flex items-center gap-3 bg-base-300 px-4 py-3 rounded-xl border border-base-300">
-              <div
-                class="w-4 h-4 rounded-full flex-shrink-0"
-                style={"background-color: #{@participant_color}"}
-              >
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <span class="text-base font-semibold text-base-content">{@participant_name}</span>
-                  <span class="text-xs font-bold text-warning-content px-2 py-1 bg-base-300 rounded">TÚ</span>
-                </div>
-                <div class="flex items-center gap-1 mt-1">
-                  <span class="text-xs text-base-content/50">Tu parte:</span>
-                  <span class="text-lg font-bold text-success-content">€{format_decimal(@my_total)}</span>
-                </div>
-              </div>
-            </div>
-          <% else %>
-            <div class="text-center bg-base-300 px-4 py-3 rounded-xl border border-base-300">
-              <span class="text-base-content/50">Conecta para participar</span>
-            </div>
-          <% end %>
-
-          <div class="flex items-center gap-3">
-            <form phx-change="update_total_participants" class="flex items-center gap-2 bg-base-300 px-3 py-2 rounded-lg">
-              <.icon name="hero-users" class="w-4 h-4 text-base-content/50" />
-              <span class="text-xs text-base-content/50">Comunes:</span>
-              <input
-                type="number"
-                name="value"
-                min={@min_participants}
-                value={@ticket.total_participants}
-                phx-debounce="300"
-                class="w-14 px-2 py-1 bg-base-300 border border-base-300 text-base-content text-sm rounded focus:ring-1 focus:ring-primary text-center"
-              />
-              <span class="text-xs text-base-content/50">pers</span>
-            </form>
+    <div class="max-w-4xl mx-auto px-3 py-4 pb-24">
+      <!-- Top Dashboard Header -->
+      <div class="bg-base-100 rounded-[2rem] p-4 shadow-lg mb-6">
+        <!-- Participants Counter - Now at the beginning -->
+        <div class="flex justify-center mb-4">
+          <div class="bg-base-200 rounded-xl px-6 py-3 flex items-center gap-4">
             <button
-              phx-click="show_summary"
-              class="px-3 py-2 bg-primary text-primary-content text-sm rounded-lg hover:bg-primary/90 transition-colors"
+              phx-click="decrement_participants"
+              class="w-8 h-8 rounded-lg bg-base-300 hover:bg-base-300/80 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={@ticket.total_participants <= @min_participants}
             >
-              <.icon name="hero-chart-bar" class="w-4 h-4 inline mr-1" /> Resumen
+              <span class="text-base-content font-bold">−</span>
+            </button>
+
+            <div class="flex flex-col items-center min-w-[60px]">
+              <span class="text-2xl font-black text-base-content tracking-tight">
+                {@ticket.total_participants}
+              </span>
+              <span class="text-[10px] font-bold text-base-content/50">personas</span>
+            </div>
+
+            <button
+              phx-click="increment_participants"
+              class="w-8 h-8 rounded-lg bg-base-300 hover:bg-base-300/80 flex items-center justify-center transition-colors"
+            >
+              <span class="text-base-content font-bold">+</span>
             </button>
           </div>
         </div>
 
-        <!-- Quick Stats -->
-        <div class="grid grid-cols-3 gap-2 text-center">
-          <div class="bg-base-300 rounded-lg p-2">
-            <div class="text-xs text-base-content/50">Total</div>
-            <div class="text-sm font-bold text-base-content">€{format_decimal(calculate_ticket_total(@products))}</div>
+        <!-- Mi Parte Display -->
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div
+              class="w-2.5 h-2.5 rounded-full"
+              style={"background-color: #{if @participant_name, do: @participant_color, else: "#cbd5e1"}"}
+            ></div>
+            <span class="text-sm font-medium text-base-content/60">Tu parte:</span>
+            <span class="text-xl font-bold text-base-content">
+              €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
+            </span>
           </div>
-          <div class="bg-base-300 rounded-lg p-2">
-            <div class="text-xs text-base-content/50">Asignado</div>
-            <div class="text-sm font-bold text-info-content">€{format_decimal(calculate_total_assigned(@products, @ticket.total_participants))}</div>
-          </div>
-          <div class="bg-base-300 rounded-lg p-2">
-            <div class="text-xs text-base-content/50">Pendiente</div>
-            <div class="text-sm font-bold text-warning-content">€{format_decimal(Decimal.sub(calculate_ticket_total(@products), calculate_total_assigned(@products, @ticket.total_participants)))}</div>
+
+          <!-- Resumen Button -->
+          <button
+            phx-click="show_summary"
+            class="bg-primary hover:bg-primary/90 text-primary-content rounded-xl px-4 py-2 flex items-center gap-2 transition-all duration-200 active:scale-95"
+          >
+            <.icon name="hero-chart-bar" class="w-5 h-5" />
+            <span class="text-sm font-bold">Resumen</span>
+          </button>
+        </div>
+
+        <!-- Global Stats Row - With different colored background -->
+        <div class="mt-4 bg-base-200 rounded-xl p-3">
+          <div class="grid grid-cols-3 gap-2">
+            <div class="flex flex-col items-center">
+              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">Total</div>
+              <div class="text-lg sm:text-xl font-black text-base-content">
+                €{format_decimal(calculate_ticket_total(@products))}
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center">
+              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">Asignado</div>
+              <div class="text-lg sm:text-xl font-black text-blue-500">
+                €{format_decimal(calculate_total_assigned(@products, @ticket.total_participants))}
+              </div>
+            </div>
+
+            <div class="flex flex-col items-center">
+              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">Pendiente</div>
+              <div class="text-lg sm:text-xl font-black text-base-content">
+                €{format_decimal(Decimal.sub(calculate_ticket_total(@products), calculate_total_assigned(@products, @ticket.total_participants)))}
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
       </div>
 
       <!-- Visual Colored Cards Layout -->
@@ -96,15 +109,15 @@
                   data-is-common="false"
                   title="Click para tomar 1 unidad o mantén presionado para hacer común"
                 >
-                  <div class="flex justify-between items-center">
-                    <div class="flex-1">
-                      <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
-                      <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
+                  <div class="flex justify-between items-center gap-2">
+                    <div class="flex-1 min-w-0">
+                      <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">{product.name}</h3>
+                      <p class="text-xs text-base-content/50 truncate">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
                     </div>
 
                     <!-- Available Units Info - sin aspecto de botón -->
-                    <div class="text-right">
-                      <span class="text-2xl font-bold text-primary">{format_decimal(available_units)}</span>
+                    <div class="text-right flex-shrink-0">
+                      <span class="text-xl sm:text-2xl font-bold text-primary">{format_decimal(available_units)}</span>
                       <p class="text-xs text-base-content/60 font-medium">disponibles</p>
                     </div>
                   </div>
@@ -112,8 +125,8 @@
               <% else %>
                 <!-- Si no hay unidades disponibles, solo mostrar el nombre -->
                 <div class="product-header bg-base-200 rounded-lg px-3 py-2">
-                  <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
-                  <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
+                  <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">{product.name}</h3>
+                  <p class="text-xs text-base-content/50 truncate">{product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(product.total_price)}</p>
                 </div>
               <% end %>
 
@@ -148,19 +161,19 @@
                               id={"participant-#{group.group_id}-#{index}"}
                             >
                               <div class="absolute top-0 left-0 w-2 h-full" style={"background-color: #{participant_color}"}></div>
-                              <div class="flex items-center justify-between h-full">
-                                <div class="flex items-center gap-2">
-                                  <div class="text-left">
-                                    <p class="text-sm font-bold text-base-content">{participant.name}</p>
-                                    <p class="text-xs text-base-content/70">{format_decimal(group.units_assigned)}u</p>
+                              <div class="flex items-center justify-between h-full gap-1">
+                                <div class="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                                  <div class="text-left min-w-0">
+                                    <p class="text-xs sm:text-sm font-bold text-base-content truncate">{participant.name}</p>
+                                    <p class="text-[10px] xs:text-xs text-base-content/70">{format_decimal(group.units_assigned)}u</p>
                                     <%= if participant.name == @participant_name do %>
-                                      <span class="text-xs font-bold text-warning-content">¡TÚ!</span>
+                                      <span class="text-[10px] xs:text-xs font-bold text-warning-content">¡TÚ!</span>
                                     <% end %>
                                   </div>
                                 </div>
-                                <div class="text-right">
-                                  <p class="text-sm font-bold text-base-content">€{format_decimal(participant_share)}</p>
-                                  <p class="text-xs text-base-content/50 percentage-display">{format_decimal(participant.percentage)}%</p>
+                                <div class="text-right flex-shrink-0">
+                                  <p class="text-xs sm:text-sm font-bold text-base-content">€{format_decimal(participant_share)}</p>
+                                  <p class="text-[10px] xs:text-xs text-base-content/50 percentage-display">{format_decimal(participant.percentage)}%</p>
                                 </div>
                               </div>
                             </div>
@@ -204,27 +217,27 @@
                       >
                         <div class="absolute top-0 left-0 w-2 h-full" style={"background-color: #{card_color}"}></div>
                         <div class="p-2 pl-4">
-                          <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                              <div class="text-left">
-                                <p class="text-sm font-bold text-base-content">
+                          <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                              <div class="text-left min-w-0">
+                                <p class="text-xs sm:text-sm font-bold text-base-content truncate">
                                   <%= if is_shared && length(group.participants) > 2 do %>
                                     👥 Compartido ({length(group.participants)})
                                   <% else %>
                                     <%= main_participant.name %>
                                   <% end %>
                                 </p>
-                                <p class="text-xs text-base-content/70">{format_decimal(group.units_assigned)}u</p>
+                                <p class="text-[10px] xs:text-xs text-base-content/70">{format_decimal(group.units_assigned)}u</p>
                                 <%= if has_me do %>
-                                  <span class="text-xs font-bold text-warning-content">¡TÚ!</span>
+                                  <span class="text-[10px] xs:text-xs font-bold text-warning-content">¡TÚ!</span>
                                 <% end %>
                               </div>
 
                               <!-- Participants indicators -->
-                              <div class="flex gap-1">
+                              <div class="flex gap-1 flex-shrink-0">
                                 <%= for participant <- group.participants do %>
                                   <div
-                                    class={"participant-dot w-5 h-5 rounded-full border-2 border-base-content #{if participant.name == @participant_name, do: "has-checkmark"}"}
+                                    class={"participant-dot w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-base-content #{if participant.name == @participant_name, do: "has-checkmark"}"}
                                     style={"background-color: #{participant.color}"}
                                     title={participant.name}
                                   >
@@ -238,10 +251,10 @@
                               </div>
                             </div>
 
-                            <div class="text-right">
-                              <p class="text-sm font-bold text-base-content">€{format_decimal(total_group)}</p>
+                            <div class="text-right flex-shrink-0">
+                              <p class="text-xs sm:text-sm font-bold text-base-content">€{format_decimal(total_group)}</p>
                               <%= if is_shared && length(group.participants) > 1 do %>
-                                <p class="text-xs text-base-content/50">
+                                <p class="text-[10px] xs:text-xs text-base-content/50">
                                   <%= if length(group.participants) == 2 do %>
                                     50-50
                                   <% else %>
@@ -261,24 +274,24 @@
           <% else %>
             <!-- Common Product -->
             <div
-              class="bg-base-200 border-2 border-primary rounded-xl p-3 cursor-pointer transition-all duration-200 hover:border-primary"
+              class="bg-base-200 border-2 border-primary rounded-xl p-2.5 sm:p-3 cursor-pointer transition-all duration-200 hover:border-primary"
               id={"product-#{product.id}"}
               phx-hook="SwipeAndLongPressHandler"
               data-product-id={product.id}
               data-is-common="true"
               title="Desliza para quitar de común o mantén presionado para quitar de común"
             >
-              <div class="flex justify-between items-center">
-                <div>
-                  <h3 class="text-base font-semibold text-base-content">{product.name}</h3>
-                  <p class="text-xs text-base-content/50">{product.units}u × €{format_decimal(product.unit_price)}</p>
+              <div class="flex justify-between items-center gap-2">
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">{product.name}</h3>
+                  <p class="text-xs text-base-content/50 truncate">{product.units}u × €{format_decimal(product.unit_price)}</p>
                 </div>
-                <div class="text-right">
-                  <span class="px-3 py-1 bg-primary text-base-content text-sm font-semibold rounded-full">
-                    <.icon name="hero-users" class="w-4 h-4 inline mr-1" /> COMÚN
+                <div class="text-right flex-shrink-0">
+                  <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
+                    <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> COMÚN
                   </span>
-                  <p class="text-sm font-bold text-base-content mt-1">€{format_decimal(product.total_price)}</p>
-                  <p class="text-xs text-base-content/50">({@ticket.total_participants} personas)</p>
+                  <p class="text-xs sm:text-sm font-bold text-base-content mt-1">€{format_decimal(product.total_price)}</p>
+                  <p class="text-[10px] xs:text-xs text-base-content/50">({@ticket.total_participants} pers.)</p>
                 </div>
               </div>
             </div>
@@ -314,10 +327,10 @@
 
     <!-- Name Modal -->
     <%= if @show_name_modal do %>
-      <div class="fixed inset-0 bg-base-content/50 flex items-center justify-center z-50 p-4">
-        <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-6 max-w-md w-full">
-          <h2 class="text-2xl font-bold text-base-content mb-4">¿Cómo te llamas?</h2>
-          <p class="text-base-content/50 mb-6">
+      <div class="fixed inset-0 bg-base-content/50 flex items-center justify-center z-50 p-3 sm:p-4">
+        <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-4 sm:p-6 max-w-md w-full">
+          <h2 class="text-xl sm:text-2xl font-bold text-base-content mb-3 sm:mb-4">¿Cómo te llamas?</h2>
+          <p class="text-sm sm:text-base text-base-content/50 mb-4 sm:mb-6">
             Introduce tu nombre para empezar a dividir la cuenta.
           </p>
           <form phx-submit="set_participant_name">
@@ -327,11 +340,12 @@
               placeholder="Tu nombre"
               required
               autofocus
-              class="w-full px-4 py-3 bg-base-300 border border-base-300 text-base-content rounded-lg focus:ring-2 focus:ring-primary mb-4"
+              class="w-full px-4 py-3 bg-base-300 border border-base-300 text-base-content text-base rounded-lg focus:ring-2 focus:ring-primary mb-4"
+              style="font-size: 16px"
             />
             <button
               type="submit"
-              class="w-full px-6 py-3 bg-primary text-base-content font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+              class="w-full px-6 py-3.5 bg-primary text-base-content font-semibold rounded-lg hover:bg-primary/90 transition-colors min-h-[44px]"
             >
               Continuar
             </button>
@@ -342,33 +356,33 @@
 
     <!-- Summary Modal -->
     <%= if @show_summary_modal do %>
-      <div class="fixed inset-0 bg-base-content/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
-          <div class="flex justify-between items-start mb-6">
-            <h2 class="text-2xl font-bold text-base-content">Resumen</h2>
+      <div class="fixed inset-0 bg-base-content/20 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+        <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-4 sm:p-6 max-w-lg w-full max-h-[85dvh] overflow-y-auto">
+          <div class="flex justify-between items-start mb-4 sm:mb-6">
+            <h2 class="text-xl sm:text-2xl font-bold text-base-content">Resumen</h2>
             <button
               phx-click="close_summary"
-              class="text-base-content/50 hover:text-base-content transition-colors"
+              class="text-base-content/50 hover:text-base-content transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-1"
             >
               <.icon name="hero-x-mark" class="w-6 h-6" />
             </button>
           </div>
 
           <!-- Participants -->
-          <div class="mb-6">
-            <h3 class="text-lg font-semibold text-base-content mb-3">Participantes</h3>
+          <div class="mb-4 sm:mb-6">
+            <h3 class="text-base sm:text-lg font-semibold text-base-content mb-2 sm:mb-3">Participantes</h3>
             <div class="space-y-2">
               <%= for summary <- @participants_for_summary do %>
-                <div class="flex items-center justify-between p-3 bg-base-300 rounded-lg">
-                  <div class="flex items-center gap-3">
+                <div class="flex items-center justify-between p-2.5 sm:p-3 bg-base-300 rounded-lg">
+                  <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                     <div
-                      class="w-4 h-4 rounded-full"
+                      class="w-4 h-4 rounded-full flex-shrink-0"
                       style={"background-color: #{summary.color}"}
                     >
                     </div>
-                    <span class="font-medium text-base-content">{summary.name}</span>
+                    <span class="font-medium text-base-content text-sm sm:text-base truncate">{summary.name}</span>
                   </div>
-                  <span class="text-lg font-semibold text-primary">
+                  <span class="text-base sm:text-lg font-semibold text-primary flex-shrink-0 ml-2">
                     €{format_decimal(summary.total)}
                   </span>
                 </div>
@@ -377,20 +391,20 @@
           </div>
 
           <!-- Totals -->
-          <div class="border-t border-base-300 pt-4 space-y-2">
-            <div class="flex justify-between text-sm">
+          <div class="border-t border-base-300 pt-3 sm:pt-4 space-y-2">
+            <div class="flex justify-between text-xs sm:text-sm">
               <span class="text-base-content/50">Total del ticket:</span>
               <span class="font-semibold text-base-content">
                 €{format_decimal(@total_ticket_for_summary)}
               </span>
             </div>
-            <div class="flex justify-between text-sm">
+            <div class="flex justify-between text-xs sm:text-sm">
               <span class="text-base-content/50">Total asignado:</span>
               <span class="font-semibold text-base-content">
                 €{format_decimal(@total_assigned_for_summary)}
               </span>
             </div>
-            <div class="flex justify-between text-lg font-bold pt-2 border-t border-base-300">
+            <div class="flex justify-between text-base sm:text-lg font-bold pt-2 border-t border-base-300">
               <span class="text-base-content">Pendiente:</span>
               <span class="text-error-content">
                 €{format_decimal(@pending_for_summary)}
@@ -403,24 +417,24 @@
 
     <!-- Share Confirmation Modal -->
     <%= if @show_share_confirmation do %>
-      <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-6 border-2 border-primary/50">
-          <h2 class="text-xl font-bold text-base-content mb-4">
+      <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+        <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
+          <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
             Compartir producto
           </h2>
-          <p class="text-base-content mb-6">
+          <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
             ¿Estás seguro de que quieres compartir este producto con otro participante?
           </p>
-          <div class="flex gap-3 justify-end">
+          <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
             <button
               phx-click="cancel_share"
-              class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium"
+              class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
             >
               Cancelar
             </button>
             <button
               phx-click="confirm_share"
-              class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg"
+              class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
             >
               Confirmar
             </button>
@@ -428,5 +442,4 @@
         </div>
       </div>
     <% end %>
-  </div>
 </Layouts.app>

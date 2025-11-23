@@ -271,48 +271,64 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
+  def handle_event("increment_participants", _params, socket) do
+    new_count = socket.assigns.ticket.total_participants + 1
+    update_participants_count(new_count, socket)
+  end
+
+  @impl true
+  def handle_event("decrement_participants", _params, socket) do
+    new_count = max(socket.assigns.ticket.total_participants - 1, socket.assigns.min_participants)
+    update_participants_count(new_count, socket)
+  end
+
+  @impl true
   def handle_event("update_total_participants", %{"value" => value}, socket) do
     case Integer.parse(value) do
       {num, _} when num > 0 ->
         # El browser ya previene valores menores a min_participants gracias al atributo min del input
         # Simplemente actualizamos si el valor es válido
-        case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: num}) do
-          {:ok, ticket} ->
-            # Broadcast a todos los usuarios conectados
-            broadcast_ticket_update(socket.assigns.ticket.id)
-
-            # Recalcular datos del resumen si el modal está abierto
-            socket = if socket.assigns.show_summary_modal do
-              participants = get_all_participants(socket.assigns)
-              participant_summaries = Enum.map(participants, fn participant ->
-                calculate_participant_summary(socket.assigns.ticket.id, participant)
-              end)
-              total_ticket = calculate_ticket_total(socket.assigns.products)
-              total_assigned = calculate_total_assigned(socket.assigns.products, num)
-              pending = Decimal.sub(total_ticket, total_assigned)
-
-              socket
-              |> assign(:ticket, ticket)
-              |> assign(:participants_for_summary, participant_summaries)
-              |> assign(:total_ticket_for_summary, total_ticket)
-              |> assign(:total_assigned_for_summary, total_assigned)
-              |> assign(:pending_for_summary, pending)
-              |> calculate_my_total()
-              |> update_main_saldos()
-            else
-              socket
-              |> assign(:ticket, ticket)
-              |> calculate_my_total()
-              |> update_main_saldos()
-            end
-
-            {:noreply, socket}
-
-          {:error, _} ->
-            {:noreply, socket}
-        end
+        update_participants_count(num, socket)
 
       _ ->
+        {:noreply, socket}
+    end
+  end
+
+  defp update_participants_count(new_count, socket) do
+    case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count}) do
+      {:ok, ticket} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recalcular datos del resumen si el modal está abierto
+        socket = if socket.assigns.show_summary_modal do
+          participants = get_all_participants(socket.assigns)
+          participant_summaries = Enum.map(participants, fn participant ->
+            calculate_participant_summary(socket.assigns.ticket.id, participant)
+          end)
+          total_ticket = calculate_ticket_total(socket.assigns.products)
+          total_assigned = calculate_total_assigned(socket.assigns.products, new_count)
+          pending = Decimal.sub(total_ticket, total_assigned)
+
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:participants_for_summary, participant_summaries)
+          |> assign(:total_ticket_for_summary, total_ticket)
+          |> assign(:total_assigned_for_summary, total_assigned)
+          |> assign(:pending_for_summary, pending)
+          |> calculate_my_total()
+          |> update_main_saldos()
+        else
+          socket
+          |> assign(:ticket, ticket)
+          |> calculate_my_total()
+          |> update_main_saldos()
+        end
+
+        {:noreply, socket}
+
+      {:error, _} ->
         {:noreply, socket}
     end
   end

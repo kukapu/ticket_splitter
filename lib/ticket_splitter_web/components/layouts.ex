@@ -35,25 +35,27 @@ defmodule TicketSplitterWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="bg-base-300 border-b border-base-content/20">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <a href="/" class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-              <span class="text-primary-content text-sm font-bold">TS</span>
+    <div class="flex flex-col min-h-screen-dynamic">
+      <header class="bg-base-300 border-b border-base-content/20 flex-none">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-12 sm:h-16">
+            <a href="/" class="flex items-center gap-2 sm:gap-3">
+              <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
+                <span class="text-primary-content text-xs sm:text-sm font-bold">TS</span>
+              </div>
+              <span class="text-lg sm:text-xl font-bold text-base-content">Ticket Splitter</span>
+            </a>
+            <div>
+              <.theme_toggle />
             </div>
-            <span class="text-xl font-bold text-base-content">Ticket Splitter</span>
-          </a>
-          <div>
-            <.theme_toggle />
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main class="bg-base-100 min-h-screen">
-      {render_slot(@inner_block)}
-    </main>
+      <main class="flex-1 flex flex-col bg-base-100 relative">
+        {render_slot(@inner_block)}
+      </main>
+    </div>
 
     <.flash_group flash={@flash} />
     """
@@ -109,31 +111,31 @@ defmodule TicketSplitterWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
+    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full p-1">
       <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left] shadow-md" />
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex p-2.5 sm:p-3 cursor-pointer w-1/3 items-center justify-center hover:scale-110 transition-transform"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-computer-desktop-micro" class="size-5 sm:size-6 opacity-75 hover:opacity-100" />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex p-2.5 sm:p-3 cursor-pointer w-1/3 items-center justify-center hover:scale-110 transition-transform"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
       >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-5 sm:size-6 opacity-75 hover:opacity-100" />
       </button>
 
       <button
-        class="flex p-2 cursor-pointer w-1/3"
+        class="flex p-2.5 sm:p-3 cursor-pointer w-1/3 items-center justify-center hover:scale-110 transition-transform"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
       >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-5 sm:size-6 opacity-75 hover:opacity-100" />
       </button>
     </div>
     """
