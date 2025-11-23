@@ -55,16 +55,16 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-RUN chown nobody:nobody /app
-
-USER nobody:nobody
+RUN chown nobody:nogroup /app
 
 ARG MIX_ENV=prod
-COPY --from=builder --chown=nobody:nobody /app/_build/${MIX_ENV}/rel/ticket_splitter ./
+COPY --from=builder --chown=nobody:nogroup /app/_build/${MIX_ENV}/rel/ticket_splitter ./
 
 # Copy entrypoint script
-COPY --chown=nobody:nobody entrypoint.sh /app/entrypoint.sh
+COPY --chown=nobody:nogroup entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
+
+USER nobody:nogroup
 
 ENV HOME=/app
 
