@@ -2,44 +2,17 @@ version: '3.8'
 
 services:
   app:
-    env_file:
-      - .env
-    build: .
-    container_name: ticket_splitter_prod
+    image: ghcr.io/kukapu/ticket_splitter:latest
+    container_name: ticket_splitter
     restart: unless-stopped
     environment:
       - MIX_ENV=prod
       - PHX_SERVER=true
-      - PORT=4000
-      # Las siguientes variables se cargan desde .env:
-      # - DATABASE_URL
-      # - SECRET_KEY_BASE
-      # - PHX_HOST
-      # - OPENROUTER_API_KEY
-      # - OPENROUTER_MODEL
+      - PORT=${PORT:-4000}
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - PHX_HOST=${PHX_HOST}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-openai/gpt-4o}
     ports:
-      - "4000:4000"
-    depends_on:
-      - db
-    networks:
-      - ticket_network
-
-  db:
-    image: postgres:15-alpine
-    container_name: ticket_splitter_db_prod
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=ticket_splitter_prod
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - ticket_network
-
-volumes:
-  postgres_data:
-
-networks:
-  ticket_network:
-    driver: bridge
+      - "${PORT:-4000}:${PORT:-4000}"
