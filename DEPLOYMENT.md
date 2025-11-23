@@ -54,6 +54,17 @@ DATABASE_URL=postgresql://kukapu:kukapu@ticketspliter-db-iozduz:5432/ticketsplit
 
 # Dominio de tu aplicación
 PHX_HOST=ticketsplitter.kukapu.dev
+# OpenRouter API Key (obtén una en https://openrouter.ai/keys)
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Secret Key Base (genera uno con: mix phx.gen.secret)
+SECRET_KEY_BASE=genera_uno_nuevo_con_mix_phx_gen_secret
+
+# Database URL (ajusta según tu configuración de Dokploy)
+DATABASE_URL=postgresql://user:password@postgres-service:5432/database_name
+
+# Dominio de tu aplicación
+PHX_HOST=tu-dominio.com
 
 # Habilitar servidor Phoenix
 PHX_SERVER=true
@@ -67,6 +78,8 @@ PORT=4000
 ```bash
 # Modelo de OpenRouter
 OPENROUTER_MODEL=google/gemini-2.5-flash-lite-preview-09-2025
+# Modelo de OpenRouter (por defecto: openai/gpt-4o)
+OPENROUTER_MODEL=openai/gpt-4o
 
 # Tamaño del pool de conexiones
 POOL_SIZE=10
@@ -88,6 +101,7 @@ POOL_SIZE=10
 
 4. **Configurar el dominio:**
    - En Dokploy, en la sección de Domains, añade: `ticketsplitter.kukapu.dev`
+   - En Dokploy, en la sección de Domains, añade tu dominio
    - Mapea al puerto `4000`
 
 ### 4. Proceso de Despliegue
@@ -104,6 +118,7 @@ Una vez configurado todo, el despliegue es automático:
 2. **GitHub Actions automáticamente:**
    - Construye la imagen Docker
    - La publica en GitHub Container Registry como `ghcr.io/kukapu/ticket_splitter:latest`
+   - La publica en GitHub Container Registry como `ghcr.io/[tu-usuario]/ticket_splitter:latest`
    - Activa el webhook de Dokploy
 
 3. **Dokploy automáticamente:**
@@ -127,6 +142,7 @@ Una vez configurado todo, el despliegue es automático:
 
 ```bash
 curl https://ticketsplitter.kukapu.dev
+curl https://tu-dominio.com
 ```
 
 ## Solución de Problemas
@@ -143,12 +159,14 @@ docker exec -it ticket_splitter /app/bin/ticket_splitter remote
 1. Verifica que el repositorio de GitHub Container Registry es público o que Dokploy tiene acceso
 2. Para hacer el repositorio público:
    - Ve a https://github.com/users/kukapu/packages/container/ticket_splitter/settings
+   - Ve a https://github.com/users/[tu-usuario]/packages/container/ticket_splitter/settings
    - Cambia la visibilidad a "Public"
 
 ### El webhook no se activa
 
 1. Verifica que el secreto `DOKPLOY_WEBHOOK_URL` está configurado en GitHub
 2. Revisa los logs de GitHub Actions para ver si el curl al webhook se ejecutó correctamente
+3. Asegúrate de que la URL no tenga espacios en blanco o saltos de línea
 
 ## Estructura de Archivos Importantes
 
@@ -169,6 +187,7 @@ docker exec -it ticket_splitter /app/bin/ticket_splitter remote
 ## Notas Importantes
 
 1. **SECRET_KEY_BASE:** Asegúrate de generar uno nuevo y seguro. No uses el de ejemplo en producción real.
+1. **SECRET_KEY_BASE:** Asegúrate de generar uno nuevo y seguro con `mix phx.gen.secret`. No uses valores de ejemplo.
 
 2. **Migraciones:** Se ejecutan automáticamente cada vez que se inicia el contenedor. Esto es seguro ya que Ecto solo ejecuta las migraciones que faltan.
 
@@ -177,3 +196,6 @@ docker exec -it ticket_splitter /app/bin/ticket_splitter remote
 4. **Primer despliegue:** En el primer despliegue, las migraciones crearán todas las tablas necesarias.
 
 5. **GitHub Container Registry:** Las imágenes se publican en `ghcr.io/kukapu/ticket_splitter:latest`. Asegúrate de que el paquete sea público o configura las credenciales en Dokploy.
+5. **GitHub Container Registry:** Las imágenes se publican en `ghcr.io/[tu-usuario]/ticket_splitter:latest`. Asegúrate de que el paquete sea público o configura las credenciales en Dokploy.
+
+6. **Secretos:** NUNCA incluyas secretos reales en este archivo. Usa las variables de entorno de Dokploy para configurarlos.

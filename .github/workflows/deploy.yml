@@ -52,10 +52,19 @@ jobs:
 
       - name: Trigger Dokploy webhook
         if: success()
+        env:
+          WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
         run: |
-          if [ -n "${{ secrets.DOKPLOY_WEBHOOK_URL }}" ]; then
-            curl -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
-            echo "Dokploy webhook triggered successfully"
+          if [ -n "$WEBHOOK_URL" ]; then
+            # Remove any whitespace or newlines from the URL
+            CLEAN_URL=$(echo "$WEBHOOK_URL" | tr -d '[:space:]')
+            echo "Triggering Dokploy webhook..."
+            if curl -f -X POST "$CLEAN_URL"; then
+              echo "Dokploy webhook triggered successfully"
+            else
+              echo "Failed to trigger Dokploy webhook (exit code: $?)"
+              exit 1
+            fi
           else
             echo "DOKPLOY_WEBHOOK_URL secret not set, skipping webhook trigger"
           fi
