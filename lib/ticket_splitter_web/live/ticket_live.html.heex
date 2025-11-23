@@ -40,7 +40,7 @@
               <input
                 type="number"
                 name="value"
-                min="1"
+                min={@min_participants}
                 value={@ticket.total_participants}
                 phx-debounce="300"
                 class="w-14 px-2 py-1 bg-base-300 border border-base-300 text-base-content text-sm rounded focus:ring-1 focus:ring-primary text-center"

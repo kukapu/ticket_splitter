@@ -22,6 +22,10 @@ defmodule TicketSplitterWeb.TicketLive do
     total_assigned = calculate_total_assigned(ticket.products, ticket.total_participants)
     pending = Decimal.sub(total_ticket, total_assigned)
 
+    # Calcular el número real de participantes con asignaciones
+    real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
+    min_participants = max(real_participants_count, 1)
+
     socket =
       socket
       |> assign(:ticket, ticket)
@@ -36,6 +40,7 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:total_ticket_main, total_ticket)
       |> assign(:total_assigned_main, total_assigned)
       |> assign(:pending_main, pending)
+      |> assign(:min_participants, min_participants)
 
     {:ok, socket}
   end
@@ -125,10 +130,15 @@ defmodule TicketSplitterWeb.TicketLive do
           # Recargar ticket con productos actualizados
           ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
+          # Recalcular min_participants
+          real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+          min_participants = max(real_participants_count, 1)
+
           socket =
             socket
             |> assign(:ticket, ticket)
             |> assign(:products, ticket.products)
+            |> assign(:min_participants, min_participants)
             |> calculate_my_total()
             |> update_main_saldos()
 
@@ -230,23 +240,10 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_event("update_total_participants", %{"value" => value}, socket) do
     case Integer.parse(value) do
       {num, _} when num > 0 ->
-        # Obtener el número REAL de participantes con asignaciones
-        real_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id) |> length()
-
-        # MÍNIMO ABSOLUTO: NUNCA permitir bajar de los participantes reales
-        min_participants = max(real_participants, 1)
-
-        if num < real_participants do
-          # ERROR CRÍTICO: Intentando bajar por debajo de participantes reales
-          socket =
-            socket
-            |> put_flash(:error, "No se puede reducir el número de participantes por debajo de los participantes actuales (#{real_participants})")
-          {:noreply, socket}
-        else
-          final_num = max(num, min_participants)
-
-          case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: final_num}) do
-            {:ok, ticket} ->
+        # El browser ya previene valores menores a min_participants gracias al atributo min del input
+        # Simplemente actualizamos si el valor es válido
+        case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: num}) do
+          {:ok, ticket} ->
             # Broadcast a todos los usuarios conectados
             broadcast_ticket_update(socket.assigns.ticket.id)
 
@@ -257,7 +254,7 @@ defmodule TicketSplitterWeb.TicketLive do
                 calculate_participant_summary(socket.assigns.ticket.id, participant)
               end)
               total_ticket = calculate_ticket_total(socket.assigns.products)
-              total_assigned = calculate_total_assigned(socket.assigns.products, final_num)
+              total_assigned = calculate_total_assigned(socket.assigns.products, num)
               pending = Decimal.sub(total_ticket, total_assigned)
 
               socket
@@ -279,7 +276,6 @@ defmodule TicketSplitterWeb.TicketLive do
 
           {:error, _} ->
             {:noreply, socket}
-          end
         end
 
       _ ->
@@ -395,6 +391,10 @@ defmodule TicketSplitterWeb.TicketLive do
     if ticket_id == socket.assigns.ticket.id do
       ticket = Tickets.get_ticket_with_products!(ticket_id)
 
+      # Recalcular min_participants
+      real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
+      min_participants = max(real_participants_count, 1)
+
       # Recalcular datos del resumen si el modal está abierto
       socket = if socket.assigns.show_summary_modal do
         participants = get_all_participants(socket.assigns)
@@ -408,6 +408,7 @@ defmodule TicketSplitterWeb.TicketLive do
         socket
         |> assign(:ticket, ticket)
         |> assign(:products, ticket.products)
+        |> assign(:min_participants, min_participants)
         |> assign(:participants_for_summary, participant_summaries)
         |> assign(:total_ticket_for_summary, total_ticket)
         |> assign(:total_assigned_for_summary, total_assigned)
@@ -418,6 +419,7 @@ defmodule TicketSplitterWeb.TicketLive do
         socket
         |> assign(:ticket, ticket)
         |> assign(:products, ticket.products)
+        |> assign(:min_participants, min_participants)
         |> calculate_my_total()
         |> update_main_saldos()
       end
