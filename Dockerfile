@@ -1,5 +1,5 @@
 # Use the official Elixir image with a specific version
-FROM hexpm/elixir:1.18.0-erlang-27.3.4.1-debian-bookworm-20251117 AS builder
+FROM hexpm/elixir:1.18.3-erlang-27.3.3-debian-bookworm-20250407-slim AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y \
