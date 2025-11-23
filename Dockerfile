@@ -1,5 +1,5 @@
 # Use the official Elixir image with a specific version
-FROM elixir:1.15-alpine AS builder
+FROM hexpm/elixir:1.18.0-erlang-27.3.4.1-debian-bookworm-20251117 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache build-essential npm git python3
