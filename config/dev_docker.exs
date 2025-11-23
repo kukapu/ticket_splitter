@@ -11,23 +11,25 @@ config :ticket_splitter, TicketSplitter.Repo,
   pool_size: 10
 
 # For development, we disable any cache and enable
-# debugging. Code reloading disabled for Docker.
+# debugging and code reloading.
 config :ticket_splitter, TicketSplitterWeb.Endpoint,
   http: [ip: {0, 0, 0, 0}, port: 4000],
   check_origin: false,
-  code_reloader: false,
+  code_reloader: true,
   debug_errors: true,
-  secret_key_base: System.get_env("SECRET_KEY_BASE") || "SECRET_KEY_BASE"
+  secret_key_base: System.get_env("SECRET_KEY_BASE") || "SECRET_KEY_BASE",
+  watchers: []
 
-# Live reload disabled for Docker
-# config :ticket_splitter, TicketSplitterWeb.Endpoint,
-#   live_reload: [
-#     patterns: [
-#       ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
-#       ~r"priv/gettext/.*(po)$",
-#       ~r"lib/ticket_splitter_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
-#     ]
-#   ]
+# Watch static and templates for browser reloading.
+config :ticket_splitter, TicketSplitterWeb.Endpoint,
+  live_reload: [
+    web_console_logger: true,
+    patterns: [
+      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$",
+      ~r"lib/ticket_splitter_web/(?:controllers|live|components|router)/?.*\.(ex|heex)$"
+    ]
+  ]
 
 # Enable dev routes for dashboard and mailbox
 config :ticket_splitter, dev_routes: true
