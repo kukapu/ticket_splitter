@@ -35,6 +35,8 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:show_name_modal, false)
       |> assign(:show_summary_modal, false)
       |> assign(:show_instructions, false)
+      |> assign(:show_share_confirmation, false)
+      |> assign(:pending_share_action, nil)
       |> assign(:editing_percentages_product_id, nil)
       |> assign(:my_total, Decimal.new("0"))
       |> assign(:total_ticket_main, total_ticket)
@@ -104,49 +106,81 @@ defmodule TicketSplitterWeb.TicketLive do
     unless participant_name do
       {:noreply, assign(socket, :show_name_modal, true)}
     else
-      result = case action do
-        "add_unit" ->
-          # Añadir 1 unidad desde el pool
-          Tickets.add_participant_unit(product_id, participant_name, color)
-
-        "remove_unit" ->
-          # Quitar 1 unidad (devolver al pool)
-          Tickets.remove_participant_unit(product_id, participant_name)
-
-        "join_group" ->
-          # Unirse a un grupo existente (compartir)
-          group_id = Map.get(params, "group_id")
-          Tickets.join_assignment_group(group_id, participant_name, color)
-
-        _ ->
-          {:error, :invalid_action}
+      # Si la acción es "join_group", mostrar modal de confirmación primero
+      if action == "join_group" do
+        {:noreply, socket
+          |> assign(:show_share_confirmation, true)
+          |> assign(:pending_share_action, params)}
+      else
+        execute_toggle_action(action, params, socket)
       end
+    end
+  end
 
-      case result do
-        {:ok, _} ->
-          # Broadcast a todos los usuarios conectados
-          broadcast_ticket_update(socket.assigns.ticket.id)
+  def handle_event("confirm_share", _params, socket) do
+    params = socket.assigns.pending_share_action
 
-          # Recargar ticket con productos actualizados
-          ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+    socket =
+      socket
+      |> assign(:show_share_confirmation, false)
+      |> assign(:pending_share_action, nil)
 
-          # Recalcular min_participants
-          real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
-          min_participants = max(real_participants_count, 1)
+    execute_toggle_action("join_group", params, socket)
+  end
 
-          socket =
-            socket
-            |> assign(:ticket, ticket)
-            |> assign(:products, ticket.products)
-            |> assign(:min_participants, min_participants)
-            |> calculate_my_total()
-            |> update_main_saldos()
+  def handle_event("cancel_share", _params, socket) do
+    {:noreply, socket
+      |> assign(:show_share_confirmation, false)
+      |> assign(:pending_share_action, nil)}
+  end
 
-          {:noreply, socket}
+  defp execute_toggle_action(action, params, socket) do
+    participant_name = socket.assigns.participant_name
+    color = socket.assigns.participant_color
+    product_id = Map.get(params, "product_id")
 
-        {:error, _} ->
-          {:noreply, socket}
-      end
+    result = case action do
+      "add_unit" ->
+        # Añadir 1 unidad desde el pool
+        Tickets.add_participant_unit(product_id, participant_name, color)
+
+      "remove_unit" ->
+        # Quitar 1 unidad (devolver al pool)
+        Tickets.remove_participant_unit(product_id, participant_name)
+
+      "join_group" ->
+        # Unirse a un grupo existente (compartir)
+        group_id = Map.get(params, "group_id")
+        Tickets.join_assignment_group(group_id, participant_name, color)
+
+      _ ->
+        {:error, :invalid_action}
+    end
+
+    case result do
+      {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recargar ticket con productos actualizados
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        # Recalcular min_participants
+        real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+        min_participants = max(real_participants_count, 1)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> assign(:min_participants, min_participants)
+          |> calculate_my_total()
+          |> update_main_saldos()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
     end
   end
 

@@ -325,6 +325,14 @@ Hooks.SplitDivider = {
     let divider = this.el
     let container = divider.parentElement
     let debounceTimeout = null
+    let animationFrameId = null
+    let lastPercentage = null
+
+    // Cache DOM elements for better performance
+    const participant1 = container.querySelector('[id^="participant-"][id$="-0"]')
+    const participant2 = container.querySelector('[id^="participant-"][id$="-1"]')
+    const percent1Display = participant1?.querySelector('.percentage-display')
+    const percent2Display = participant2?.querySelector('.percentage-display')
 
     const updateSplit = (clientX) => {
       const deltaX = clientX - startX
@@ -334,26 +342,36 @@ Hooks.SplitDivider = {
       // Clamp between 5% and 95%
       newPercentage = Math.max(5, Math.min(95, newPercentage))
 
-      // Update visual positions
-      divider.style.left = `${newPercentage}%`
+      // Snap to 5% increments
+      newPercentage = Math.round(newPercentage / 5) * 5
 
-      // Find and update participant sections
-      const participant1 = container.querySelector('[id^="participant-"][id$="-0"]')
-      const participant2 = container.querySelector('[id^="participant-"][id$="-1"]')
+      // Only update if percentage changed
+      if (newPercentage === lastPercentage) {
+        return lastPercentage
+      }
+      lastPercentage = newPercentage
 
-      if (participant1 && participant2) {
-        participant1.style.width = `${newPercentage}%`
-        participant2.style.width = `${100 - newPercentage}%`
-
-        // Update percentage displays
-        const percent1Display = participant1.querySelector('.percentage-display')
-        const percent2Display = participant2.querySelector('.percentage-display')
-
-        if (percent1Display) percent1Display.textContent = `${Math.round(newPercentage)}%`
-        if (percent2Display) percent2Display.textContent = `${Math.round(100 - newPercentage)}%`
+      // Use requestAnimationFrame for smooth visual updates
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
       }
 
-      return Math.round(newPercentage)
+      animationFrameId = requestAnimationFrame(() => {
+        // Update visual positions
+        divider.style.left = `${newPercentage}%`
+
+        if (participant1 && participant2) {
+          participant1.style.width = `${newPercentage}%`
+          participant2.style.width = `${100 - newPercentage}%`
+
+          // Update percentage displays
+          if (percent1Display) percent1Display.textContent = `${newPercentage}%`
+          if (percent2Display) percent2Display.textContent = `${100 - newPercentage}%`
+        }
+        animationFrameId = null
+      })
+
+      return newPercentage
     }
 
     const debouncedUpdate = (percentage) => {
@@ -362,7 +380,7 @@ Hooks.SplitDivider = {
         clearTimeout(debounceTimeout)
       }
 
-      // Schedule new update after 150ms of inactivity
+      // Schedule new update after 2000ms (2 seconds) of inactivity
       debounceTimeout = setTimeout(() => {
         this.pushEvent("adjust_split_percentage", {
           group_id: divider.dataset.groupId,
@@ -371,7 +389,7 @@ Hooks.SplitDivider = {
           participant2_percentage: 100 - percentage
         })
         debounceTimeout = null
-      }, 150)
+      }, 2000)
     }
 
     const handleStart = (e) => {
@@ -423,8 +441,19 @@ Hooks.SplitDivider = {
         divider.getBoundingClientRect().left + (divider.offsetWidth / 2)
       const finalPercentage = updateSplit(clientX)
 
-      // Use debounce for final update too
-      debouncedUpdate(finalPercentage)
+      // Cancel any pending debounce and send immediately on release
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+        debounceTimeout = null
+      }
+
+      // Send the final update immediately when released
+      this.pushEvent("adjust_split_percentage", {
+        group_id: divider.dataset.groupId,
+        product_id: divider.dataset.productId,
+        participant1_percentage: finalPercentage,
+        participant2_percentage: 100 - finalPercentage
+      })
 
       // Prevent click event if we dragged
       setTimeout(() => {
@@ -460,6 +489,11 @@ Hooks.SplitDivider = {
       if (debounceTimeout) {
         clearTimeout(debounceTimeout)
         debounceTimeout = null
+      }
+      // Clear any pending animation frame
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = null
       }
       document.removeEventListener('mousemove', handleMove)
       document.removeEventListener('mouseup', handleEnd)
