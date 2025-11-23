@@ -27,18 +27,17 @@ RUN mkdir config
 COPY config/config.exs config/${MIX_ENV}.exs config/
 RUN mix deps.compile
 
-# Copy assets if they exist
-COPY priv priv
-COPY assets assets
-# Try to build assets if package.json exists
-RUN if [ -f "assets/package.json" ]; then \
-      npm --prefix ./assets ci && \
-      mix assets.deploy; \
-    fi
-
-# Compile and build the application
+# Copy application code
 COPY lib lib
+COPY priv priv
+
+# Compile the application first
 RUN mix compile
+
+# Copy assets and build them
+COPY assets assets
+RUN mix assets.setup
+RUN mix assets.deploy
 
 # Build release
 COPY config/runtime.exs config/
