@@ -119,11 +119,11 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event(
         "toggle_product",
-        %{"product_id" => product_id, "action" => action} = params,
+        %{"product_id" => _product_id, "action" => action} = params,
         socket
       ) do
     participant_name = socket.assigns.participant_name
-    color = socket.assigns.participant_color
+    _color = socket.assigns.participant_color
 
     unless participant_name do
       {:noreply, assign(socket, :show_name_modal, true)}
@@ -156,59 +156,6 @@ defmodule TicketSplitterWeb.TicketLive do
      socket
      |> assign(:show_share_confirmation, false)
      |> assign(:pending_share_action, nil)}
-  end
-
-  defp execute_toggle_action(action, params, socket) do
-    participant_name = socket.assigns.participant_name
-    color = socket.assigns.participant_color
-    product_id = Map.get(params, "product_id")
-
-    result =
-      case action do
-        "add_unit" ->
-          # Añadir 1 unidad desde el pool
-          Tickets.add_participant_unit(product_id, participant_name, color)
-
-        "remove_unit" ->
-          # Quitar 1 unidad (devolver al pool)
-          Tickets.remove_participant_unit(product_id, participant_name)
-
-        "join_group" ->
-          # Unirse a un grupo existente (compartir)
-          group_id = Map.get(params, "group_id")
-          Tickets.join_assignment_group(group_id, participant_name, color)
-
-        _ ->
-          {:error, :invalid_action}
-      end
-
-    case result do
-      {:ok, _} ->
-        # Broadcast a todos los usuarios conectados
-        broadcast_ticket_update(socket.assigns.ticket.id)
-
-        # Recargar ticket con productos actualizados
-        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
-
-        # Recalcular min_participants
-        real_participants_count =
-          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
-
-        min_participants = max(real_participants_count, 1)
-
-        socket =
-          socket
-          |> assign(:ticket, ticket)
-          |> assign(:products, ticket.products)
-          |> assign(:min_participants, min_participants)
-          |> calculate_my_total()
-          |> update_main_saldos()
-
-        {:noreply, socket}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
   end
 
   @impl true
@@ -318,48 +265,6 @@ defmodule TicketSplitterWeb.TicketLive do
         update_participants_count(num, socket)
 
       _ ->
-        {:noreply, socket}
-    end
-  end
-
-  defp update_participants_count(new_count, socket) do
-    case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count}) do
-      {:ok, ticket} ->
-        # Broadcast a todos los usuarios conectados
-        broadcast_ticket_update(socket.assigns.ticket.id)
-
-        # Recalcular datos del resumen si el modal está abierto
-        socket =
-          if socket.assigns.show_summary_modal do
-            participants = get_all_participants(socket.assigns)
-
-            participant_summaries =
-              Enum.map(participants, fn participant ->
-                calculate_participant_summary(socket.assigns.ticket.id, participant)
-              end)
-
-            total_ticket = calculate_ticket_total(socket.assigns.products)
-            total_assigned = calculate_total_assigned(socket.assigns.products, new_count)
-            pending = Decimal.sub(total_ticket, total_assigned)
-
-            socket
-            |> assign(:ticket, ticket)
-            |> assign(:participants_for_summary, participant_summaries)
-            |> assign(:total_ticket_for_summary, total_ticket)
-            |> assign(:total_assigned_for_summary, total_assigned)
-            |> assign(:pending_for_summary, pending)
-            |> calculate_my_total()
-            |> update_main_saldos()
-          else
-            socket
-            |> assign(:ticket, ticket)
-            |> calculate_my_total()
-            |> update_main_saldos()
-          end
-
-        {:noreply, socket}
-
-      {:error, _} ->
         {:noreply, socket}
     end
   end
@@ -530,6 +435,101 @@ defmodule TicketSplitterWeb.TicketLive do
     else
       # Mostrar modal para pedir nombre
       {:noreply, assign(socket, :show_name_modal, true)}
+    end
+  end
+
+  defp execute_toggle_action(action, params, socket) do
+    participant_name = socket.assigns.participant_name
+    color = socket.assigns.participant_color
+    product_id = Map.get(params, "product_id")
+
+    result =
+      case action do
+        "add_unit" ->
+          # Añadir 1 unidad desde el pool
+          Tickets.add_participant_unit(product_id, participant_name, color)
+
+        "remove_unit" ->
+          # Quitar 1 unidad (devolver al pool)
+          Tickets.remove_participant_unit(product_id, participant_name)
+
+        "join_group" ->
+          # Unirse a un grupo existente (compartir)
+          group_id = Map.get(params, "group_id")
+          Tickets.join_assignment_group(group_id, participant_name, color)
+
+        _ ->
+          {:error, :invalid_action}
+      end
+
+    case result do
+      {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recargar ticket con productos actualizados
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        # Recalcular min_participants
+        real_participants_count =
+          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+
+        min_participants = max(real_participants_count, 1)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> assign(:min_participants, min_participants)
+          |> calculate_my_total()
+          |> update_main_saldos()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  defp update_participants_count(new_count, socket) do
+    case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count}) do
+      {:ok, ticket} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recalcular datos del resumen si el modal está abierto
+        socket =
+          if socket.assigns.show_summary_modal do
+            participants = get_all_participants(socket.assigns)
+
+            participant_summaries =
+              Enum.map(participants, fn participant ->
+                calculate_participant_summary(socket.assigns.ticket.id, participant)
+              end)
+
+            total_ticket = calculate_ticket_total(socket.assigns.products)
+            total_assigned = calculate_total_assigned(socket.assigns.products, new_count)
+            pending = Decimal.sub(total_ticket, total_assigned)
+
+            socket
+            |> assign(:ticket, ticket)
+            |> assign(:participants_for_summary, participant_summaries)
+            |> assign(:total_ticket_for_summary, total_ticket)
+            |> assign(:total_assigned_for_summary, total_assigned)
+            |> assign(:pending_for_summary, pending)
+            |> calculate_my_total()
+            |> update_main_saldos()
+          else
+            socket
+            |> assign(:ticket, ticket)
+            |> calculate_my_total()
+            |> update_main_saldos()
+          end
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
     end
   end
 
@@ -718,7 +718,7 @@ defmodule TicketSplitterWeb.TicketLive do
     %{name: participant.name, color: participant.color, total: total}
   end
 
-  defp calculate_total_assigned(products, total_participants) do
+  defp calculate_total_assigned(products, _total_participants) do
     Enum.reduce(products, Decimal.new("0"), fn product, acc ->
       if product.is_common do
         # For common products, add the FULL price (it's completely assigned)

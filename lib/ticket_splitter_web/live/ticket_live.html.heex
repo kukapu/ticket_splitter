@@ -106,53 +106,69 @@
 <!-- Product Container - agrupa header y asignaciones -->
             <div class="bg-base-200 border border-base-300 rounded-xl p-2 space-y-1">
               <!-- Product Header -->
-              <%= if available_decimal > 0 do %>
-                <!-- Toda la fila es clicable cuando hay unidades disponibles -->
-                <div
-                  class="product-header bg-primary/10 border-2 border-dashed border-primary rounded-lg p-3 cursor-pointer transition-all duration-200 active:scale-[0.98] active:bg-primary/20"
-                  id={"available-units-#{product.id}"}
-                  phx-click="toggle_product"
-                  phx-value-product_id={product.id}
-                  phx-value-action="add_unit"
-                  phx-hook="LongPressHandler"
-                  data-product-id={product.id}
-                  data-is-common="false"
-                  title="Click para tomar 1 unidad o mantén presionado para hacer común"
-                >
-                  <div class="flex justify-between items-center gap-2">
-                    <div class="flex-1 min-w-0">
-                      <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">
-                        {product.name}
-                      </h3>
-                      <p class="text-xs text-base-content/50 truncate">
-                        {product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(
-                          product.total_price
-                        )}
-                      </p>
-                    </div>
+              <div
+                class={[
+                  "product-header rounded-lg p-3",
+                  available_decimal > 0 && "bg-primary/10 border-2 border-dashed border-primary",
+                  available_decimal <= 0 && "bg-base-200"
+                ]}
+                id={"available-units-#{product.id}"}
+              >
+                <div class="flex justify-between items-center gap-2">
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p class="text-xs text-base-content/50 truncate">
+                      {product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(
+                        product.total_price
+                      )}
+                    </p>
                     
-<!-- Available Units Info - sin aspecto de botón -->
-                    <div class="text-right flex-shrink-0">
-                      <span class="text-xl sm:text-2xl font-bold text-primary">
+<!-- Available Units Info -->
+                    <div class="mt-1">
+                      <span class="text-sm sm:text-base font-bold text-primary">
                         {format_decimal(available_units)}
                       </span>
-                      <p class="text-xs text-base-content/60 font-medium">disponibles</p>
+                      <span class="text-xs text-base-content/60 font-medium ml-1">
+                        disponibles
+                      </span>
                     </div>
                   </div>
+                  
+<!-- Action Buttons -->
+                  <div class="flex flex-row gap-1.5 flex-shrink-0">
+                    <button
+                      phx-click="toggle_product"
+                      phx-value-product_id={product.id}
+                      phx-value-action="add_unit"
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-success hover:bg-success/80 text-success-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                      title="Añadir 1 unidad a mi cuenta"
+                    >
+                      <span class="text-base sm:text-lg font-bold">+</span>
+                    </button>
+
+                    <button
+                      phx-click="toggle_product"
+                      phx-value-product_id={product.id}
+                      phx-value-action="remove_unit"
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-error hover:bg-error/80 text-error-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                      title="Quitar 1 unidad de mi cuenta"
+                    >
+                      <span class="text-base sm:text-lg font-bold">−</span>
+                    </button>
+
+                    <button
+                      phx-click="make_common"
+                      phx-value-product_id={product.id}
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primary/80 text-primary-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                      title="Hacer común para todos"
+                    >
+                      <.icon name="hero-users" class="w-4 sm:w-5 h-4 sm:h-5" />
+                    </button>
+                  </div>
                 </div>
-              <% else %>
-                <!-- Si no hay unidades disponibles, solo mostrar el nombre -->
-                <div class="product-header bg-base-200 rounded-lg px-3 py-2">
-                  <h3 class="text-sm sm:text-base font-semibold text-base-content line-clamp-2">
-                    {product.name}
-                  </h3>
-                  <p class="text-xs text-base-content/50 truncate">
-                    {product.units}u × €{format_decimal(product.unit_price)} = €{format_decimal(
-                      product.total_price
-                    )}
-                  </p>
-                </div>
-              <% end %>
+              </div>
               
 <!-- Participant Colored Cards -->
               <%= if length(product.participant_assignments) > 0 do %>
@@ -167,7 +183,7 @@
                     <%= if is_shared && length(group.participants) == 2 do %>
                       <!-- Split Card for 2 Users - Full Width Row with Interactive Divider -->
                       <div
-                        class="colored-card split-card-row rounded-lg overflow-hidden border-2 cursor-pointer new-card"
+                        class="colored-card split-card-row rounded-lg overflow-hidden border-2 new-card cursor-pointer"
                         style={"border-color: #{hd(group.participants).color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -249,7 +265,7 @@
                       main_participant = hd(group.participants)
                       card_color = main_participant.color %>
                       <div
-                        class="colored-card rounded-lg overflow-hidden border-2 cursor-pointer new-card"
+                        class="colored-card rounded-lg overflow-hidden border-2 new-card cursor-pointer"
                         style={"background-color: #{card_color}15; border-color: #{card_color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -327,12 +343,12 @@
           <% else %>
             <!-- Common Product -->
             <div
-              class="bg-base-200 border-2 border-primary rounded-xl p-2.5 sm:p-3 cursor-pointer transition-all duration-200 hover:border-primary"
+              class="bg-base-200 border-2 border-primary rounded-xl p-2.5 sm:p-3 transition-all duration-200 hover:border-primary"
               id={"product-#{product.id}"}
-              phx-hook="SwipeAndLongPressHandler"
+              phx-hook="SwipeHandler"
               data-product-id={product.id}
               data-is-common="true"
-              title="Desliza para quitar de común o mantén presionado para quitar de común"
+              title="Desliza para quitar de común"
             >
               <div class="flex justify-between items-center gap-2">
                 <div class="min-w-0 flex-1">
@@ -343,16 +359,26 @@
                     {product.units}u × €{format_decimal(product.unit_price)}
                   </p>
                 </div>
-                <div class="text-right flex-shrink-0">
-                  <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
-                    <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> COMÚN
-                  </span>
-                  <p class="text-xs sm:text-sm font-bold text-base-content mt-1">
-                    €{format_decimal(product.total_price)}
-                  </p>
-                  <p class="text-[10px] xs:text-xs text-base-content/50">
-                    ({@ticket.total_participants} pers.)
-                  </p>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <div class="text-right">
+                    <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
+                      <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> COMÚN
+                    </span>
+                    <p class="text-xs sm:text-sm font-bold text-base-content mt-1">
+                      €{format_decimal(product.total_price)}
+                    </p>
+                    <p class="text-[10px] xs:text-xs text-base-content/50">
+                      ({@ticket.total_participants} pers.)
+                    </p>
+                  </div>
+                  <button
+                    phx-click="remove_from_common"
+                    phx-value-product_id={product.id}
+                    class="w-9 h-9 sm:w-10 sm:h-10 bg-error hover:bg-error/80 text-error-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                    title="Quitar de común"
+                  >
+                    <span class="text-base sm:text-lg font-bold">−</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -377,14 +403,16 @@
         <%= if @show_instructions do %>
           <div class="mt-2 bg-base-200 border border-base-300 rounded-lg p-3 text-xs text-base-content/70">
             <ul class="space-y-1">
-              <li>• Click en unidades disponibles para tomar 1</li>
               <li>
-                • <strong>Mantén presionado</strong> en unidades disponibles para hacer común
+                • <strong>Botón +</strong> en productos disponibles para añadirte 1 unidad
               </li>
               <li>
-                • <strong>Mantén presionado</strong> en productos comunes para quitar de común
+                • <strong>Botón -</strong> en productos disponibles para quitarte 1 unidad
               </li>
-              <li>• Click en tu grupo para devolver/salir</li>
+              <li>
+                • <strong>Botón común</strong>
+                en productos disponibles para hacer común para todos
+              </li>
               <li>• Click en grupo de otros para compartir (50-50)</li>
               <li>• Desliza producto común para quitar de común</li>
             </ul>
