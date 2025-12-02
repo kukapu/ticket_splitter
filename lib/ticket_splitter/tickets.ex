@@ -160,6 +160,9 @@ defmodule TicketSplitter.Tickets do
   Gets all assignments for a participant across a ticket.
   """
   def get_participant_assignments_by_ticket(ticket_id, participant_name) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     query =
       from pa in ParticipantAssignment,
         join: p in Product,
@@ -205,6 +208,9 @@ defmodule TicketSplitter.Tickets do
   Creates a new assignment group.
   """
   def add_participant_unit(product_id, participant_name, color) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     product = get_product!(product_id)
 
     # Calculate total units already assigned
@@ -259,6 +265,9 @@ defmodule TicketSplitter.Tickets do
   Joins an existing assignment group (shares units with others).
   """
   def join_assignment_group(assignment_group_id, participant_name, color) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     # Get existing assignments in this group
     group_assignments =
       ParticipantAssignment
@@ -308,6 +317,9 @@ defmodule TicketSplitter.Tickets do
   If it's the last participant, removes the group entirely.
   """
   def remove_from_assignment_group(assignment_group_id, participant_name) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     # Get participant's assignment in this group
     assignment =
       ParticipantAssignment
@@ -346,6 +358,9 @@ defmodule TicketSplitter.Tickets do
   If shared: leave the group
   """
   def remove_participant_unit(product_id, participant_name) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     # Find participant's assignments for this product
     assignments =
       ParticipantAssignment
@@ -579,6 +594,9 @@ defmodule TicketSplitter.Tickets do
   Uses units_assigned to calculate the cost.
   """
   def calculate_participant_total(ticket_id, participant_name) do
+    # Normalize name to lowercase for case-insensitive comparison
+    participant_name = String.downcase(String.trim(participant_name))
+
     ticket = get_ticket_with_products!(ticket_id)
     total_participants = ticket.total_participants
 

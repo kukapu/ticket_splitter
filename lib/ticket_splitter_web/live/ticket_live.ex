@@ -51,12 +51,16 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:total_assigned_main, total_assigned)
       |> assign(:pending_main, pending)
       |> assign(:min_participants, min_participants)
+      |> assign(:locked_sliders, %{})
 
     {:ok, socket}
   end
 
   @impl true
   def handle_event("set_participant_name", %{"name" => name}, socket) do
+    # Normalize name to lowercase for case-insensitive comparison
+    name = String.downcase(String.trim(name))
+
     # Asignar color consistente basado en el nombre del usuario
     existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
 
@@ -406,26 +410,78 @@ defmodule TicketSplitterWeb.TicketLive do
         },
         socket
       ) do
-    # Update participant percentages in the database
-    case Tickets.update_split_percentages(group_id, p1_percentage, p2_percentage) do
-      :ok ->
-        # Broadcast update to all users
-        broadcast_ticket_update(socket.assigns.ticket.id)
+    # Verify that this user has the lock for this slider
+    participant_name = socket.assigns.participant_name
+    locked_by = Map.get(socket.assigns.locked_sliders, group_id)
 
-        # Reload ticket data
-        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+    if locked_by == participant_name do
+      # Update participant percentages in the database
+      case Tickets.update_split_percentages(group_id, p1_percentage, p2_percentage) do
+        :ok ->
+          # Broadcast update to all users
+          broadcast_ticket_update(socket.assigns.ticket.id)
 
-        socket =
-          socket
-          |> assign(:ticket, ticket)
-          |> assign(:products, ticket.products)
-          |> calculate_my_total()
-          |> update_main_saldos()
+          # Reload ticket data
+          ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
+          socket =
+            socket
+            |> assign(:ticket, ticket)
+            |> assign(:products, ticket.products)
+            |> calculate_my_total()
+            |> update_main_saldos()
+
+          {:noreply, socket}
+
+        {:error, _} ->
+          {:noreply, socket}
+      end
+    else
+      # User doesn't have the lock, ignore the request
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("lock_slider", %{"group_id" => group_id}, socket) do
+    participant_name = socket.assigns.participant_name
+
+    # Check if slider is already locked
+    case Map.get(socket.assigns.locked_sliders, group_id) do
+      nil ->
+        # Not locked, acquire lock
+        locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, participant_name)
+
+        # Broadcast lock to all users
+        broadcast_slider_lock(socket.assigns.ticket.id, group_id, participant_name)
+
+        {:noreply, assign(socket, :locked_sliders, locked_sliders)}
+
+      ^participant_name ->
+        # Already locked by this user, nothing to do
         {:noreply, socket}
 
-      {:error, _} ->
+      _other_user ->
+        # Locked by another user, reject
         {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("unlock_slider", %{"group_id" => group_id}, socket) do
+    participant_name = socket.assigns.participant_name
+    locked_by = Map.get(socket.assigns.locked_sliders, group_id)
+
+    # Only unlock if this user has the lock
+    if locked_by == participant_name do
+      locked_sliders = Map.delete(socket.assigns.locked_sliders, group_id)
+
+      # Broadcast unlock to all users
+      broadcast_slider_unlock(socket.assigns.ticket.id, group_id)
+
+      {:noreply, assign(socket, :locked_sliders, locked_sliders)}
+    else
+      {:noreply, socket}
     end
   end
 
@@ -526,6 +582,48 @@ defmodule TicketSplitterWeb.TicketLive do
     end
   end
 
+  @impl true
+  def handle_info({:slider_locked, group_id, locked_by}, socket) do
+    # Another user has locked a slider
+    locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, locked_by)
+
+    socket =
+      socket
+      |> assign(:locked_sliders, locked_sliders)
+      |> push_event("slider_locked", %{group_id: group_id, locked_by: locked_by})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:slider_unlocked, group_id}, socket) do
+    # Another user has unlocked a slider
+    locked_sliders = Map.delete(socket.assigns.locked_sliders, group_id)
+
+    socket =
+      socket
+      |> assign(:locked_sliders, locked_sliders)
+      |> push_event("slider_unlocked", %{group_id: group_id})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    # When a user disconnects, unlock all sliders they had locked
+    participant_name = socket.assigns.participant_name
+
+    if participant_name do
+      Enum.each(socket.assigns.locked_sliders, fn {group_id, locked_by} ->
+        if locked_by == participant_name do
+          broadcast_slider_unlock(socket.assigns.ticket.id, group_id)
+        end
+      end)
+    end
+
+    :ok
+  end
+
   # Private functions
 
   defp broadcast_ticket_update(ticket_id) do
@@ -533,6 +631,22 @@ defmodule TicketSplitterWeb.TicketLive do
       TicketSplitter.PubSub,
       "ticket:#{ticket_id}",
       {:ticket_updated, ticket_id}
+    )
+  end
+
+  defp broadcast_slider_lock(ticket_id, group_id, locked_by) do
+    Phoenix.PubSub.broadcast(
+      TicketSplitter.PubSub,
+      "ticket:#{ticket_id}",
+      {:slider_locked, group_id, locked_by}
+    )
+  end
+
+  defp broadcast_slider_unlock(ticket_id, group_id) do
+    Phoenix.PubSub.broadcast(
+      TicketSplitter.PubSub,
+      "ticket:#{ticket_id}",
+      {:slider_unlocked, group_id}
     )
   end
 

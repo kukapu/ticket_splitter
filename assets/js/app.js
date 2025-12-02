@@ -32,10 +32,14 @@ const Hooks = {}
 Hooks.ParticipantStorage = {
   mounted() {
     const name = localStorage.getItem('participant_name')
-    this.pushEvent("participant_name_from_storage", { name: name || "" })
+    // Normalize name to lowercase for case-insensitive comparison
+    const normalizedName = name ? name.toLowerCase() : ""
+    this.pushEvent("participant_name_from_storage", { name: normalizedName })
 
     this.handleEvent("save_participant_name", ({ name }) => {
-      localStorage.setItem('participant_name', name)
+      // Normalize name to lowercase before saving
+      const normalizedName = name ? name.toLowerCase() : ""
+      localStorage.setItem('participant_name', normalizedName)
     })
   }
 }
@@ -324,9 +328,9 @@ Hooks.SplitDivider = {
     let containerWidth = 0
     let divider = this.el
     let container = divider.parentElement
-    let debounceTimeout = null
     let animationFrameId = null
     let lastPercentage = null
+    let isLocked = false
 
     // Cache DOM elements for better performance
     const participant1 = container.querySelector('[id^="participant-"][id$="-0"]')
@@ -374,25 +378,14 @@ Hooks.SplitDivider = {
       return newPercentage
     }
 
-    const debouncedUpdate = (percentage) => {
-      // Cancel any pending update
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
+    const handleStart = (e) => {
+      // Don't allow dragging if slider is locked by another user
+      if (isLocked) {
+        e.preventDefault()
+        e.stopPropagation()
+        return
       }
 
-      // Schedule new update after 2000ms (2 seconds) of inactivity
-      debounceTimeout = setTimeout(() => {
-        this.pushEvent("adjust_split_percentage", {
-          group_id: divider.dataset.groupId,
-          product_id: divider.dataset.productId,
-          participant1_percentage: percentage,
-          participant2_percentage: 100 - percentage
-        })
-        debounceTimeout = null
-      }, 2000)
-    }
-
-    const handleStart = (e) => {
       e.preventDefault()
       e.stopPropagation()
 
@@ -406,6 +399,11 @@ Hooks.SplitDivider = {
 
       divider.style.cursor = 'grabbing'
       divider.classList.add('dragging')
+
+      // Lock the slider when starting to drag
+      this.pushEvent("lock_slider", {
+        group_id: divider.dataset.groupId
+      })
     }
 
     const handleMove = (e) => {
@@ -420,10 +418,8 @@ Hooks.SplitDivider = {
         hasDragged = true
       }
 
-      const newPercentage = updateSplit(clientX)
-
-      // Use debounce to update LiveView
-      debouncedUpdate(newPercentage)
+      // Update visual position only (no server update during drag)
+      updateSplit(clientX)
     }
 
     const handleEnd = (e) => {
@@ -441,18 +437,17 @@ Hooks.SplitDivider = {
         divider.getBoundingClientRect().left + (divider.offsetWidth / 2)
       const finalPercentage = updateSplit(clientX)
 
-      // Cancel any pending debounce and send immediately on release
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-        debounceTimeout = null
-      }
-
-      // Send the final update immediately when released
+      // Send the final update and unlock the slider
       this.pushEvent("adjust_split_percentage", {
         group_id: divider.dataset.groupId,
         product_id: divider.dataset.productId,
         participant1_percentage: finalPercentage,
         participant2_percentage: 100 - finalPercentage
+      })
+
+      // Unlock the slider when done dragging
+      this.pushEvent("unlock_slider", {
+        group_id: divider.dataset.groupId
       })
 
       // Prevent click event if we dragged
@@ -483,13 +478,27 @@ Hooks.SplitDivider = {
     // Prevent clicks on the parent container during/after drag
     container.addEventListener('click', handleContainerClick, true)
 
+    // Handle server events for slider lock/unlock
+    this.handleEvent("slider_locked", ({ group_id, locked_by }) => {
+      if (group_id === divider.dataset.groupId) {
+        isLocked = true
+        divider.style.cursor = 'not-allowed'
+        divider.style.opacity = '0.5'
+        divider.setAttribute('title', `Bloqueado por ${locked_by}`)
+      }
+    })
+
+    this.handleEvent("slider_unlocked", ({ group_id }) => {
+      if (group_id === divider.dataset.groupId) {
+        isLocked = false
+        divider.style.cursor = 'ew-resize'
+        divider.style.opacity = '1'
+        divider.removeAttribute('title')
+      }
+    })
+
     // Cleanup on unmount
     this.handleDestroy = () => {
-      // Clear any pending debounce
-      if (debounceTimeout) {
-        clearTimeout(debounceTimeout)
-        debounceTimeout = null
-      }
       // Clear any pending animation frame
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId)
