@@ -8,7 +8,7 @@ defmodule TicketSplitterWeb.HomeLive do
   @openrouter_models [
     "google/gemini-2.5-flash-lite-preview-09-2025",
     "qwen/qwen-vl-plus",
-    "x-ai/grok-4.1-fast:free",
+    "x-ai/grok-4.1-fast:free"
   ]
 
   @impl true
