@@ -1,8 +1,8 @@
 # Use the official Elixir image for development
 FROM elixir:1.15-alpine
 
-# Install build dependencies
-RUN apk add --no-cache alpine-sdk npm git python3 postgresql-client
+# Install build dependencies (including nodejs for esbuild/tailwind)
+RUN apk add --no-cache alpine-sdk nodejs npm git python3 postgresql-client inotify-tools
 
 # Prepare build directory
 WORKDIR /app

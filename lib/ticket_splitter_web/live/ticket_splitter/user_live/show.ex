@@ -14,7 +14,10 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Show do
           <.button navigate={~p"/ticket_splitter/users"}>
             <.icon name="hero-arrow-left" />
           </.button>
-          <.button variant="primary" navigate={~p"/ticket_splitter/users/#{@user}/edit?return_to=show"}>
+          <.button
+            variant="primary"
+            navigate={~p"/ticket_splitter/users/#{@user}/edit?return_to=show"}
+          >
             <.icon name="hero-pencil-square" /> Edit user
           </.button>
         </:actions>

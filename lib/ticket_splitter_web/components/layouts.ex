@@ -119,7 +119,10 @@ defmodule TicketSplitterWeb.Layouts do
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="system"
       >
-        <.icon name="hero-computer-desktop-micro" class="size-5 sm:size-6 opacity-75 hover:opacity-100" />
+        <.icon
+          name="hero-computer-desktop-micro"
+          class="size-5 sm:size-6 opacity-75 hover:opacity-100"
+        />
       </button>
 
       <button

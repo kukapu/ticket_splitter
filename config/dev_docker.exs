@@ -4,7 +4,8 @@ import Config
 config :ticket_splitter, TicketSplitter.Repo,
   username: "postgres",
   password: "postgres",
-  hostname: "db",  # Nombre del contenedor Docker
+  # Nombre del contenedor Docker
+  hostname: "db",
   database: "ticket_splitter_dev",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
@@ -18,7 +19,10 @@ config :ticket_splitter, TicketSplitterWeb.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: System.get_env("SECRET_KEY_BASE") || "SECRET_KEY_BASE",
-  watchers: []
+  watchers: [
+    esbuild: {Esbuild, :install_and_run, [:ticket_splitter, ~w(--sourcemap=inline --watch)]},
+    tailwind: {Tailwind, :install_and_run, [:ticket_splitter, ~w(--watch)]}
+  ]
 
 # Watch static and templates for browser reloading.
 config :ticket_splitter, TicketSplitterWeb.Endpoint,
@@ -53,5 +57,4 @@ config :swoosh, :api_client, false
 
 # OpenRouter configuration
 config :ticket_splitter,
-  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
-  openrouter_model: System.get_env("OPENROUTER_MODEL") || "openai/gpt-4o"
+  openrouter_api_key: System.get_env("OPENROUTER_API_KEY")

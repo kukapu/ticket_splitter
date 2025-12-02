@@ -7,11 +7,12 @@
           <.live_file_input upload={@uploads.image} />
         </div>
       </form>
-
-      <!-- Processing Loader -->
+      
+<!-- Processing Loader -->
       <%= if @processing do %>
         <div class="text-center py-12">
-          <div class="inline-block w-16 h-16 border-4 border-base-300 border-t-primary rounded-full animate-spin mb-6"></div>
+          <div class="inline-block w-16 h-16 border-4 border-base-300 border-t-primary rounded-full animate-spin mb-6">
+          </div>
           <p class="text-base-content/70 text-lg font-medium animate-pulse">
             Analizando tu ticket...
           </p>
@@ -34,30 +35,28 @@
                   JPG, PNG o WEBP (máx. 10MB)
                 </p>
               </div>
-
-              <!-- Upload Buttons -->
+              
+<!-- Upload Buttons -->
               <div class="space-y-3">
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-gradient-to-r from-primary to-secondary text-primary-content font-semibold rounded-xl hover:from-primary/90 hover:to-secondary/90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
                   onclick="document.querySelector('#upload-form input[type=file]').click()"
                 >
-                  <.icon name="hero-photo" class="w-5 h-5 inline mr-2" />
-                  Seleccionar imagen
+                  <.icon name="hero-photo" class="w-5 h-5 inline mr-2" /> Seleccionar imagen
                 </button>
-
-                <!-- Camera Button (Mobile) -->
+                
+<!-- Camera Button (Mobile) -->
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-base-300 text-base-content font-semibold rounded-xl hover:bg-base-300/80 transition-all duration-200 shadow-lg sm:hidden"
                   onclick="document.querySelector('#upload-form input[type=file]').setAttribute('capture', 'environment'); document.querySelector('#upload-form input[type=file]').click();"
                 >
-                  <.icon name="hero-camera" class="w-5 h-5 inline mr-2" />
-                  Tomar foto
+                  <.icon name="hero-camera" class="w-5 h-5 inline mr-2" /> Tomar foto
                 </button>
               </div>
-
-              <!-- Upload Errors -->
+              
+<!-- Upload Errors -->
               <%= for err <- upload_errors(@uploads.image) do %>
                 <div class="mt-4 p-3 bg-error/20 border border-error rounded-lg text-sm text-error-content">
                   {error_to_string(err)}
@@ -67,8 +66,8 @@
           </div>
         </div>
       <% end %>
-
-      <!-- Error Display -->
+      
+<!-- Error Display -->
       <%= if @error do %>
         <div class="mt-6 bg-error/20 border border-error rounded-xl p-6 text-center">
           <div class="mx-auto w-12 h-12 bg-error rounded-full flex items-center justify-center mb-3">

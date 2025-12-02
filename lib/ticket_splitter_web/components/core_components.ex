@@ -62,7 +62,7 @@ defmodule TicketSplitterWeb.CoreComponents do
       <div class={[
         "alert w-80 sm:w-96 max-w-80 sm:max-w-96 text-wrap",
         @kind == :info && "alert-info",
-        @kind == :error && "alert-error"
+        @kind == :error && "bg-base-100 border-2 border-red-400 text-red-600 dark:text-red-400"
       ]}>
         <.icon :if={@kind == :info} name="hero-information-circle" class="size-5 shrink-0" />
         <.icon :if={@kind == :error} name="hero-exclamation-circle" class="size-5 shrink-0" />

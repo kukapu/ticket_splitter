@@ -10,7 +10,6 @@ config :ticket_splitter, TicketSplitter.Repo,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 
-
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #
@@ -90,5 +89,4 @@ config :swoosh, :api_client, false
 
 # OpenRouter configuration
 config :ticket_splitter,
-  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
-  openrouter_model: System.get_env("OPENROUTER_MODEL") || "openai/gpt-4o"
+  openrouter_api_key: System.get_env("OPENROUTER_API_KEY")

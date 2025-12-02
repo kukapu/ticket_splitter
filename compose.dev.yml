@@ -26,6 +26,7 @@ services:
     command: >
       sh -c "
         mix deps.get &&
+        mix assets.setup &&
         mix ecto.create &&
         mix ecto.migrate &&
         mix phx.server

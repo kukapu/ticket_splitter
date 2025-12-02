@@ -29,7 +29,10 @@ defmodule TicketSplitter.Tickets do
   def get_ticket_with_products!(id) do
     Ticket
     |> Repo.get!(id)
-    |> Repo.preload(products: from(p in Product, order_by: [asc: p.position], preload: [:participant_assignments]))
+    |> Repo.preload(
+      products:
+        from(p in Product, order_by: [asc: p.position], preload: [:participant_assignments])
+    )
   end
 
   @doc """
@@ -237,6 +240,7 @@ defmodule TicketSplitter.Tickets do
       else
         # Create new assignment with 1 unit and new group
         group_id = Ecto.UUID.generate()
+
         create_participant_assignment(%{
           product_id: product_id,
           participant_name: participant_name,
@@ -272,7 +276,7 @@ defmodule TicketSplitter.Tickets do
         {:error, :already_in_group}
       else
         # Get units_assigned from the group (they all share the same units)
-        units = (hd(group_assignments).units_assigned || Decimal.new("0"))
+        units = hd(group_assignments).units_assigned || Decimal.new("0")
         product_id = hd(group_assignments).product_id
 
         # Create new assignment in the same group
@@ -307,7 +311,11 @@ defmodule TicketSplitter.Tickets do
     # Get participant's assignment in this group
     assignment =
       ParticipantAssignment
-      |> where([pa], pa.assignment_group_id == ^assignment_group_id and pa.participant_name == ^participant_name)
+      |> where(
+        [pa],
+        pa.assignment_group_id == ^assignment_group_id and
+          pa.participant_name == ^participant_name
+      )
       |> Repo.one()
 
     if assignment do
@@ -421,7 +429,7 @@ defmodule TicketSplitter.Tickets do
     |> Enum.group_by(fn pa -> pa.assignment_group_id end)
     |> Enum.reduce(Decimal.new("0"), fn {_group_id, assignments}, acc ->
       # All assignments in a group share the same units, so just take the first one
-      units = (hd(assignments).units_assigned || Decimal.new("0"))
+      units = hd(assignments).units_assigned || Decimal.new("0")
       Decimal.add(acc, units)
     end)
   end
@@ -488,13 +496,14 @@ defmodule TicketSplitter.Tickets do
       assignments
       |> Enum.with_index()
       |> Enum.each(fn {assignment, index} ->
-        new_percentage = if index == 0 do
-          # First assignment (alphabetically) gets participant1_percentage
-          p1_decimal
-        else
-          # Second assignment gets participant2_percentage
-          p2_decimal
-        end
+        new_percentage =
+          if index == 0 do
+            # First assignment (alphabetically) gets participant1_percentage
+            p1_decimal
+          else
+            # Second assignment gets participant2_percentage
+            p2_decimal
+          end
 
         update_participant_assignment(assignment, %{percentage: new_percentage})
       end)
@@ -510,12 +519,26 @@ defmodule TicketSplitter.Tickets do
   """
   def create_ticket_from_json(products_json, image_url \\ nil) do
     Repo.transaction(fn ->
-      # Create ticket
+      # Parse date from JSON if present
+      ticket_date = parse_ticket_date(products_json["date"])
+
+      # Parse total_amount
+      total_amount =
+        case products_json["total_amount"] do
+          nil -> nil
+          amount -> Decimal.new(to_string(amount))
+        end
+
+      # Create ticket with new merchant info
       {:ok, ticket} =
         create_ticket(%{
           image_url: image_url,
           products_json: products_json,
-          total_participants: 1
+          total_participants: 1,
+          merchant_name: products_json["merchant_name"],
+          date: ticket_date,
+          currency: products_json["currency"] || "EUR",
+          total_amount: total_amount
         })
 
       # Create products from JSON
@@ -530,13 +553,26 @@ defmodule TicketSplitter.Tickets do
           total_price: Decimal.new(to_string(product_data["total_price"])),
           confidence: Decimal.new(to_string(product_data["confidence"] || 0)),
           is_common: false,
-          position: index
+          position: index,
+          category: product_data["category"]
         })
       end)
 
       ticket
     end)
   end
+
+  # Parses date from JSON format (YYYY-MM-DD string) to Date
+  defp parse_ticket_date(nil), do: nil
+
+  defp parse_ticket_date(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} -> date
+      {:error, _} -> nil
+    end
+  end
+
+  defp parse_ticket_date(_), do: nil
 
   @doc """
   Calculates the total amount a participant owes on a ticket.
@@ -567,7 +603,9 @@ defmodule TicketSplitter.Tickets do
           share = Decimal.mult(unit_cost, units)
 
           # Apply percentage for shared groups
-          percentage = Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
+          percentage =
+            Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
+
           final_share = Decimal.mult(share, percentage)
 
           Decimal.add(acc, final_share)

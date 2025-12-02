@@ -3,6 +3,14 @@ defmodule TicketSplitterWeb.HomeLive do
 
   alias TicketSplitter.Tickets
 
+  # Modelos de OpenRouter en orden de preferencia (fallback)
+  # Si el primer modelo falla, se intenta con el siguiente
+  @openrouter_models [
+    "google/gemini-2.5-flash-lite-preview-09-2025",
+    "qwen/qwen-vl-plus",
+    "x-ai/grok-4.1-fast:free",
+  ]
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -35,11 +43,12 @@ defmodule TicketSplitterWeb.HomeLive do
     end)
 
     # Activar el loader inmediatamente cuando se selecciona una imagen
-    socket = if length(socket.assigns.uploads.image.entries) > 0 do
-      assign(socket, :processing, true)
-    else
-      socket
-    end
+    socket =
+      if length(socket.assigns.uploads.image.entries) > 0 do
+        assign(socket, :processing, true)
+      else
+        socket
+      end
 
     {:noreply, socket}
   end
@@ -73,11 +82,12 @@ defmodule TicketSplitterWeb.HomeLive do
           file_content = File.read!(path)
           base64_content = Base.encode64(file_content)
 
-          {:ok, %{
-            filename: entry.client_name,
-            content_type: entry.client_type,
-            base64: base64_content
-          }}
+          {:ok,
+           %{
+             filename: entry.client_name,
+             content_type: entry.client_type,
+             base64: base64_content
+           }}
         end)
 
       socket =
@@ -115,14 +125,24 @@ defmodule TicketSplitterWeb.HomeLive do
 
               {:error, error} ->
                 IO.puts("❌ Error guardando ticket: #{inspect(error)}")
+
                 socket
                 |> assign(:error, "Error guardando el ticket: #{inspect(error)}")
                 |> assign(:processing, false)
                 |> assign(:result, nil)
             end
 
+          {:error, :not_a_receipt, error_message} ->
+            IO.puts("⚠️ Imagen no es un ticket: #{error_message}")
+
+            socket
+            |> put_flash(:error, error_message)
+            |> assign(:processing, false)
+            |> assign(:result, nil)
+
           {:error, error} ->
             IO.puts("❌ Error parseando JSON: #{inspect(error)}")
+
             socket
             |> assign(:error, "Error parseando la respuesta: #{error}")
             |> assign(:processing, false)
@@ -131,6 +151,7 @@ defmodule TicketSplitterWeb.HomeLive do
 
       {:error, error} ->
         IO.puts("❌ Error en OpenRouter: #{inspect(error)}")
+
         socket
         |> assign(:error, "Error procesando la imagen: #{inspect(error)}")
         |> assign(:processing, false)
@@ -163,7 +184,20 @@ defmodule TicketSplitterWeb.HomeLive do
         {:ok, json} ->
           IO.puts("✅ JSON parseado exitosamente:")
           IO.inspect(json, pretty: true, limit: :infinity)
-          {:ok, json}
+
+          # Verificar si el LLM detectó que la imagen no es un ticket
+          case json do
+            %{"is_receipt" => false, "error_message" => error_message} ->
+              IO.puts("⚠️ La imagen no es un ticket válido: #{error_message}")
+              {:error, :not_a_receipt, error_message}
+
+            %{"is_receipt" => false} ->
+              IO.puts("⚠️ La imagen no es un ticket válido")
+              {:error, :not_a_receipt, "La imagen no parece ser un ticket válido."}
+
+            _ ->
+              {:ok, json}
+          end
 
         {:error, error} ->
           IO.puts("❌ Error al parsear JSON:")
@@ -179,68 +213,110 @@ defmodule TicketSplitterWeb.HomeLive do
   end
 
   defp make_openrouter_request(uploaded_file) do
-    # Configuración que deberás personalizar
     api_key = Application.get_env(:ticket_splitter, :openrouter_api_key)
-    model = Application.get_env(:ticket_splitter, :openrouter_model, "openai/gpt-4o")
     prompt = read_prompt_from_file()
 
-    IO.puts("🔑 API Key configurada: #{if api_key, do: "Sí (***#{String.slice(api_key, -4..-1)})", else: "No"}")
-    IO.puts("🤖 Modelo: #{model}")
+    IO.puts(
+      "🔑 API Key configurada: #{if api_key, do: "Sí (***#{String.slice(api_key, -4..-1)})", else: "No"}"
+    )
+
+    IO.puts("🤖 Modelos disponibles (en orden de preferencia): #{inspect(@openrouter_models)}")
     IO.puts("💬 Prompt: #{String.slice(prompt, 0, 50)}...")
 
     unless api_key do
       {:error, "API key no configurada"}
     else
-      payload = %{
-        "model" => model,
-        "messages" => [
-          %{
-            "role" => "user",
-            "content" => [
-              %{
-                "type" => "text",
-                "text" => prompt
-              },
-              %{
-                "type" => "image_url",
-                "image_url" => %{
-                  "url" => "data:#{uploaded_file.content_type};base64,#{uploaded_file.base64}"
-                }
+      # Intentar con cada modelo en orden hasta que uno funcione
+      try_models_in_order(@openrouter_models, uploaded_file, api_key, prompt)
+    end
+  end
+
+  # Intenta con cada modelo en orden hasta que uno funcione
+  defp try_models_in_order([], _uploaded_file, _api_key, _prompt) do
+    {:error, "Todos los modelos fallaron"}
+  end
+
+  defp try_models_in_order([model | rest], uploaded_file, api_key, prompt) do
+    IO.puts("\n🤖 Intentando con modelo: #{model}")
+
+    case call_openrouter_api(model, uploaded_file, api_key, prompt) do
+      {:ok, body} ->
+        IO.puts("✅ Modelo #{model} respondió exitosamente")
+        {:ok, body}
+
+      {:error, reason} ->
+        IO.puts("⚠️ Modelo #{model} falló: #{inspect(reason)}")
+
+        if rest == [] do
+          IO.puts("❌ No quedan más modelos para intentar")
+          {:error, reason}
+        else
+          IO.puts("🔄 Intentando con el siguiente modelo...")
+          try_models_in_order(rest, uploaded_file, api_key, prompt)
+        end
+    end
+  end
+
+  # Hace la llamada real a la API de OpenRouter
+  defp call_openrouter_api(model, uploaded_file, api_key, prompt) do
+    payload = %{
+      "model" => model,
+      "messages" => [
+        %{
+          "role" => "user",
+          "content" => [
+            %{
+              "type" => "text",
+              "text" => prompt
+            },
+            %{
+              "type" => "image_url",
+              "image_url" => %{
+                "url" => "data:#{uploaded_file.content_type};base64,#{uploaded_file.base64}"
               }
-            ]
-          }
-        ],
-        "max_tokens" => 10000
-      }
+            }
+          ]
+        }
+      ],
+      "max_tokens" => 10000
+    }
 
-      headers = [
-        {"Authorization", "Bearer #{api_key}"},
-        {"Content-Type", "application/json"},
-        {"HTTP-Referer", "https://ticket-splitter.com"},
-        {"X-Title", "Ticket Splitter"}
-      ]
+    headers = [
+      {"Authorization", "Bearer #{api_key}"},
+      {"Content-Type", "application/json"},
+      {"HTTP-Referer", "https://ticket-splitter.com"},
+      {"X-Title", "Ticket Splitter"}
+    ]
 
-      IO.puts("🌐 Enviando petición a OpenRouter...")
+    IO.puts("🌐 Enviando petición a OpenRouter con modelo #{model}...")
 
-      case Req.post("https://openrouter.ai/api/v1/chat/completions",
-             json: payload,
-             headers: headers,
-             receive_timeout: 30_000
-           ) do
-        {:ok, %{status: 200, body: body}} ->
-          IO.puts("✅ Respuesta HTTP 200 recibida")
-          IO.puts("📦 Body completo de OpenRouter:")
-          IO.inspect(body, pretty: true, limit: :infinity)
-          {:ok, body}
+    # Usar Task con timeout para garantizar máximo 6 segundos por modelo
+    task =
+      Task.async(fn ->
+        Req.post("https://openrouter.ai/api/v1/chat/completions",
+          json: payload,
+          headers: headers
+        )
+      end)
 
-        {:ok, %{status: status, body: body}} ->
-          IO.puts("⚠️ Respuesta HTTP #{status}: #{inspect(body)}")
-          {:error, "HTTP #{status}: #{inspect(body)}"}
+    case Task.yield(task, 12_000) || Task.shutdown(task, :brutal_kill) do
+      {:ok, {:ok, %{status: 200, body: body}}} ->
+        IO.puts("✅ Respuesta HTTP 200 recibida")
+        IO.puts("📦 Body completo de OpenRouter:")
+        IO.inspect(body, pretty: true, limit: :infinity)
+        {:ok, body}
 
-        {:error, error} ->
-          IO.puts("❌ Error de red: #{inspect(error)}")
-          {:error, error}
-      end
+      {:ok, {:ok, %{status: status, body: body}}} ->
+        IO.puts("⚠️ Respuesta HTTP #{status}: #{inspect(body)}")
+        {:error, "HTTP #{status}: #{inspect(body)}"}
+
+      {:ok, {:error, error}} ->
+        IO.puts("❌ Error de red: #{inspect(error)}")
+        {:error, error}
+
+      nil ->
+        IO.puts("⏱️ Timeout después de 6 segundos para modelo #{model}")
+        {:error, :timeout}
     end
   end
 
