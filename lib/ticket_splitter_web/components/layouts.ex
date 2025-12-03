@@ -55,6 +55,14 @@ defmodule TicketSplitterWeb.Layouts do
       <main class="flex-1 flex flex-col bg-base-100 relative">
         {render_slot(@inner_block)}
       </main>
+
+      <footer class="flex-none bg-base-300 border-t border-base-content/20 py-2">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p class="text-center text-xs text-base-content/60">
+            © kukapu
+          </p>
+        </div>
+      </footer>
     </div>
 
     <.flash_group flash={@flash} />
