@@ -6,121 +6,82 @@
   >
     <div class="max-w-4xl mx-auto px-3 py-4 pb-24">
       <!-- Top Dashboard Header -->
-      <div class="bg-base-100 rounded-[2rem] p-4 shadow-lg mb-6">
-        <!-- Ticket Title and Date -->
+      <div class="bg-base-100 rounded-lg p-4 shadow-lg mb-6">
+        <!-- Header: Title and Date -->
         <%= if @ticket.merchant_name || @ticket.date do %>
-          <div class="text-center mb-6 pb-4 border-b border-base-300">
+          <div class="text-center mb-4">
             <%= if @ticket.merchant_name do %>
-              <h1 class="text-2xl sm:text-3xl font-black text-base-content tracking-tight mb-2">
+              <h1 class="text-xl font-bold text-base-content tracking-tight mb-1">
                 {@ticket.merchant_name}
               </h1>
             <% end %>
             <%= if @ticket.date do %>
-              <div class="flex items-center justify-center gap-2 text-base-content/60">
-                <.icon name="hero-calendar-days" class="w-4 h-4" />
-                <time class="text-sm font-medium">
-                  {Calendar.strftime(@ticket.date, "%d de %B de %Y")}
+              <div class="flex items-center justify-center gap-1 text-base-content/40">
+                <.icon name="hero-calendar-days" class="w-3 h-3" />
+                <time class="text-xs">
+                  {Calendar.strftime(@ticket.date, "%d %b %Y")}
                 </time>
               </div>
             <% end %>
           </div>
         <% end %>
-        
-<!-- Participants Counter - Now at the beginning -->
-        <div class="flex justify-center mb-4">
-          <div class="bg-base-200 rounded-xl px-6 py-3 flex items-center gap-4">
-            <button
-              phx-click="decrement_participants"
-              class="w-8 h-8 rounded-lg bg-base-300 hover:bg-base-300/80 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={@ticket.total_participants <= @min_participants}
-            >
-              <span class="text-base-content font-bold">−</span>
-            </button>
 
-            <div class="flex flex-col items-center min-w-[60px]">
-              <span class="text-2xl font-black text-base-content tracking-tight">
-                {@ticket.total_participants}
-              </span>
-              <span class="text-[10px] font-bold text-base-content/50">personas</span>
-            </div>
-
-            <button
-              phx-click="increment_participants"
-              class="w-8 h-8 rounded-lg bg-base-300 hover:bg-base-300/80 flex items-center justify-center transition-colors"
-            >
-              <span class="text-base-content font-bold">+</span>
-            </button>
-          </div>
-        </div>
-        
-<!-- Mi Parte Display -->
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
+        <!-- Compact Actions Bar -->
+        <div class="flex items-center justify-between gap-3">
+          <!-- Mi Parte -->
+          <div class="flex items-center gap-2 bg-primary/5 rounded-md px-3 py-2 border border-primary/10">
             <div
-              class="w-2.5 h-2.5 rounded-full"
+              class="w-2 h-2 rounded-full"
               style={"background-color: #{if @participant_name, do: @participant_color, else: "#cbd5e1"}"}
             >
             </div>
-            <span class="text-sm font-medium text-base-content/60">Tu parte:</span>
-            <span class="text-xl font-bold text-base-content">
-              €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
-            </span>
+            <div>
+              <div class="text-xs text-base-content/50">Mi parte</div>
+              <div class="text-lg font-bold text-base-content">
+                €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
+              </div>
+            </div>
           </div>
-          
-<!-- Action Buttons -->
-          <div class="flex gap-2">
+
+          <!-- Participants Counter -->
+          <div class="flex items-center gap-1 bg-secondary/5 rounded-md px-3 py-2 border border-secondary/10">
+            <button
+              phx-click="decrement_participants"
+              class="w-7 h-7 rounded-md bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold shadow-sm hover:shadow border border-violet-300/30 dark:border-violet-700/30"
+              disabled={@ticket.total_participants <= @min_participants}
+            >
+              −
+            </button>
+            <div class="flex flex-col items-center min-w-[30px]">
+              <span class="text-base font-bold text-base-content">
+                {@ticket.total_participants}
+              </span>
+              <span class="text-[8px] text-base-content/40">personas</span>
+            </div>
+            <button
+              phx-click="increment_participants"
+              class="w-7 h-7 rounded-md bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 transition-all duration-200 text-sm font-bold shadow-sm hover:shadow-md border border-cyan-300/40 dark:border-cyan-700/30"
+            >
+              +
+            </button>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-1">
             <button
               phx-click="open_share_modal"
-              class="w-10 h-10 bg-secondary hover:bg-secondary/90 text-secondary-content rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
-              title="Compartir ticket"
+              class="w-9 h-9 bg-gradient-to-br from-indigo-500/35 to-purple-500/30 hover:from-indigo-500/45 hover:to-purple-500/40 text-indigo-700 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-indigo-300/50 dark:border-indigo-700/40"
+              title="Compartir"
             >
-              <.icon name="hero-share" class="w-5 h-5" />
+              <.icon name="hero-share" class="w-4 h-4" />
             </button>
-
             <button
               phx-click="show_summary"
-              class="bg-primary hover:bg-primary/90 text-primary-content rounded-xl px-4 py-2 flex items-center gap-2 transition-all duration-200 active:scale-95"
+              class="w-9 h-9 bg-gradient-to-br from-indigo-500/35 to-purple-500/30 hover:from-indigo-500/45 hover:to-purple-500/40 text-indigo-700 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-indigo-300/50 dark:border-indigo-700/40"
+              title="Resumen"
             >
-              <.icon name="hero-chart-bar" class="w-5 h-5" />
-              <span class="text-sm font-bold">Resumen</span>
+              <.icon name="hero-chart-bar" class="w-4 h-4" />
             </button>
-          </div>
-        </div>
-        
-<!-- Global Stats Row - With different colored background -->
-        <div class="mt-4 bg-base-200 rounded-xl p-3">
-          <div class="grid grid-cols-3 gap-2">
-            <div class="flex flex-col items-center">
-              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">
-                Total
-              </div>
-              <div class="text-lg sm:text-xl font-black text-base-content">
-                €{format_decimal(calculate_ticket_total(@products))}
-              </div>
-            </div>
-
-            <div class="flex flex-col items-center">
-              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">
-                Asignado
-              </div>
-              <div class="text-lg sm:text-xl font-black text-blue-500">
-                €{format_decimal(calculate_total_assigned(@products, @ticket.total_participants))}
-              </div>
-            </div>
-
-            <div class="flex flex-col items-center">
-              <div class="text-[10px] font-bold text-base-content/40 uppercase tracking-wider mb-0.5">
-                Pendiente
-              </div>
-              <div class="text-lg sm:text-xl font-black text-base-content">
-                €{format_decimal(
-                  Decimal.sub(
-                    calculate_ticket_total(@products),
-                    calculate_total_assigned(@products, @ticket.total_participants)
-                  )
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -138,7 +99,7 @@
               <div
                 class={[
                   "product-header rounded-lg p-3",
-                  available_decimal > 0 && "bg-primary/10 border-2 border-dashed border-primary",
+                  available_decimal > 0 && "bg-indigo-500/5 border border-dashed border-indigo-300/20 dark:border-indigo-600/15",
                   available_decimal <= 0 && "bg-base-200"
                 ]}
                 id={"available-units-#{product.id}"}
@@ -183,27 +144,27 @@
                     <button
                       phx-click="toggle_product"
                       phx-value-product_id={product.id}
-                      phx-value-action="add_unit"
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-success hover:bg-success/80 text-success-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
-                      title="Añadir 1 unidad a mi cuenta"
-                    >
-                      <span class="text-base sm:text-lg font-bold">+</span>
-                    </button>
-
-                    <button
-                      phx-click="toggle_product"
-                      phx-value-product_id={product.id}
                       phx-value-action="remove_unit"
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-error hover:bg-error/80 text-error-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/30 dark:border-violet-700/30"
                       title="Quitar 1 unidad de mi cuenta"
                     >
                       <span class="text-base sm:text-lg font-bold">−</span>
                     </button>
 
                     <button
+                      phx-click="toggle_product"
+                      phx-value-product_id={product.id}
+                      phx-value-action="add_unit"
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/30"
+                      title="Añadir 1 unidad a mi cuenta"
+                    >
+                      <span class="text-base sm:text-lg font-bold">+</span>
+                    </button>
+
+                    <button
                       phx-click="make_common"
                       phx-value-product_id={product.id}
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-primary hover:bg-primary/80 text-primary-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500/40 to-purple-500/35 hover:from-indigo-500/50 hover:to-purple-500/45 text-indigo-700 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-indigo-300/60 dark:border-indigo-700/50"
                       title="Hacer común para todos"
                     >
                       <.icon name="hero-users" class="w-4 sm:w-5 h-4 sm:h-5" />
