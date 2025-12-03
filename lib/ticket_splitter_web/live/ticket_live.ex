@@ -4,16 +4,22 @@ defmodule TicketSplitterWeb.TicketLive do
   alias TicketSplitter.Tickets
 
   @colors [
-    "#EF4444",
-    "#F59E0B",
-    "#10B981",
-    "#3B82F6",
-    "#8B5CF6",
-    "#EC4899",
-    "#14B8A6",
-    "#F97316",
-    "#06B6D4",
-    "#84CC16"
+    # Paleta moderna inspirada en violeta/índigo - 15 colores profesionales
+    "#7C3AED",  # Violeta primario (similar al logo TS)
+    "#10B981",  # Verde esmeralda (como botón compartir)
+    "#3B82F6",  # Azul brillante (complementario del cyan)
+    "#F97316",  # Naranja vibrante (energético y profesional)
+    "#EC4899",  # Rosa moderno (elegante y sofisticado)
+    "#14B8A6",  # Verde teal (fresco y natural)
+    "#8B5CF6",  # Índigo claro (armoniza con violeta)
+    "#F59E0B",  # Ámbar (calido pero profesional)
+    "#06B6D4",  # Cyan profundo (moderno tecnológico)
+    "#84CC16",  # Lima verde (vital y fresco)
+    "#6366F1",  # Índigo-violeta intermedio
+    "#8B4513",  # Café elegante (sofisticado)
+    "#DC2626",  # Rojo intenso (emergencia pero moderno)
+    "#059669",  # Verde bosque profundo
+    "#7C2D12"  # Terracota cálido (natural y elegante)
   ]
 
   @impl true
