@@ -34,8 +34,14 @@ COPY priv priv
 # Compile the application first
 RUN mix compile
 
-# Copy assets and build them
+# Copy assets first
 COPY assets assets
+
+# Copy package files to assets and install npm dependencies
+COPY package.json package-lock.json ./assets/
+RUN npm ci --prefix assets
+
+# Build assets
 RUN mix assets.setup
 RUN mix assets.deploy
 

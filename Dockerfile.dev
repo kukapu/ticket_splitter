@@ -18,6 +18,13 @@ ENV MIX_ENV=dev
 COPY mix.exs mix.lock ./
 RUN mix deps.get
 
+# Copy assets first
+COPY assets assets
+
+# Copy package files to assets and install npm dependencies
+COPY package.json package-lock.json ./assets/
+RUN npm ci --prefix assets || npm install --prefix assets
+
 # Copy the rest of the application
 COPY . .
 
