@@ -104,6 +104,35 @@
 
 /* This file is for your main application CSS */
 
+/* Global fix for aspect-square buttons - maintain 1:1 ratio everywhere */
+.aspect-square {
+  aspect-ratio: 1 / 1 !important;
+}
+
+/* Ensure aspect-square buttons maintain their defined width but become square */
+button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+  height: auto !important;
+  min-height: auto !important;
+}
+
+/* Make sure buttons use their width as height */
+button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
+  height: unset !important;
+  min-height: unset !important;
+}
+
+/* Ensure minimum sizes for different button categories */
+.aspect-square.w-6 { min-width: 28px !important; min-height: 28px !important; }
+.aspect-square.w-7 { min-width: 32px !important; min-height: 32px !important; }
+.aspect-square.w-8 { min-width: 36px !important; min-height: 36px !important; }
+.aspect-square.w-9 { min-width: 40px !important; min-height: 40px !important; }
+
+/* Ensure buttons don't become too small while maintaining aspect ratio */
+.aspect-square {
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
 /* Dynamic Viewport Height - Mobile friendly */
 @utility min-h-screen-dynamic {
   min-height: 100dvh; /* Dynamic viewport height - adapta a barra navegador */
@@ -467,11 +496,28 @@
   }
 }
 
+/* Individual and mine card styles for consistency */
+.colored-card-individual {
+  padding: 0.25rem;
+}
+
+.colored-card-mine {
+  padding: 0.25rem;
+}
+
 /* Touch-friendly mobile styles */
 @media (max-width: 640px) {
   .colored-card {
     min-height: 48px;
-    padding: 0.5rem;
+    padding: 0;
+  }
+
+  .colored-card-individual {
+    padding: 0.25rem;
+  }
+
+  .colored-card-mine {
+    padding: 0.25rem;
   }
 
   .split-card-row {
@@ -479,7 +525,7 @@
   }
 
   .split-card-row .split-card-participant {
-    padding: 0.5rem;
+    padding: 0;
     min-height: 48px;
   }
 
@@ -513,7 +559,7 @@
 
 @media (max-width: 480px) {
   .split-card-row {
-    min-height: 44px;
+    min-height: 34px;
   }
 
   .split-card-row .split-card-participant {
@@ -521,9 +567,9 @@
     min-height: 44px;
   }
 
-  .cards-stack .colored-card {
+  /* .cards-stack .colored-card {
     padding: 0.4rem 0.4rem 0.4rem 0.8rem;
-  }
+  } */
 
   .cards-stack .colored-card .p-4 {
     padding: 0.5rem !important;
@@ -545,6 +591,43 @@
   .participant-dot {
     width: 16px !important;
     height: 16px !important;
+  }
+
+  /* Ensure aspect-square buttons remain square on very small screens */
+  button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+    min-height: unset !important;
+    height: unset !important;
+  }
+
+  /* Ensure very small screen aspect-square buttons remain touchable */
+  button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
+    min-width: 36px !important; /* Slightly larger for very small screens */
+  }
+
+  /* Override specific button sizes for very small screens */
+  .aspect-square.w-6 {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    min-height: 30px !important;
+  }
+  .aspect-square.w-7 {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
+  }
+  .aspect-square.w-8 {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+  .aspect-square.w-9 {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    min-height: 42px !important;
   }
 }
 
@@ -690,6 +773,43 @@
   /* Better tap targets for mobile */
   button, a, input[type="button"], input[type="submit"] {
     min-height: 44px;
+  }
+
+  /* Fix: Ensure aspect-square buttons remain square on mobile */
+  button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+    min-height: unset !important;
+    height: unset !important;
+  }
+
+  /* Ensure mobile aspect-square buttons respect their width classes and sizes */
+  button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
+    min-width: 32px !important; /* Minimum touch target size */
+  }
+
+  /* Override specific button sizes for mobile */
+  .aspect-square.w-6 {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+  }
+  .aspect-square.w-7 {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+  }
+  .aspect-square.w-8 {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+  .aspect-square.w-9 {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
   }
 
   /* Prevent text size adjustment on orientation change */

@@ -4,12 +4,12 @@
     phx-hook="ParticipantStorage"
     id="ticket-container"
   >
-    <div class="max-w-4xl mx-auto px-3 py-4 pb-24">
+    <div class="max-w-4xl mx-auto px-1 sm:px-3 py-3 pb-24">
       <!-- Top Dashboard Header -->
-      <div class="bg-base-100 rounded-lg p-4 shadow-lg mb-6">
+      <div class="bg-base-100 rounded-lg p-3 shadow-lg mb-4">
         <!-- Header: Title and Date -->
         <%= if @ticket.merchant_name || @ticket.date do %>
-          <div class="text-center mb-4">
+          <div class="text-center mb-3">
             <%= if @ticket.merchant_name do %>
               <h1 class="text-xl font-bold text-base-content tracking-tight mb-1">
                 {@ticket.merchant_name}
@@ -87,18 +87,18 @@
       </div>
       
 <!-- Visual Colored Cards Layout -->
-      <div class="space-y-3">
+      <div class="space-y-2">
         <%= for product <- @products do %>
           <%= if !product.is_common do %>
             <% available_units = Tickets.get_available_units(product.id) %>
             <% available_decimal = Decimal.to_float(available_units) %>
             
 <!-- Product Container - agrupa header y asignaciones -->
-            <div class="bg-base-200 border border-base-300 rounded-xl p-2 space-y-1">
+            <div class="bg-base-200 border border-base-300 rounded-xl p-1.5 sm:p-1.5 space-y-1">
               <!-- Product Header -->
               <div
                 class={[
-                  "product-header rounded-lg p-3",
+                  "product-header rounded-lg p-2",
                   available_decimal > 0 && "bg-indigo-500/5 border border-dashed border-indigo-300/20 dark:border-indigo-600/15",
                   available_decimal <= 0 && "bg-base-200"
                 ]}
@@ -114,9 +114,9 @@
                         product.total_price
                       )}
                     </p>
-                    
+
 <!-- Available Units Info -->
-                    <div class="mt-1 flex gap-2 text-xs flex-wrap">
+                    <div class="mt-0.5 flex gap-2 text-xs flex-wrap">
                       <% available = Tickets.get_available_units(product.id) %>
                       <% common_units = product.common_units || Decimal.new("0") %>
                       <% assigned = Tickets.get_total_assigned_units(product.id) %>
@@ -140,34 +140,34 @@
                   </div>
                   
 <!-- Action Buttons -->
-                  <div class="flex flex-row gap-1.5 flex-shrink-0">
+                  <div class="flex flex-row gap-1 flex-shrink-0">
                     <button
                       phx-click="toggle_product"
                       phx-value-product_id={product.id}
                       phx-value-action="remove_unit"
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/30 dark:border-violet-700/30"
+                      class="w-8 h-8 bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/30 dark:border-violet-700/30"
                       title="Quitar 1 unidad de mi cuenta"
                     >
-                      <span class="text-base sm:text-lg font-bold">−</span>
+                      <span class="text-sm font-bold">−</span>
                     </button>
 
                     <button
                       phx-click="toggle_product"
                       phx-value-product_id={product.id}
                       phx-value-action="add_unit"
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/30"
+                      class="w-8 h-8 bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/30"
                       title="Añadir 1 unidad a mi cuenta"
                     >
-                      <span class="text-base sm:text-lg font-bold">+</span>
+                      <span class="text-sm font-bold">+</span>
                     </button>
 
                     <button
                       phx-click="make_common"
                       phx-value-product_id={product.id}
-                      class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-violet-600/35 to-indigo-600/30 hover:from-violet-600/45 hover:to-indigo-600/40 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/60 dark:border-violet-700/50"
+                      class="w-8 h-8 bg-gradient-to-br from-violet-600/35 to-indigo-600/30 hover:from-violet-600/45 hover:to-indigo-600/40 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/60 dark:border-violet-700/50"
                       title="Hacer común para todos"
                     >
-                      <.icon name="hero-users" class="w-4 sm:w-5 h-4 sm:h-5" />
+                      <.icon name="hero-users" class="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -176,15 +176,15 @@
 <!-- Common Units Card -->
               <% common_units = product.common_units || Decimal.new("0") %>
               <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
-                <div class="colored-card rounded-lg border-2 border-info bg-info/10 mb-2 mt-2 new-card">
-                  <div class="p-2 pl-4">
+                <div class="colored-card rounded-lg border-2 border-info bg-info/10 mb-1.5 mt-1.5 new-card">
+                  <div class="p-1.5 pl-3">
                     <div class="flex items-center justify-between gap-2">
                       <div class="text-left min-w-0 flex-1">
-                        <p class="text-xs sm:text-sm font-bold text-base-content flex items-center gap-1">
-                          <.icon name="hero-users" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                          <span>COMÚN ({@ticket.total_participants} personas)</span>
+                        <p class="text-xs font-bold text-base-content flex items-center gap-1">
+                          <.icon name="hero-users" class="w-3.5 h-3.5" />
+                          <span>COMÚN ({@ticket.total_participants} pers.)</span>
                         </p>
-                        <p class="text-[10px] xs:text-xs text-base-content/70">
+                        <p class="text-[9px] text-base-content/60">
                           {format_decimal(common_units)}u
                         </p>
                       </div>
@@ -196,35 +196,35 @@
                         <% per_person_cost =
                           Decimal.div(total_common_cost, Decimal.new(@ticket.total_participants)) %>
 
-                        <p class="text-xs sm:text-sm font-bold text-base-content truncate">
+                        <p class="text-xs font-bold text-base-content truncate">
                           €{format_decimal(total_common_cost)}
                         </p>
-                        <p class="text-[10px] xs:text-xs text-base-content/60">
-                          €{format_decimal(per_person_cost)} / persona
+                        <p class="text-[9px] text-base-content/50">
+                          €{format_decimal(per_person_cost)} / pers.
                         </p>
                       </div>
 
-                      <div class="flex flex-row gap-1 flex-shrink-0">
+                      <div class="flex flex-row gap-0.5 flex-shrink-0">
                         <!-- Add more common units -->
                         <!-- Remove common units -->
                         <button
                           type="button"
                           phx-click="remove_common_unit"
                           phx-value-product_id={product.id}
-                          class="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-amber-500/65 to-orange-500/55 hover:from-amber-500/75 hover:to-orange-500/65 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-amber-300/40 dark:border-amber-700/35"
+                          class="w-6 h-6 bg-gradient-to-br from-amber-500/65 to-orange-500/55 hover:from-amber-500/75 hover:to-orange-500/65 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-amber-300/40 dark:border-amber-700/35"
                           title="Quitar 1 unidad del común"
                         >
-                          <span class="text-sm sm:text-base font-bold">−</span>
+                          <span class="text-sm font-bold">−</span>
                         </button>
                         <!-- Add more common units -->
                         <button
                           type="button"
                           phx-click="add_common_unit"
                           phx-value-product_id={product.id}
-                          class="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-cyan-500/65 to-blue-500/55 hover:from-cyan-500/75 hover:to-blue-500/65 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/35"
+                          class="w-6 h-6 bg-gradient-to-br from-cyan-500/65 to-blue-500/55 hover:from-cyan-500/75 hover:to-blue-500/65 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/35"
                           title="Añadir 1 unidad más al común"
                         >
-                          <span class="text-sm sm:text-base font-bold">+</span>
+                          <span class="text-sm font-bold">+</span>
                         </button>
                       </div>
                     </div>
@@ -234,7 +234,7 @@
               
 <!-- Participant Colored Cards -->
               <%= if length(product.participant_assignments) > 0 do %>
-                <div class="cards-stack space-y-1">
+                <div class="cards-stack space-y-0.5">
                   <%= for group <- group_assignments_by_group_id(product.participant_assignments) do %>
                     <% has_me =
                       Enum.any?(group.participants, fn p -> p.name == @participant_name end) %>
@@ -244,9 +244,19 @@
 
                     <%= if is_shared && length(group.participants) == 2 do %>
                       <!-- Split Card for 2 Users - Full Width Row with Interactive Divider -->
+                      <%
+                        # Reorder participants so current user is always first (left)
+                        reordered_participants =
+                          if has_me do
+                            [current_user | others] = Enum.sort_by(group.participants, fn p -> p.name == @participant_name end, :desc)
+                            [current_user | others]
+                          else
+                            group.participants
+                          end
+                      %>
                       <div
                         class="colored-card split-card-row rounded-lg overflow-hidden border-2 new-card cursor-pointer"
-                        style={"border-color: #{hd(group.participants).color}"}
+                        style={"border-color: #{hd(reordered_participants).color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
                         phx-value-action={if has_me, do: "remove_unit", else: "join_group"}
@@ -254,7 +264,7 @@
                         id={"split-card-#{group.group_id}"}
                       >
                         <div class="flex h-full relative">
-                          <%= for {participant, index} <- Enum.with_index(group.participants) do %>
+                          <%= for {participant, index} <- Enum.with_index(reordered_participants) do %>
                             <% participant_share =
                               Decimal.mult(
                                 total_group,
@@ -263,35 +273,44 @@
                             <% participant_color = participant.color %>
 
                             <div
-                              class="split-card-participant p-2 relative transition-all duration-200 flex flex-col justify-between min-h-[80px]"
+                              class="split-card-participant p-1.5 relative transition-all duration-200 flex justify-between items-center min-h-[36px]"
                               style={"background-color: #{participant_color}15; width: #{participant.percentage}%"}
                               id={"participant-#{group.group_id}-#{index}"}
                             >
-                              <%= if participant.name == @participant_name do %>
-                                <div class="absolute top-1 right-1 z-10">
-                                  <div class="w-6 h-6 bg-base-content/90 rounded-full flex items-center justify-center shadow-md">
-                                    <.icon name="hero-user" class="w-4 h-4 text-base-100" />
+                              <div class="flex items-center justify-between h-full w-full">
+                                <!-- Left side content (name, units) -->
+                                <div class="flex items-center gap-1.5 min-w-0 flex-1 pl-1">
+                                  <%= if participant.name == @participant_name do %>
+                                    <div class="w-4 h-4 bg-base-content/90 rounded-full flex items-center justify-center flex-shrink-0 z-10">
+                                      <.icon name="hero-user" class="w-2.5 h-2.5 text-base-100" />
+                                    </div>
+                                  <% end %>
+                                  <div class="min-w-0">
+                                    <p class="text-xs font-bold text-base-content truncate">
+                                      {participant.name}
+                                    </p>
                                   </div>
-                                </div>
-                              <% end %>
-                              <div class="flex flex-col justify-between h-full pr-8 gap-1">
-                                <div class="flex-1 min-w-0">
-                                  <p class="text-xs sm:text-sm font-bold text-base-content truncate leading-tight">
-                                    {participant.name}
-                                  </p>
-                                  <p class="text-[10px] xs:text-xs text-base-content/70">
+                                  <span class="text-[9px] text-base-content/50 flex-shrink-0">
                                     {format_decimal(group.units_assigned)}u
-                                  </p>
+                                  </span>
                                 </div>
-                                <div class="text-right">
-                                  <p class="text-xs sm:text-sm font-bold text-base-content leading-tight">
+                                <!-- Right side content (price, percentage) -->
+                                <div class="text-right flex-shrink-0 pr-1 relative z-10">
+                                  <p class="text-xs font-bold text-base-content">
                                     €{format_decimal(participant_share)}
                                   </p>
-                                  <p class="text-[10px] xs:text-xs text-base-content/50 percentage-display">
+                                  <p class="text-[8px] text-base-content/40 percentage-display">
                                     {format_decimal(participant.percentage)}%
                                   </p>
                                 </div>
                               </div>
+
+                              <!-- Overlay to prevent text overlap -->
+                              <%= if index == 0 do %>
+                                <div class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-transparent to-transparent pointer-events-none" style="z-index: 5;"></div>
+                              <% else %>
+                                <div class="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-transparent to-transparent pointer-events-none" style="z-index: 5;"></div>
+                              <% end %>
                             </div>
                           <% end %>
                           
@@ -299,7 +318,7 @@
                           <%= if has_me or Enum.any?(group.participants, fn p -> p.name == @participant_name end) do %>
                             <div
                               class="interactive-divider absolute top-0 h-full w-1 bg-base-content cursor-ew-resize z-20 hover:bg-warning transition-colors shadow-lg"
-                              style={"left: #{hd(group.participants).percentage}%; transform: translateX(-50%)"}
+                              style={"left: #{hd(reordered_participants).percentage}%; transform: translateX(-50%)"}
                               id={"divider-#{group.group_id}"}
                               phx-hook="SplitDivider"
                               data-group-id={group.group_id}
@@ -322,7 +341,10 @@
                       main_participant = hd(group.participants)
                       card_color = main_participant.color %>
                       <div
-                        class="colored-card rounded-lg overflow-hidden border-2 new-card cursor-pointer relative"
+                        class={[
+                          "colored-card rounded-lg overflow-hidden border-2 new-card cursor-pointer relative",
+                          has_me && "colored-card-mine" || "colored-card-individual"
+                        ]}
                         style={"background-color: #{card_color}15; border-color: #{card_color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -330,7 +352,10 @@
                         phx-value-group_id={group.group_id}
                       >
                         <div
-                          class="absolute top-0 left-0 w-5 h-full flex items-center justify-center"
+                          class={[
+                            "absolute top-0 left-0 flex items-center justify-center",
+                            has_me && "w-5 h-full" || "w-2 h-full"
+                          ]}
                           style={"background-color: #{card_color}"}
                         >
                           <%= if has_me do %>
@@ -339,27 +364,30 @@
                             </div>
                           <% end %>
                         </div>
-                        <div class="p-2 pl-6">
+                        <div class={[
+                        "p-1.5",
+                        has_me && "pl-5" || "pl-3"
+                      ]}>
                           <div class="flex items-center justify-between gap-2">
-                            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
                               <div class="text-left min-w-0">
-                                <p class="text-xs sm:text-sm font-bold text-base-content truncate">
+                                <p class="text-xs font-bold text-base-content truncate">
                                   <%= if is_shared && length(group.participants) > 2 do %>
                                     👥 Compartido ({length(group.participants)})
                                   <% else %>
                                     {main_participant.name}
                                   <% end %>
                                 </p>
-                                <p class="text-[10px] xs:text-xs text-base-content/70">
+                                <p class="text-[9px] text-base-content/60">
                                   {format_decimal(group.units_assigned)}u
                                 </p>
                               </div>
 
 <!-- Participants indicators -->
-                              <div class="flex gap-1 flex-shrink-0">
+                              <div class="flex gap-0.5 flex-shrink-0">
                                 <%= for participant <- group.participants do %>
                                   <div
-                                    class="participant-dot w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-base-content"
+                                    class="participant-dot w-3.5 h-3.5 rounded-full border border-base-content/60"
                                     style={"background-color: #{participant.color}"}
                                     title={participant.name}
                                   >
@@ -369,11 +397,11 @@
                             </div>
 
                             <div class="text-right flex-shrink-0">
-                              <p class="text-xs sm:text-sm font-bold text-base-content">
+                              <p class="text-xs font-bold text-base-content">
                                 €{format_decimal(total_group)}
                               </p>
                               <%= if is_shared && length(group.participants) > 1 do %>
-                                <p class="text-[10px] xs:text-xs text-base-content/50">
+                                <p class="text-[9px] text-base-content/50">
                                   <%= if length(group.participants) == 2 do %>
                                     50-50
                                   <% else %>
