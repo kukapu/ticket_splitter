@@ -186,14 +186,9 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("make_common", %{"product_id" => product_id}, socket) do
-    product = Tickets.get_product!(product_id)
-
-    case Tickets.make_product_common(product) do
+    case Tickets.add_common_units(product_id, 1) do
       {:ok, _} ->
-        # Broadcast a todos los usuarios conectados
         broadcast_ticket_update(socket.assigns.ticket.id)
-
-        # Recargar ticket
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
         socket =
@@ -205,12 +200,8 @@ defmodule TicketSplitterWeb.TicketLive do
 
         {:noreply, socket}
 
-      {:error, :has_assignments} ->
-        # El producto ya tiene asignaciones, no se puede hacer común
-        socket =
-          socket
-          |> put_flash(:error, "Este producto ya tiene asignaciones y no puede hacerse común")
-
+      {:error, :not_enough_units} ->
+        socket = put_flash(socket, :error, "No hay unidades disponibles")
         {:noreply, socket}
 
       {:error, _} ->
@@ -228,6 +219,56 @@ defmodule TicketSplitterWeb.TicketLive do
         broadcast_ticket_update(socket.assigns.ticket.id)
 
         # Recargar ticket
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> calculate_my_total()
+          |> update_main_saldos()
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("add_common_unit", %{"product_id" => product_id}, socket) do
+    IO.puts("🔵 ADD_COMMON_UNIT event received for product_id: #{product_id}")
+
+    case Tickets.add_common_units(product_id, 1) do
+      {:ok, _} ->
+        broadcast_ticket_update(socket.assigns.ticket.id)
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> calculate_my_total()
+          |> update_main_saldos()
+
+        {:noreply, socket}
+
+      {:error, :not_enough_units} ->
+        socket = put_flash(socket, :error, "No hay unidades disponibles")
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("remove_common_unit", %{"product_id" => product_id}, socket) do
+    IO.puts("🔴 REMOVE_COMMON_UNIT event received for product_id: #{product_id}")
+
+    case Tickets.remove_common_units(product_id, 1) do
+      {:ok, _} ->
+        broadcast_ticket_update(socket.assigns.ticket.id)
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
         socket =
@@ -720,28 +761,46 @@ defmodule TicketSplitterWeb.TicketLive do
 
   defp calculate_total_assigned(products, _total_participants) do
     Enum.reduce(products, Decimal.new("0"), fn product, acc ->
-      if product.is_common do
-        # For common products, add the FULL price (it's completely assigned)
-        Decimal.add(acc, product.total_price)
-      else
-        # For non-common products, calculate based on assigned units
-        # Get all unique assignment groups for this product
-        assigned_groups =
-          product.participant_assignments
-          |> Enum.group_by(fn pa -> pa.assignment_group_id end)
-          |> Enum.map(fn {_group_id, assignments} ->
-            # All assignments in a group share the same units
-            units = hd(assignments).units_assigned || Decimal.new("0")
-            # Calculate cost for these units
-            unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
-            Decimal.mult(unit_cost, units)
-          end)
-          |> Enum.reduce(Decimal.new("0"), fn group_cost, total ->
-            Decimal.add(total, group_cost)
-          end)
+      # Legacy is_common support
+      legacy_common_cost =
+        if product.is_common do
+          product.total_price
+        else
+          Decimal.new("0")
+        end
 
-        Decimal.add(acc, assigned_groups)
-      end
+      # New common_units support
+      common_units = product.common_units || Decimal.new("0")
+
+      common_units_cost =
+        if Decimal.compare(common_units, Decimal.new("0")) == :gt do
+          unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+          Decimal.mult(unit_cost, common_units)
+        else
+          Decimal.new("0")
+        end
+
+      # For non-common products, calculate based on assigned units
+      # Get all unique assignment groups for this product
+      assigned_groups_cost =
+        product.participant_assignments
+        |> Enum.group_by(fn pa -> pa.assignment_group_id end)
+        |> Enum.map(fn {_group_id, assignments} ->
+          # All assignments in a group share the same units
+          units = hd(assignments).units_assigned || Decimal.new("0")
+          # Calculate cost for these units
+          unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+          Decimal.mult(unit_cost, units)
+        end)
+        |> Enum.reduce(Decimal.new("0"), fn group_cost, total ->
+          Decimal.add(total, group_cost)
+        end)
+
+      # Sum all costs
+      product_total =
+        Decimal.add(legacy_common_cost, Decimal.add(common_units_cost, assigned_groups_cost))
+
+      Decimal.add(acc, product_total)
     end)
   end
 

@@ -145,6 +145,70 @@ defmodule TicketSplitter.Tickets do
     update_product(product, %{is_common: false})
   end
 
+  @doc """
+  Adds units to the common pool for a product.
+  """
+  def add_common_units(product_id, units_to_add \\ 1) do
+    IO.puts("🟢 add_common_units called: product_id=#{product_id}, units_to_add=#{units_to_add}")
+    product = get_product!(product_id)
+
+    # Calculate available units
+    total_assigned = get_total_assigned_units(product_id)
+    current_common = product.common_units || Decimal.new("0")
+
+    available =
+      Decimal.sub(Decimal.new(product.units), Decimal.add(total_assigned, current_common))
+
+    IO.puts(
+      "  Available: #{available}, Current common: #{current_common}, Total assigned: #{total_assigned}"
+    )
+
+    units_decimal = Decimal.new(units_to_add)
+
+    # Check if enough available
+    result =
+      if Decimal.compare(available, units_decimal) in [:gt, :eq] do
+        new_common = Decimal.add(current_common, units_decimal)
+        IO.puts("  ✅ Adding units. New common: #{new_common}")
+        update_product(product, %{common_units: new_common})
+      else
+        IO.puts("  ❌ Not enough units available")
+        {:error, :not_enough_units}
+      end
+
+    IO.inspect(result, label: "  Result")
+    result
+  end
+
+  @doc """
+  Removes units from the common pool for a product.
+  """
+  def remove_common_units(product_id, units_to_remove \\ 1) do
+    product = get_product!(product_id)
+    current_common = product.common_units || Decimal.new("0")
+    units_decimal = Decimal.new(units_to_remove)
+
+    if Decimal.compare(current_common, units_decimal) in [:gt, :eq] do
+      new_common = Decimal.sub(current_common, units_decimal)
+      update_product(product, %{common_units: new_common})
+    else
+      {:error, :not_enough_common_units}
+    end
+  end
+
+  @doc """
+  Gets available (unassigned and non-common) units for a product.
+  """
+  def get_available_units(product_id) do
+    product = get_product!(product_id)
+    total_assigned = get_total_assigned_units(product_id)
+    common_units = product.common_units || Decimal.new("0")
+
+    Decimal.new(product.units)
+    |> Decimal.sub(total_assigned)
+    |> Decimal.sub(common_units)
+  end
+
   ## ParticipantAssignment functions
 
   @doc """
@@ -211,11 +275,8 @@ defmodule TicketSplitter.Tickets do
     # Normalize name to lowercase for case-insensitive comparison
     participant_name = String.downcase(String.trim(participant_name))
 
-    product = get_product!(product_id)
-
-    # Calculate total units already assigned
-    total_assigned = get_total_assigned_units(product_id)
-    available = Decimal.sub(Decimal.new(product.units), total_assigned)
+    # Calculate available units (excluding assigned AND common units)
+    available = get_available_units(product_id)
 
     # Check if there are available units
     if Decimal.compare(available, Decimal.new("1")) in [:gt, :eq] do
@@ -450,15 +511,6 @@ defmodule TicketSplitter.Tickets do
   end
 
   @doc """
-  Gets available (unassigned) units for a product.
-  """
-  def get_available_units(product_id) do
-    product = get_product!(product_id)
-    total_assigned = get_total_assigned_units(product_id)
-    Decimal.sub(Decimal.new(product.units), total_assigned)
-  end
-
-  @doc """
   Recalculates percentages for all participants assigned to a product.
   Distributes equally among all participants.
   """
@@ -602,36 +654,66 @@ defmodule TicketSplitter.Tickets do
 
     ticket.products
     |> Enum.reduce(Decimal.new("0"), fn product, acc ->
-      if product.is_common do
-        # Divide by total participants
-        common_share = Decimal.div(product.total_price, Decimal.new(total_participants))
-        Decimal.add(acc, common_share)
-      else
-        # Find participant's assignment
-        assignment =
-          Enum.find(product.participant_assignments, fn pa ->
-            pa.participant_name == participant_name
-          end)
+      # Calculate common share (from both is_common and common_units)
+      common_cost = calculate_common_cost(product, total_participants)
 
-        if assignment do
-          # Calculate based on units_assigned and percentage for shared groups
-          # Each unit costs: total_price / total_units
-          unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
-          units = assignment.units_assigned || Decimal.new("0")
-          share = Decimal.mult(unit_cost, units)
+      # Calculate personal assignment cost
+      personal_cost = calculate_personal_cost(product, participant_name)
 
-          # Apply percentage for shared groups
-          percentage =
-            Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
-
-          final_share = Decimal.mult(share, percentage)
-
-          Decimal.add(acc, final_share)
-        else
-          acc
-        end
-      end
+      Decimal.add(acc, Decimal.add(common_cost, personal_cost))
     end)
+  end
+
+  defp calculate_common_cost(product, total_participants) do
+    # Legacy is_common support
+    legacy_common =
+      if product.is_common do
+        Decimal.div(product.total_price, Decimal.new(total_participants))
+      else
+        Decimal.new("0")
+      end
+
+    # New common_units support
+    common_units = product.common_units || Decimal.new("0")
+
+    new_common =
+      if Decimal.compare(common_units, Decimal.new("0")) == :gt do
+        unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+        common_total_cost = Decimal.mult(unit_cost, common_units)
+        Decimal.div(common_total_cost, Decimal.new(total_participants))
+      else
+        Decimal.new("0")
+      end
+
+    # Use whichever is greater (for backward compatibility during transition)
+    if Decimal.compare(legacy_common, new_common) == :gt do
+      legacy_common
+    else
+      new_common
+    end
+  end
+
+  defp calculate_personal_cost(product, participant_name) do
+    assignment =
+      Enum.find(product.participant_assignments, fn pa ->
+        pa.participant_name == participant_name
+      end)
+
+    if assignment do
+      # Calculate based on units_assigned and percentage for shared groups
+      # Each unit costs: total_price / total_units
+      unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+      units = assignment.units_assigned || Decimal.new("0")
+      share = Decimal.mult(unit_cost, units)
+
+      # Apply percentage for shared groups
+      percentage =
+        Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
+
+      Decimal.mult(share, percentage)
+    else
+      Decimal.new("0")
+    end
   end
 
   @doc """

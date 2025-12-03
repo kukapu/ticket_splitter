@@ -126,13 +126,26 @@
                     </p>
                     
 <!-- Available Units Info -->
-                    <div class="mt-1">
-                      <span class="text-sm sm:text-base font-bold text-primary">
-                        {format_decimal(available_units)}
+                    <div class="mt-1 flex gap-2 text-xs flex-wrap">
+                      <% available = Tickets.get_available_units(product.id) %>
+                      <% common_units = product.common_units || Decimal.new("0") %>
+                      <% assigned = Tickets.get_total_assigned_units(product.id) %>
+
+                      <span class="text-primary font-bold">
+                        {format_decimal(available)} disponibles
                       </span>
-                      <span class="text-xs text-base-content/60 font-medium ml-1">
-                        disponibles
-                      </span>
+
+                      <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
+                        <span class="text-info font-bold">
+                          · {format_decimal(common_units)} comunes
+                        </span>
+                      <% end %>
+
+                      <%= if Decimal.compare(assigned, Decimal.new("0")) == :gt do %>
+                        <span class="text-success font-bold">
+                          · {format_decimal(assigned)} asignadas
+                        </span>
+                      <% end %>
                     </div>
                   </div>
                   
@@ -169,6 +182,64 @@
                   </div>
                 </div>
               </div>
+              
+<!-- Common Units Card -->
+              <% common_units = product.common_units || Decimal.new("0") %>
+              <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
+                <div class="colored-card rounded-lg border-2 border-info bg-info/10 mb-2 mt-2 new-card">
+                  <div class="p-2 pl-4">
+                    <div class="flex items-center justify-between gap-2">
+                      <div class="text-left min-w-0 flex-1">
+                        <p class="text-xs sm:text-sm font-bold text-base-content flex items-center gap-1">
+                          <.icon name="hero-users" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                          <span>COMÚN ({@ticket.total_participants} personas)</span>
+                        </p>
+                        <p class="text-[10px] xs:text-xs text-base-content/70">
+                          {format_decimal(common_units)}u
+                        </p>
+                      </div>
+
+                      <div class="text-right min-w-0">
+                        <% unit_cost =
+                          Decimal.div(product.total_price, Decimal.new(product.units)) %>
+                        <% total_common_cost = Decimal.mult(unit_cost, common_units) %>
+                        <% per_person_cost =
+                          Decimal.div(total_common_cost, Decimal.new(@ticket.total_participants)) %>
+
+                        <p class="text-xs sm:text-sm font-bold text-base-content truncate">
+                          €{format_decimal(total_common_cost)}
+                        </p>
+                        <p class="text-[10px] xs:text-xs text-base-content/60">
+                          €{format_decimal(per_person_cost)} / persona
+                        </p>
+                      </div>
+
+                      <div class="flex flex-row gap-1 flex-shrink-0">
+                        <!-- Add more common units -->
+                        <button
+                          type="button"
+                          phx-click="add_common_unit"
+                          phx-value-product_id={product.id}
+                          class="w-7 h-7 sm:w-8 sm:h-8 bg-info hover:bg-info/80 text-info-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                          title="Añadir 1 unidad más al común"
+                        >
+                          <span class="text-sm sm:text-base font-bold">+</span>
+                        </button>
+                        <!-- Remove common units -->
+                        <button
+                          type="button"
+                          phx-click="remove_common_unit"
+                          phx-value-product_id={product.id}
+                          class="w-7 h-7 sm:w-8 sm:h-8 bg-warning hover:bg-warning/80 text-warning-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                          title="Quitar 1 unidad del común"
+                        >
+                          <span class="text-sm sm:text-base font-bold">−</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
               
 <!-- Participant Colored Cards -->
               <%= if length(product.participant_assignments) > 0 do %>

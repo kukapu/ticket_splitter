@@ -11,6 +11,7 @@ defmodule TicketSplitter.Tickets.Product do
     field :total_price, :decimal
     field :confidence, :decimal
     field :is_common, :boolean, default: false
+    field :common_units, :decimal, default: 0.0
     field :position, :integer, default: 0
     field :category, :string
 
@@ -33,6 +34,7 @@ defmodule TicketSplitter.Tickets.Product do
       :total_price,
       :confidence,
       :is_common,
+      :common_units,
       :position,
       :category
     ])
