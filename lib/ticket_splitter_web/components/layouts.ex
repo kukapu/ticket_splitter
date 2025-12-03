@@ -112,33 +112,22 @@ defmodule TicketSplitterWeb.Layouts do
   def theme_toggle(assigns) do
     ~H"""
     <div class="card relative flex flex-row items-center gap-0.5 sm:gap-1 border sm:border-2 border-base-300 bg-base-300 rounded-full p-0.5 sm:p-1 h-8 sm:h-auto">
-      <div class="absolute w-1/3 h-7 sm:h-full rounded-full border-1 border-base-200 bg-base-100 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left] shadow-md top-0.5 sm:top-0" />
+      <div class="absolute w-1/2 h-7 sm:h-full rounded-full border-1 border-base-200 bg-base-100 left-0 [[data-theme=dark]_&]:left-1/2 transition-[left] shadow-md top-0.5 sm:top-0" />
 
       <button
-        class="flex p-1 sm:p-3 cursor-pointer w-1/3 h-7 sm:h-auto items-center justify-center hover:scale-110 transition-transform rounded-full z-10"
-        phx-click={JS.dispatch("phx:set-theme")}
-        data-phx-theme="system"
-      >
-        <.icon
-          name="hero-computer-desktop-micro"
-          class="size-3.5 sm:size-6 opacity-75 hover:opacity-100"
-        />
-      </button>
-
-      <button
-        class="flex p-1 sm:p-3 cursor-pointer w-1/3 h-7 sm:h-auto items-center justify-center hover:scale-110 transition-transform rounded-full z-10"
+        class="flex p-1 sm:p-3 cursor-pointer w-1/2 h-7 sm:h-auto items-center justify-center hover:scale-110 transition-transform rounded-full z-10"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="light"
       >
-        <.icon name="hero-sun-micro" class="size-3.5 sm:size-6 opacity-75 hover:opacity-100" />
+        <.icon name="hero-sun-micro" class="size-5 sm:size-7 opacity-75 hover:opacity-100" />
       </button>
 
       <button
-        class="flex p-1 sm:p-3 cursor-pointer w-1/3 h-7 sm:h-auto items-center justify-center hover:scale-110 transition-transform rounded-full z-10"
+        class="flex p-1 sm:p-3 cursor-pointer w-1/2 h-7 sm:h-auto items-center justify-center hover:scale-110 transition-transform rounded-full z-10"
         phx-click={JS.dispatch("phx:set-theme")}
         data-phx-theme="dark"
       >
-        <.icon name="hero-moon-micro" class="size-3.5 sm:size-6 opacity-75 hover:opacity-100" />
+        <.icon name="hero-moon-micro" class="size-5 sm:size-7 opacity-75 hover:opacity-100" />
       </button>
     </div>
     """
