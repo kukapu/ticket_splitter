@@ -847,11 +847,22 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   }
 }
 
-/* Support for safe area insets (notch/dynamic island) */
-@supports (padding: env(safe-area-inset-bottom)) {
-  body {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
+/* Color de fondo igual al footer (bg-base-300) para el área debajo del footer en móviles */
+html,
+body {
+  background-color: oklch(var(--color-base-300)) !important;
+}
+
+/* Color exacto del footer en tema claro */
+[data-theme="light"] html,
+[data-theme="light"] body {
+  background-color: #E4E4E7 !important;
+}
+
+/* Color exacto del footer en tema oscuro */
+[data-theme="dark"] html,
+[data-theme="dark"] body {
+  background-color: #13171C !important;
 }
 
 /* Fade-in animation for history section */

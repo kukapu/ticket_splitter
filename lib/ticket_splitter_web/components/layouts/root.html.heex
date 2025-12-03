@@ -1,10 +1,14 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="bg-base-300">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="csrf-token" content={get_csrf_token()} />
-    
+
+    <%!-- Theme color para barras del navegador móvil (mismo color que footer bg-base-300) --%>
+    <meta name="theme-color" id="theme-color-meta" content="#E4E4E7" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
     <%!-- SEO Meta Tags (dinámicos) --%>
     <SEOMeta.seo_meta
       page_title={assigns[:page_title]}
@@ -13,12 +17,10 @@
       page_url={assigns[:page_url]}
       page_type={assigns[:page_type] || "website"}
     />
-    
+
     <%!-- Structured Data JSON-LD --%>
-    <SEOMeta.structured_data
-      page_url={assigns[:page_url]}
-    />
-    
+    <SEOMeta.structured_data page_url={assigns[:page_url]} />
+
     <%!-- Favicon - SVG para mejor escalado --%>
     <link rel="icon" type="image/svg+xml" href={~p"/images/logo-color.svg"} />
     <link rel="icon" type="image/png" sizes="192x192" href={~p"/images/logo-color.svg"} />
@@ -26,7 +28,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href={~p"/images/logo-color.svg"} />
     <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/logo-color.svg"} />
     <link rel="alternate icon" href={~p"/favicon.ico"} />
-    
+
     <.live_title default="Ticket Splitter">
       {assigns[:page_title] || "Ticket Splitter"}
     </.live_title>
@@ -35,9 +37,21 @@
     </script>
     <script>
       (() => {
+        // Colores del footer (bg-base-300) para cada tema
+        const themeColors = {
+          light: "#E4E4E7",  // Color exacto del footer en tema claro
+          dark: "#13171C"    // Color exacto del footer en tema oscuro
+        };
+
         const setTheme = (theme) => {
           localStorage.setItem("phx:theme", theme);
           document.documentElement.setAttribute("data-theme", theme);
+          
+          // Actualizar el meta theme-color para la barra del navegador móvil
+          const themeColorMeta = document.getElementById("theme-color-meta");
+          if (themeColorMeta) {
+            themeColorMeta.setAttribute("content", themeColors[theme] || themeColors.light);
+          }
         };
 
         // Always set theme on page load

@@ -33,7 +33,10 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
     ~H"""
     <%!-- Basic SEO Meta Tags --%>
     <meta name="description" content={description} />
-    <meta name="keywords" content="ticket splitter, dividir gastos, compartir tickets, gestión de gastos, dividir cuenta restaurante" />
+    <meta
+      name="keywords"
+      content="ticket splitter, dividir gastos, compartir tickets, gestión de gastos, dividir cuenta restaurante"
+    />
     <meta name="author" content="Ticket Splitter" />
     <meta name="robots" content="index, follow" />
 
@@ -86,9 +89,7 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
     json_string = Phoenix.json_library().encode!(json_ld)
 
     ~H"""
-    <script type="application/ld+json" phx-no-format>
-      {raw(json_string)}
-    </script>
+    <script type="application/ld+json" phx-no-format>{raw(json_string)}</script>
     """
   end
 end
