@@ -39,11 +39,9 @@ defmodule TicketSplitterWeb.Layouts do
       <header class="bg-base-300 border-b border-base-content/20 flex-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-18 sm:h-22">
-            <a href="/" class="flex items-center gap-2 sm:gap-3">
-              <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
-                <span class="text-primary-content text-xs sm:text-sm font-bold">TS</span>
-              </div>
-              <span class="text-lg sm:text-xl font-bold text-base-content">Ticket Splitter</span>
+            <a href="/" class="flex items-center gap-2.5 sm:gap-3">
+              <img src={~p"/images/logo-color.svg"} alt="Ticket Splitter Logo" class="h-7 sm:h-9 w-auto" />
+              <span class="text-xl sm:text-2xl font-bold text-base-content">Ticket Splitter</span>
             </a>
             <div>
               <.theme_toggle />
