@@ -263,33 +263,28 @@
                             <% participant_color = participant.color %>
 
                             <div
-                              class="split-card-participant p-2 relative transition-all duration-200"
+                              class="split-card-participant p-2 relative transition-all duration-200 flex flex-col justify-between min-h-[80px]"
                               style={"background-color: #{participant_color}15; width: #{participant.percentage}%"}
                               id={"participant-#{group.group_id}-#{index}"}
                             >
-                              <div
-                                class="absolute top-0 left-0 w-2 h-full"
-                                style={"background-color: #{participant_color}"}
-                              >
-                              </div>
-                              <div class="flex items-center justify-between h-full gap-1">
-                                <div class="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
-                                  <div class="text-left min-w-0">
-                                    <p class="text-xs sm:text-sm font-bold text-base-content truncate">
-                                      {participant.name}
-                                    </p>
-                                    <p class="text-[10px] xs:text-xs text-base-content/70">
-                                      {format_decimal(group.units_assigned)}u
-                                    </p>
-                                    <%= if participant.name == @participant_name do %>
-                                      <span class="text-[10px] xs:text-xs font-bold text-warning-content">
-                                        ¡TÚ!
-                                      </span>
-                                    <% end %>
+                              <%= if participant.name == @participant_name do %>
+                                <div class="absolute top-1 right-1 z-10">
+                                  <div class="w-6 h-6 bg-base-content/90 rounded-full flex items-center justify-center shadow-md">
+                                    <.icon name="hero-user" class="w-4 h-4 text-base-100" />
                                   </div>
                                 </div>
-                                <div class="text-right flex-shrink-0">
-                                  <p class="text-xs sm:text-sm font-bold text-base-content">
+                              <% end %>
+                              <div class="flex flex-col justify-between h-full pr-8 gap-1">
+                                <div class="flex-1 min-w-0">
+                                  <p class="text-xs sm:text-sm font-bold text-base-content truncate leading-tight">
+                                    {participant.name}
+                                  </p>
+                                  <p class="text-[10px] xs:text-xs text-base-content/70">
+                                    {format_decimal(group.units_assigned)}u
+                                  </p>
+                                </div>
+                                <div class="text-right">
+                                  <p class="text-xs sm:text-sm font-bold text-base-content leading-tight">
                                     €{format_decimal(participant_share)}
                                   </p>
                                   <p class="text-[10px] xs:text-xs text-base-content/50 percentage-display">
@@ -327,7 +322,7 @@
                       main_participant = hd(group.participants)
                       card_color = main_participant.color %>
                       <div
-                        class="colored-card rounded-lg overflow-hidden border-2 new-card cursor-pointer"
+                        class="colored-card rounded-lg overflow-hidden border-2 new-card cursor-pointer relative"
                         style={"background-color: #{card_color}15; border-color: #{card_color}"}
                         phx-click="toggle_product"
                         phx-value-product_id={product.id}
@@ -335,11 +330,16 @@
                         phx-value-group_id={group.group_id}
                       >
                         <div
-                          class="absolute top-0 left-0 w-2 h-full"
+                          class="absolute top-0 left-0 w-5 h-full flex items-center justify-center"
                           style={"background-color: #{card_color}"}
                         >
+                          <%= if has_me do %>
+                            <div class="w-full h-full flex items-center justify-center bg-white/20">
+                              <.icon name="hero-user" class="w-4 h-4 text-white drop-shadow-md" />
+                            </div>
+                          <% end %>
                         </div>
-                        <div class="p-2 pl-4">
+                        <div class="p-2 pl-6">
                           <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                               <div class="text-left min-w-0">
@@ -353,28 +353,16 @@
                                 <p class="text-[10px] xs:text-xs text-base-content/70">
                                   {format_decimal(group.units_assigned)}u
                                 </p>
-                                <%= if has_me do %>
-                                  <span class="text-[10px] xs:text-xs font-bold text-warning-content">
-                                    ¡TÚ!
-                                  </span>
-                                <% end %>
                               </div>
-                              
+
 <!-- Participants indicators -->
                               <div class="flex gap-1 flex-shrink-0">
                                 <%= for participant <- group.participants do %>
                                   <div
-                                    class={"participant-dot w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-base-content #{if participant.name == @participant_name, do: "has-checkmark"}"}
+                                    class="participant-dot w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-base-content"
                                     style={"background-color: #{participant.color}"}
                                     title={participant.name}
                                   >
-                                    <%= if participant.name == @participant_name do %>
-                                      <div class="w-full h-full rounded-full flex items-center justify-center">
-                                        <span class="text-[8px] text-base-content font-bold">
-                                          ✓
-                                        </span>
-                                      </div>
-                                    <% end %>
                                   </div>
                                 <% end %>
                               </div>
