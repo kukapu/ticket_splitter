@@ -37,12 +37,19 @@ defmodule TicketSplitterWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="flex flex-col min-h-screen-dynamic">
+    <div class="flex flex-col min-h-screen-dynamic bg-base-300">
       <header class="bg-base-300 border-b border-base-content/20 flex-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-18 sm:h-22">
             <a href="/" class="flex items-center gap-2.5 sm:gap-3">
-              <img src={~p"/images/logo-color.svg"} alt="Ticket Splitter Logo" class="h-7 sm:h-9 w-auto" />
+              <img
+                src={~p"/images/logo-color.svg"}
+                alt=""
+                class="h-7 sm:h-9 w-auto"
+                loading="eager"
+                width="28"
+                height="28"
+              />
               <span class="text-xl sm:text-2xl font-bold text-base-content">Ticket Splitter</span>
             </a>
             <div>
