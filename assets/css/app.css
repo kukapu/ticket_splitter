@@ -876,3 +876,56 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Mejores sombras para las tarjetas del home - uniformes y elegantes */
+.home-card-shadow {
+  box-shadow: 
+    0 1px 3px 0 rgba(0, 0, 0, 0.05),
+    0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
+  transition: box-shadow 0.2s ease;
+}
+
+/* En tema claro, sombras más visibles y uniformes */
+[data-theme="light"] .home-card-shadow {
+  box-shadow: 
+    0 2px 4px 0 rgba(0, 0, 0, 0.06),
+    0 4px 8px -1px rgba(0, 0, 0, 0.08),
+    0 12px 20px -4px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+
+/* En tema oscuro, sombras más sutiles */
+[data-theme="dark"] .home-card-shadow {
+  box-shadow: 
+    0 1px 2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 10px 15px -3px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Hover effect para las tarjetas del home */
+.home-card-shadow:hover {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.08),
+    0 8px 12px -2px rgba(0, 0, 0, 0.1),
+    0 16px 24px -4px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .home-card-shadow:hover {
+  box-shadow: 
+    0 4px 8px -1px rgba(0, 0, 0, 0.1),
+    0 8px 16px -2px rgba(0, 0, 0, 0.12),
+    0 20px 32px -6px rgba(0, 0, 0, 0.14),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .home-card-shadow:hover {
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.4),
+    0 8px 12px -2px rgba(0, 0, 0, 0.5),
+    0 16px 24px -4px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.08);
+}
