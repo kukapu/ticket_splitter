@@ -38,7 +38,7 @@ defmodule TicketSplitterWeb.Layouts do
     <div class="flex flex-col min-h-screen-dynamic">
       <header class="bg-base-300 border-b border-base-content/20 flex-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex items-center justify-between h-12 sm:h-16">
+          <div class="flex items-center justify-between h-18 sm:h-22">
             <a href="/" class="flex items-center gap-2 sm:gap-3">
               <div class="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-primary to-secondary rounded-lg flex items-center justify-center">
                 <span class="text-primary-content text-xs sm:text-sm font-bold">TS</span>
