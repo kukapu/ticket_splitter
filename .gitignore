@@ -43,3 +43,6 @@ npm-debug.log
 *.md
 !README.md
 !DEPLOYMENT.md
+
+# Node modules
+/node_modules/
