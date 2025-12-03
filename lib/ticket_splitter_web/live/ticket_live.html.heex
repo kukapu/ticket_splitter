@@ -7,7 +7,26 @@
     <div class="max-w-4xl mx-auto px-3 py-4 pb-24">
       <!-- Top Dashboard Header -->
       <div class="bg-base-100 rounded-[2rem] p-4 shadow-lg mb-6">
-        <!-- Participants Counter - Now at the beginning -->
+        <!-- Ticket Title and Date -->
+        <%= if @ticket.merchant_name || @ticket.date do %>
+          <div class="text-center mb-6 pb-4 border-b border-base-300">
+            <%= if @ticket.merchant_name do %>
+              <h1 class="text-2xl sm:text-3xl font-black text-base-content tracking-tight mb-2">
+                {@ticket.merchant_name}
+              </h1>
+            <% end %>
+            <%= if @ticket.date do %>
+              <div class="flex items-center justify-center gap-2 text-base-content/60">
+                <.icon name="hero-calendar-days" class="w-4 h-4" />
+                <time class="text-sm font-medium">
+                  {Calendar.strftime(@ticket.date, "%d de %B de %Y")}
+                </time>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+        
+<!-- Participants Counter - Now at the beginning -->
         <div class="flex justify-center mb-4">
           <div class="bg-base-200 rounded-xl px-6 py-3 flex items-center gap-4">
             <button
