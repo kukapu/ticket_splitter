@@ -240,7 +240,6 @@ defmodule TicketSplitterWeb.TicketLive do
         {:noreply, socket}
 
       {:error, :not_enough_units} ->
-        socket = put_flash(socket, :error, "No hay unidades disponibles")
         {:noreply, socket}
 
       {:error, _} ->
@@ -293,7 +292,6 @@ defmodule TicketSplitterWeb.TicketLive do
         {:noreply, socket}
 
       {:error, :not_enough_units} ->
-        socket = put_flash(socket, :error, "No hay unidades disponibles")
         {:noreply, socket}
 
       {:error, _} ->
