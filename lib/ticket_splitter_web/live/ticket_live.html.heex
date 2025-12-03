@@ -278,7 +278,7 @@
                             <% participant_color = participant.color %>
 
                             <div
-                              class="split-card-participant p-1.5 relative transition-all duration-200 flex justify-between items-center min-h-[36px]"
+                              class="split-card-participant py-1 px-1.5 sm:py-1.5 sm:px-1.5 relative transition-all duration-200 flex justify-between items-center min-h-[28px] sm:min-h-[36px]"
                               style={"background-color: #{participant_color}15; width: #{participant.percentage}%"}
                               id={"participant-#{group.group_id}-#{index}"}
                             >
@@ -382,7 +382,7 @@
                           <% end %>
                         </div>
                         <div class={[
-                          "p-1.5",
+                          "py-1 px-1.5 sm:py-1.5 sm:px-1.5",
                           (has_me && "pl-5") || "pl-3"
                         ]}>
                           <div class="flex items-center justify-between gap-2">
