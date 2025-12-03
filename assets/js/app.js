@@ -42,6 +42,70 @@ Hooks.ParticipantStorage = {
       const normalizedName = name ? name.toLowerCase() : ""
       localStorage.setItem('participant_name', normalizedName)
     })
+
+    // Handle ticket history saving
+    this.handleEvent("save_ticket_to_history", ({ ticket }) => {
+      this.saveTicketToHistory(ticket)
+    })
+  },
+
+  saveTicketToHistory(ticket) {
+    try {
+      // Get existing history from localStorage
+      const history = JSON.parse(localStorage.getItem('ticket_history') || '[]')
+
+      // Check if ticket already exists
+      const existingIndex = history.findIndex(t => t.id === ticket.id)
+
+      // Create new entry with timestamp
+      const newEntry = {
+        id: ticket.id,
+        merchant_name: ticket.merchant_name,
+        date: ticket.date,
+        url: `/tickets/${ticket.id}`,
+        visited_at: Date.now()
+      }
+
+      // Remove existing entry if duplicate
+      if (existingIndex >= 0) {
+        history.splice(existingIndex, 1)
+      }
+
+      // Add to beginning (most recent first)
+      history.unshift(newEntry)
+
+      // Keep only last 100 entries
+      if (history.length > 100) {
+        history.pop()
+      }
+
+      // Save back to localStorage
+      localStorage.setItem('ticket_history', JSON.stringify(history))
+    } catch (error) {
+      // Silently fail if localStorage is disabled or quota exceeded
+      console.warn('Could not save ticket to history:', error)
+    }
+  }
+}
+
+// TicketHistory Hook - Manages ticket history display on home page
+Hooks.TicketHistory = {
+  mounted() {
+    this.loadHistory()
+  },
+
+  loadHistory() {
+    try {
+      // Load history from localStorage
+      const history = JSON.parse(localStorage.getItem('ticket_history') || '[]')
+
+      // Push to LiveView for rendering
+      this.pushEvent("history_loaded", { tickets: history })
+    } catch (error) {
+      // If localStorage fails or JSON is corrupted, send empty array
+      console.warn('Could not load ticket history:', error)
+      this.pushEvent("history_loaded", { tickets: [] })
+    }
   }
 }
 

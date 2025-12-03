@@ -19,6 +19,8 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:processing, false)
       |> assign(:result, nil)
       |> assign(:error, nil)
+      |> assign(:show_history, false)
+      |> assign(:ticket_history, [])
       |> allow_upload(:image,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
@@ -68,6 +70,16 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:uploaded_files, [])
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_history", _params, socket) do
+    {:noreply, assign(socket, :show_history, !socket.assigns.show_history)}
+  end
+
+  @impl true
+  def handle_event("history_loaded", %{"tickets" => tickets}, socket) do
+    {:noreply, assign(socket, :ticket_history, tickets)}
   end
 
   def handle_progress(:image, entry, socket) do
@@ -329,16 +341,6 @@ defmodule TicketSplitterWeb.HomeLive do
       {:error, _} -> "Analiza esta imagen y describe lo que ves."
     end
   end
-
-  defp format_file_size(bytes) when is_integer(bytes) do
-    cond do
-      bytes >= 1_048_576 -> "#{Float.round(bytes / 1_048_576, 1)} MB"
-      bytes >= 1_024 -> "#{Float.round(bytes / 1_024, 1)} KB"
-      true -> "#{bytes} bytes"
-    end
-  end
-
-  defp format_file_size(_), do: "0 bytes"
 
   defp error_to_string(:too_large), do: "El archivo es demasiado grande (máx. 10MB)"
   defp error_to_string(:not_accepted), do: "Formato de archivo no soportado"

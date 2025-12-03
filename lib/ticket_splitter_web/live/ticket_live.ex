@@ -111,6 +111,13 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:participant_color, color)
       |> assign(:show_name_modal, false)
       |> push_event("save_participant_name", %{name: name})
+      |> push_event("save_ticket_to_history", %{
+        ticket: %{
+          id: ticket.id,
+          merchant_name: ticket.merchant_name,
+          date: ticket.date
+        }
+      })
       |> calculate_my_total()
       |> update_main_saldos()
 
