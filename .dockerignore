@@ -24,7 +24,12 @@ doc/
 *.txt
 
 # Static files (built in production)
-priv/static/
+# Solo ignoramos los assets compilados y archivos con digest,
+# pero permitimos images/, favicon.ico, robots.txt que son archivos fuente
+priv/static/assets/
+priv/static/*.gz
+priv/static/*-*.ico
+priv/static/*-*.txt
 
 # Test coverage
 cover/
