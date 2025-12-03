@@ -5,21 +5,36 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @colors [
     # Paleta moderna inspirada en violeta/índigo - 15 colores profesionales
-    "#7C3AED",  # Violeta primario (similar al logo TS)
-    "#10B981",  # Verde esmeralda (como botón compartir)
-    "#3B82F6",  # Azul brillante (complementario del cyan)
-    "#F97316",  # Naranja vibrante (energético y profesional)
-    "#EC4899",  # Rosa moderno (elegante y sofisticado)
-    "#14B8A6",  # Verde teal (fresco y natural)
-    "#8B5CF6",  # Índigo claro (armoniza con violeta)
-    "#F59E0B",  # Ámbar (calido pero profesional)
-    "#06B6D4",  # Cyan profundo (moderno tecnológico)
-    "#84CC16",  # Lima verde (vital y fresco)
-    "#6366F1",  # Índigo-violeta intermedio
-    "#8B4513",  # Café elegante (sofisticado)
-    "#DC2626",  # Rojo intenso (emergencia pero moderno)
-    "#059669",  # Verde bosque profundo
-    "#7C2D12"  # Terracota cálido (natural y elegante)
+    # Violeta primario (similar al logo TS)
+    "#7C3AED",
+    # Verde esmeralda (como botón compartir)
+    "#10B981",
+    # Azul brillante (complementario del cyan)
+    "#3B82F6",
+    # Naranja vibrante (energético y profesional)
+    "#F97316",
+    # Rosa moderno (elegante y sofisticado)
+    "#EC4899",
+    # Verde teal (fresco y natural)
+    "#14B8A6",
+    # Índigo claro (armoniza con violeta)
+    "#8B5CF6",
+    # Ámbar (calido pero profesional)
+    "#F59E0B",
+    # Cyan profundo (moderno tecnológico)
+    "#06B6D4",
+    # Lima verde (vital y fresco)
+    "#84CC16",
+    # Índigo-violeta intermedio
+    "#6366F1",
+    # Café elegante (sofisticado)
+    "#8B4513",
+    # Rojo intenso (emergencia pero moderno)
+    "#DC2626",
+    # Verde bosque profundo
+    "#059669",
+    # Terracota cálido (natural y elegante)
+    "#7C2D12"
   ]
 
   @impl true
@@ -722,17 +737,22 @@ defmodule TicketSplitterWeb.TicketLive do
       # All assignments in a group share the same units
       units = hd(group_assignments).units_assigned || Decimal.new("0")
 
+      # Sort participants alphabetically (same order as in database)
+      sorted_participants =
+        group_assignments
+        |> Enum.sort_by(& &1.participant_name)
+        |> Enum.map(fn pa ->
+          %{
+            name: pa.participant_name,
+            color: pa.assigned_color,
+            percentage: pa.percentage
+          }
+        end)
+
       %{
         group_id: group_id,
         units_assigned: units,
-        participants:
-          Enum.map(group_assignments, fn pa ->
-            %{
-              name: pa.participant_name,
-              color: pa.assigned_color,
-              percentage: pa.percentage
-            }
-          end)
+        participants: sorted_participants
       }
     end)
   end

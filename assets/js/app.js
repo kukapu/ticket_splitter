@@ -403,6 +403,24 @@ Hooks.SplitDivider = {
     const percent1Display = participant1?.querySelector('.percentage-display')
     const percent2Display = participant2?.querySelector('.percentage-display')
 
+    // Function to get the current user's name from localStorage
+    const getCurrentUserName = () => {
+      return localStorage.getItem('participant_name') || ''
+    }
+
+    // Function to check if current user is in first position
+    const isCurrentUserInFirstPosition = () => {
+      const currentUserName = getCurrentUserName()
+      if (!currentUserName) return true // Default to true if no name
+
+      // Get current participant names
+      const participant1Name = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+      const participant2Name = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+
+      // Check if current user matches the first participant
+      return participant1Name === currentUserName
+    }
+
     const updateSplit = (clientX) => {
       const deltaX = clientX - startX
       const percentageChange = (deltaX / containerWidth) * 100
@@ -502,12 +520,43 @@ Hooks.SplitDivider = {
         divider.getBoundingClientRect().left + (divider.offsetWidth / 2)
       const finalPercentage = updateSplit(clientX)
 
+      // Get the visual percentages (left and right in the UI)
+      const leftPercentage = finalPercentage
+      const rightPercentage = 100 - finalPercentage
+
+      // Get current user name
+      const currentUserName = getCurrentUserName()
+
+      // Get original alphabetical order from data attributes (same as database)
+      // participant1 is alphabetically first, participant2 is alphabetically second
+      const participant1NameOriginal = (divider.dataset.participant1Name || '').toLowerCase()
+      const participant2NameOriginal = (divider.dataset.participant2Name || '').toLowerCase()
+
+      // Get participant names from visual position (reordered for UI)
+      const participant1NameVisual = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+      const participant2NameVisual = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+
+      // Map visual percentages to original alphabetical order
+      // p1Percentage goes to participant1 (alphabetically first)
+      // p2Percentage goes to participant2 (alphabetically second)
+      let p1Percentage, p2Percentage
+
+      if (participant1NameVisual === participant1NameOriginal) {
+        // Visual order matches original order: left -> p1, right -> p2
+        p1Percentage = leftPercentage
+        p2Percentage = rightPercentage
+      } else {
+        // Visual order is reversed: left -> p2, right -> p1
+        p1Percentage = rightPercentage
+        p2Percentage = leftPercentage
+      }
+
       // Send the final update and unlock the slider
       this.pushEvent("adjust_split_percentage", {
         group_id: divider.dataset.groupId,
         product_id: divider.dataset.productId,
-        participant1_percentage: finalPercentage,
-        participant2_percentage: 100 - finalPercentage
+        participant1_percentage: p1Percentage,
+        participant2_percentage: p2Percentage
       })
 
       // Unlock the slider when done dragging
