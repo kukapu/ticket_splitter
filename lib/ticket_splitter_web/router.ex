@@ -17,6 +17,8 @@ defmodule TicketSplitterWeb.Router do
   scope "/", TicketSplitterWeb do
     pipe_through :browser
 
+    get "/sitemap.xml", SitemapController, :index
+
     live "/", HomeLive
     live "/tickets/:id", TicketLive
 

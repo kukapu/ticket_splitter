@@ -44,6 +44,8 @@ defmodule TicketSplitterWeb.TicketLive do
       Phoenix.PubSub.subscribe(TicketSplitter.PubSub, "ticket:#{ticket_id}")
     end
 
+    alias TicketSplitterWeb.SEO
+
     ticket = Tickets.get_ticket_with_products!(ticket_id)
 
     # Calcular saldos iniciales
@@ -54,6 +56,11 @@ defmodule TicketSplitterWeb.TicketLive do
     # Calcular el número real de participantes con asignaciones
     real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
     min_participants = max(real_participants_count, 1)
+
+    # Generar título y descripción dinámicos para SEO
+    page_title = build_ticket_page_title(ticket)
+    page_description = build_ticket_page_description(ticket, total_ticket)
+    page_url = SEO.absolute_url("/tickets/#{ticket_id}")
 
     socket =
       socket
@@ -74,6 +81,9 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:pending_main, pending)
       |> assign(:min_participants, min_participants)
       |> assign(:locked_sliders, %{})
+      |> assign(:page_title, page_title)
+      |> assign(:page_description, page_description)
+      |> assign(:page_url, page_url)
 
     {:ok, socket}
   end
@@ -893,5 +903,57 @@ defmodule TicketSplitterWeb.TicketLive do
       |> List.pop_at(0) || {Enum.at(@colors, start_index), start_index}
 
     color
+  end
+
+  # Helper functions para SEO
+  defp build_ticket_page_title(ticket) do
+    alias TicketSplitterWeb.SEO
+
+    title_parts = []
+
+    title_parts =
+      if ticket.merchant_name do
+        [ticket.merchant_name | title_parts]
+      else
+        title_parts
+      end
+
+    title_parts =
+      if ticket.date do
+        date_str = Calendar.strftime(ticket.date, "%d/%m/%Y")
+        ["#{date_str}" | title_parts]
+      else
+        title_parts
+      end
+
+    base_title =
+      if title_parts != [] do
+        Enum.join(title_parts, " - ")
+      else
+        "Ticket"
+      end
+
+    SEO.page_title(base_title)
+  end
+
+  defp build_ticket_page_description(ticket, total_ticket) do
+    total_str = format_decimal(total_ticket)
+
+    merchant_part =
+      if ticket.merchant_name do
+        "Ticket de #{ticket.merchant_name}"
+      else
+        "Ticket"
+      end
+
+    date_part =
+      if ticket.date do
+        date_str = Calendar.strftime(ticket.date, "%d de %B de %Y")
+        " del #{date_str}"
+      else
+        ""
+      end
+
+    "Divide y gestiona #{merchant_part}#{date_part}. Total: €#{total_str}. Comparte los gastos entre tus amigos de forma fácil y justa con Ticket Splitter."
   end
 end

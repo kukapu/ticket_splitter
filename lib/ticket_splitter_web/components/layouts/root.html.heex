@@ -5,24 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     
-    <%!-- SEO Meta Tags --%>
-    <meta name="description" content="Ticket Splitter - Divide y gestiona tus tickets de forma fácil y rápida. Comparte gastos con amigos y familiares de manera intuitiva." />
-    <meta name="keywords" content="ticket splitter, dividir gastos, compartir tickets, gestión de gastos" />
+    <%!-- SEO Meta Tags (dinámicos) --%>
+    <SEOMeta.seo_meta
+      page_title={assigns[:page_title]}
+      page_description={assigns[:page_description]}
+      page_image={assigns[:page_image]}
+      page_url={assigns[:page_url]}
+      page_type={assigns[:page_type] || "website"}
+    />
     
-    <%!-- Open Graph / Facebook --%>
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Ticket Splitter - Divide tus tickets fácilmente" />
-    <meta property="og:description" content="Divide y gestiona tus tickets de forma fácil y rápida. Comparte gastos con amigos y familiares de manera intuitiva." />
-    <meta property="og:image" content={~p"/images/logo-color.svg"} />
-    <meta property="og:image:width" content="400" />
-    <meta property="og:image:height" content="218" />
-    <meta property="og:locale" content="es_ES" />
-    
-    <%!-- Twitter Card --%>
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Ticket Splitter - Divide tus tickets fácilmente" />
-    <meta name="twitter:description" content="Divide y gestiona tus tickets de forma fácil y rápida. Comparte gastos con amigos y familiares de manera intuitiva." />
-    <meta name="twitter:image" content={~p"/images/logo-color.svg"} />
+    <%!-- Structured Data JSON-LD --%>
+    <SEOMeta.structured_data
+      page_url={assigns[:page_url]}
+    />
     
     <%!-- Favicon - SVG para mejor escalado --%>
     <link rel="icon" type="image/svg+xml" href={~p"/images/logo-color.svg"} />
@@ -33,7 +28,7 @@
     <link rel="alternate icon" href={~p"/favicon.ico"} />
     
     <.live_title default="Ticket Splitter">
-      {assigns[:page_title]}
+      {assigns[:page_title] || "Ticket Splitter"}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>

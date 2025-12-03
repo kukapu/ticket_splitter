@@ -1,5 +1,9 @@
 # See https://www.robotstxt.org/robotstxt.html for documentation on how to use the robots.txt file
-#
-# To ban all spiders from the entire site uncomment the next two lines:
-# User-agent: *
-# Disallow: /
+
+# Allow all bots to crawl the site
+User-agent: *
+Allow: /
+
+# Sitemap location (will be dynamically generated at /sitemap.xml)
+# Note: Update this URL with your actual domain in production
+Sitemap: /sitemap.xml

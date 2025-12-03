@@ -13,6 +13,8 @@ defmodule TicketSplitterWeb.HomeLive do
 
   @impl true
   def mount(_params, _session, socket) do
+    alias TicketSplitterWeb.SEO
+
     socket =
       socket
       |> assign(:uploaded_files, [])
@@ -21,6 +23,9 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:error, nil)
       |> assign(:show_history, false)
       |> assign(:ticket_history, [])
+      |> assign(:page_title, SEO.page_title("Divide tus gastos fácilmente"))
+      |> assign(:page_description, "Sube una foto de tu ticket y divide los gastos entre tus amigos de forma automática. Ticket Splitter analiza tu ticket con IA y te ayuda a repartir los gastos de manera justa.")
+      |> assign(:page_url, SEO.site_url())
       |> allow_upload(:image,
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
