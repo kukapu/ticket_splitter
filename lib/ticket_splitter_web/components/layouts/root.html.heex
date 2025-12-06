@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html lang={assigns[:locale] || "en"} class="bg-base-300">
+<html lang={assigns[:locale] || "es"} class="bg-base-300">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="csrf-token" content={get_csrf_token()} />
 
-    <%!-- Theme color para barras del navegador móvil (mismo color que footer bg-base-300) --%>
-    <meta name="theme-color" id="theme-color-meta" content="#E4E4E7" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <%!-- PWA Meta Tags --%>
+    <meta name="theme-color" id="theme-color-meta" content="#7B61FF" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Ticket Splitter" />
     <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Ticket Splitter" />
+    <meta name="msapplication-TileColor" content="#7B61FF" />
+    <meta name="msapplication-config" content="none" />
 
     <%!-- SEO Meta Tags (dinámicos) --%>
     <SEOMeta.seo_meta
@@ -41,10 +45,10 @@
     </script>
     <script>
       (() => {
-        // Colores del footer (bg-base-300) para cada tema
+        // Colores del tema para la barra del navegador móvil PWA
         const themeColors = {
-          light: "#E4E4E7",  // Color exacto del footer en tema claro
-          dark: "#13171C"    // Color exacto del footer en tema oscuro
+          light: "#7B61FF",  // Color primario de la marca para tema claro
+          dark: "#7B61FF"    // Color primario de la marca para tema oscuro
         };
 
         const setTheme = (theme) => {

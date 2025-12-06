@@ -1,15 +1,16 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "name": "Ticket Splitter",
-  "short_name": "Ticket Splitter",
-  "description": "Divide y gestiona tus tickets de forma fácil y rápida. Comparte gastos con amigos y familiares.",
+  "short_name": "Splitter",
+  "description": "Divide gastos fácilmente con tus amigos. Escanea tickets, asigna productos y calcula lo que debe cada uno.",
   "lang": "es-ES",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#E4E4E7",
+  "background_color": "#13171C",
   "theme_color": "#7B61FF",
+  "id": "ticket-splitter-pwa",
   "icons": [
     {
       "src": "/images/icon-192x192.png",
@@ -38,8 +39,24 @@
   ],
   "categories": [
     "finance",
-    "utilities"
+    "utilities",
+    "productivity"
   ],
   "prefer_related_applications": false,
-  "id": "ticket-splitter"
+  "shortcuts": [
+    {
+      "name": "Nuevo Ticket",
+      "short_name": "Nuevo",
+      "description": "Crear un nuevo ticket escaneando una imagen",
+      "url": "/?action=new",
+      "icons": [
+        {
+          "src": "/images/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }
+
