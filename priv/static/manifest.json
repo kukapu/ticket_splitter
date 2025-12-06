@@ -1,43 +1,45 @@
 {
-    "name": "Ticket Splitter",
-    "short_name": "Ticket Splitter",
-    "description": "Split your expenses easily with friends",
-    "start_url": "/",
-    "scope": "/",
-    "display": "standalone",
-    "background_color": "#000000",
-    "theme_color": "#6063fa",
-    "orientation": "portrait-primary",
-    "icons": [
-        {
-            "src": "/images/icon-192x192.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/images/icon-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "any"
-        },
-        {
-            "src": "/images/icon-maskable-512x512.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "maskable"
-        },
-        {
-            "src": "/images/apple-touch-icon.png",
-            "sizes": "180x180",
-            "type": "image/png",
-            "purpose": "any"
-        }
-    ],
-    "categories": [
-        "finance",
-        "utilities"
-    ],
-    "lang": "en",
-    "id": "ticket-splitter"
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "Ticket Splitter",
+  "short_name": "Ticket Splitter",
+  "description": "Divide y gestiona tus tickets de forma fácil y rápida. Comparte gastos con amigos y familiares.",
+  "lang": "es-ES",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#E4E4E7",
+  "theme_color": "#7B61FF",
+  "icons": [
+    {
+      "src": "/images/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/images/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "finance",
+    "utilities"
+  ],
+  "prefer_related_applications": false,
+  "id": "ticket-splitter"
 }

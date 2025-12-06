@@ -23,6 +23,9 @@
     <%!-- Structured Data JSON-LD --%>
     <SEOMeta.structured_data page_url={assigns[:page_url]} />
 
+    <%!-- PWA Manifest --%>
+    <link rel="manifest" href={~p"/manifest.json"} />
+
     <%!-- Favicon - SVG para navegadores, PNG para PWA --%>
     <link rel="icon" type="image/svg+xml" href={~p"/images/logo-color.svg"} />
     <link rel="icon" type="image/png" sizes="192x192" href={~p"/images/icon-192x192.png"} />

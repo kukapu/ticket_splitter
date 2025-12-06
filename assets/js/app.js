@@ -773,6 +773,65 @@ liveSocket.connect()
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
 
+// ============= SERVICE WORKER REGISTRATION =============
+// Registrar Service Worker para funcionalidad PWA
+if ('serviceWorker' in navigator) {
+  // Esperar a que el documento esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      registerServiceWorker();
+    });
+  } else {
+    registerServiceWorker();
+  }
+}
+
+function registerServiceWorker() {
+  navigator.serviceWorker
+    .register('/service-worker.js', { scope: '/' })
+    .then((registration) => {
+      console.log('✓ Service Worker registrado exitosamente:', registration.scope);
+
+      // Escuchar actualizaciones
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // Notificar al usuario que hay actualización disponible
+              console.log('Nueva versión disponible. Recarga la página para actualizar.');
+              // Opcional: mostrar notificación al usuario
+              notifyUserAboutUpdate();
+            }
+          });
+        }
+      });
+
+      // Solicitar actualización periódicamente (cada hora)
+      setInterval(() => {
+        registration.update();
+      }, 60 * 60 * 1000);
+    })
+    .catch((error) => {
+      console.error('✗ Error al registrar Service Worker:', error);
+    });
+}
+
+function notifyUserAboutUpdate() {
+  // Aquí puedes mostrar un toast, modal, etc. si lo deseas
+  // Por ahora solo logueamos en consola
+  console.log('Nueva versión de la aplicación disponible');
+}
+
+// Manejar cuando un nuevo Service Worker toma control
+let refreshing = false;
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  if (!refreshing) {
+    refreshing = true;
+    window.location.reload();
+  }
+});
+
 // The lines below enable quality of life phoenix_live_reload
 // development features:
 //
