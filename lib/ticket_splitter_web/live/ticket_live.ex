@@ -1016,10 +1016,7 @@ defmodule TicketSplitterWeb.TicketLive do
     color
   end
 
-  # Helper functions para SEO
   defp build_ticket_page_title(ticket) do
-    alias TicketSplitterWeb.SEO
-
     title_parts = []
 
     title_parts =
@@ -1037,14 +1034,12 @@ defmodule TicketSplitterWeb.TicketLive do
         title_parts
       end
 
-    base_title =
-      if title_parts != [] do
-        Enum.join(title_parts, " - ")
-      else
-        "Ticket"
-      end
-
-    SEO.page_title(base_title)
+    if title_parts != [] do
+      ticket_title = Enum.join(title_parts, " - ")
+      "Ticket Splitter - #{ticket_title}"
+    else
+      "Ticket Splitter"
+    end
   end
 
   defp build_ticket_page_description(ticket, total_ticket) do

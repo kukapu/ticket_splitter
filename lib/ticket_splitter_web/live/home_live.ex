@@ -25,7 +25,7 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:show_history, false)
       |> assign(:ticket_history, [])
       |> assign(:ticket_to_delete, nil)
-      |> assign(:page_title, SEO.page_title(gettext("Split your expenses easily")))
+      |> assign(:page_title, nil)
       |> assign(
         :page_description,
         gettext(
