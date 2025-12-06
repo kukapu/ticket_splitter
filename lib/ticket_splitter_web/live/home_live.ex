@@ -24,6 +24,7 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:error, nil)
       |> assign(:show_history, false)
       |> assign(:ticket_history, [])
+      |> assign(:ticket_to_delete, nil)
       |> assign(:page_title, SEO.page_title("Divide tus gastos fácilmente"))
       |> assign(
         :page_description,
@@ -89,6 +90,41 @@ defmodule TicketSplitterWeb.HomeLive do
   @impl true
   def handle_event("history_loaded", %{"tickets" => tickets}, socket) do
     {:noreply, assign(socket, :ticket_history, tickets)}
+  end
+
+  @impl true
+  def handle_event("ask_delete", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :ticket_to_delete, id)}
+  end
+
+  @impl true
+  def handle_event("cancel_delete", _params, socket) do
+    {:noreply, assign(socket, :ticket_to_delete, nil)}
+  end
+
+  @impl true
+  def handle_event("delete_ticket", %{"id" => id}, socket) do
+    # Only proceed if we are confirming the deletion of the specific ticket
+    # This prevents accidental deletions if the UI is stale or clicked directly
+    if socket.assigns.ticket_to_delete == id do
+      new_history =
+        Enum.reject(socket.assigns.ticket_history, fn ticket -> ticket["id"] == id end)
+
+      socket =
+        socket
+        |> assign(:ticket_history, new_history)
+        |> assign(:ticket_to_delete, nil)
+        |> push_event("delete_ticket_from_history", %{id: id})
+
+      {:noreply, socket}
+    else
+      IO.puts(
+        "⚠️ Attempted to delete ticket #{id} without confirmation (expected #{inspect(socket.assigns.ticket_to_delete)})"
+      )
+
+      # Do not delete, just clear the deleting state if mismatched
+      {:noreply, assign(socket, :ticket_to_delete, nil)}
+    end
   end
 
   def handle_progress(:image, entry, socket) do

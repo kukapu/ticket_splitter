@@ -92,6 +92,10 @@ Hooks.ParticipantStorage = {
 Hooks.TicketHistory = {
   mounted() {
     this.loadHistory()
+
+    this.handleEvent("delete_ticket_from_history", ({ id }) => {
+      this.deleteTicketFromHistory(id)
+    })
   },
 
   loadHistory() {
@@ -105,6 +109,21 @@ Hooks.TicketHistory = {
       // If localStorage fails or JSON is corrupted, send empty array
       console.warn('Could not load ticket history:', error)
       this.pushEvent("history_loaded", { tickets: [] })
+    }
+  },
+
+  deleteTicketFromHistory(ticketId) {
+    try {
+      // Get existing history
+      const history = JSON.parse(localStorage.getItem('ticket_history') || '[]')
+
+      // Filter out the ticket
+      const newHistory = history.filter(t => t.id !== ticketId)
+
+      // Save back to localStorage
+      localStorage.setItem('ticket_history', JSON.stringify(newHistory))
+    } catch (error) {
+      console.warn('Could not delete ticket from history:', error)
     }
   }
 }

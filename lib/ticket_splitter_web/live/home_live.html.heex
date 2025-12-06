@@ -68,40 +68,52 @@
                   <% else %>
                     <!-- History Items -->
                     <%= for ticket <- @ticket_history do %>
-                      <a
-                        href={ticket["url"]}
-                        class="block bg-base-100 hover:bg-base-300/50 rounded-xl p-3 transition-all duration-200 border border-base-300 hover:border-primary/50 hover:shadow-md group"
-                      >
-                        <div class="flex items-center justify-between gap-3">
-                          <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-semibold text-base-content truncate group-hover:text-primary transition-colors">
-                              {ticket["merchant_name"] || "Ticket sin nombre"}
-                            </h4>
-                            <%= if ticket["date"] do %>
-                              <div class="flex items-center gap-1.5 mt-1">
-                                <.icon
-                                  name="hero-calendar-days"
-                                  class="w-3 h-3 text-base-content/40"
-                                />
-                                <time class="text-xs text-base-content/50">
-                                  <%= case Date.from_iso8601(ticket["date"]) do %>
-                                    <% {:ok, date} -> %>
-                                      {Calendar.strftime(date, "%d/%m/%Y")}
-                                    <% _ -> %>
-                                      {ticket["date"]}
-                                  <% end %>
-                                </time>
-                              </div>
-                            <% end %>
+                      <div class="group flex items-stretch bg-base-100 rounded-xl transition-all duration-200 border border-base-300 hover:border-primary/50 hover:shadow-md overflow-hidden">
+                        <button
+                          type="button"
+                          phx-click="ask_delete"
+                          phx-value-id={ticket["id"]}
+                          class="flex items-center justify-center px-3 sm:px-4 text-base-content/20 hover:text-error hover:bg-error/10 transition-colors border-r border-base-200"
+                          title="Eliminar del historial"
+                        >
+                          <.icon name="hero-trash" class="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
+                        
+                        <a
+                          href={ticket["url"]}
+                          class="flex-1 block p-3 min-w-0 hover:bg-base-200/50 transition-colors"
+                        >
+                          <div class="flex items-center justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                              <h4 class="text-sm font-semibold text-base-content truncate group-hover:text-primary transition-colors">
+                                {ticket["merchant_name"] || "Ticket sin nombre"}
+                              </h4>
+                              <%= if ticket["date"] do %>
+                                <div class="flex items-center gap-1.5 mt-1">
+                                  <.icon
+                                    name="hero-calendar-days"
+                                    class="w-3 h-3 text-base-content/40"
+                                  />
+                                  <time class="text-xs text-base-content/50">
+                                    <%= case Date.from_iso8601(ticket["date"]) do %>
+                                      <% {:ok, date} -> %>
+                                        {Calendar.strftime(date, "%d/%m/%Y")}
+                                      <% _ -> %>
+                                        {ticket["date"]}
+                                    <% end %>
+                                  </time>
+                                </div>
+                              <% end %>
+                            </div>
+                            <div class="flex-shrink-0">
+                              <.icon
+                                name="hero-chevron-right"
+                                class="w-5 h-5 text-base-content/30 group-hover:text-primary group-hover:translate-x-1 transition-all"
+                              />
+                            </div>
                           </div>
-                          <div class="flex-shrink-0">
-                            <.icon
-                              name="hero-chevron-right"
-                              class="w-5 h-5 text-base-content/30 group-hover:text-primary group-hover:translate-x-1 transition-all"
-                            />
-                          </div>
-                        </div>
-                      </a>
+                        </a>
+                      </div>
                     <% end %>
                   <% end %>
                 </div>
@@ -184,6 +196,35 @@
           >
             Reintentar
           </button>
+        </div>
+      <% end %>
+      
+<!-- Delete Confirmation Modal -->
+      <%= if @ticket_to_delete do %>
+        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+          <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
+            <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
+              Eliminar ticket
+            </h2>
+            <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
+              ¿Estás seguro de que quieres eliminar este ticket del historial? Esta acción no se puede deshacer.
+            </p>
+            <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
+              <button
+                phx-click="cancel_delete"
+                class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
+              >
+                Cancelar
+              </button>
+              <button
+                phx-click="delete_ticket"
+                phx-value-id={@ticket_to_delete}
+                class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
         </div>
       <% end %>
     </div>
