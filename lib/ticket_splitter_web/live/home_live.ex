@@ -25,10 +25,12 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:show_history, false)
       |> assign(:ticket_history, [])
       |> assign(:ticket_to_delete, nil)
-      |> assign(:page_title, SEO.page_title("Divide tus gastos fácilmente"))
+      |> assign(:page_title, SEO.page_title(gettext("Split your expenses easily")))
       |> assign(
         :page_description,
-        "Sube una foto de tu ticket y divide los gastos entre tus amigos de forma automática. Ticket Splitter analiza tu ticket con IA y te ayuda a repartir los gastos de manera justa."
+        gettext(
+          "Upload a photo of your ticket and split expenses with your friends automatically. Ticket Splitter analyzes your ticket with AI and helps you split costs fairly."
+        )
       )
       |> assign(:page_url, SEO.site_url())
       |> allow_upload(:image,
@@ -387,8 +389,8 @@ defmodule TicketSplitterWeb.HomeLive do
     end
   end
 
-  defp error_to_string(:too_large), do: "El archivo es demasiado grande (máx. 10MB)"
-  defp error_to_string(:not_accepted), do: "Formato de archivo no soportado"
-  defp error_to_string(:too_many_files), do: "Solo se permite un archivo a la vez"
-  defp error_to_string(error), do: "Error: #{inspect(error)}"
+  defp error_to_string(:too_large), do: gettext("File is too large (max. 10MB)")
+  defp error_to_string(:not_accepted), do: gettext("Unsupported file format")
+  defp error_to_string(:too_many_files), do: gettext("Only one file allowed at a time")
+  defp error_to_string(error), do: gettext("Error: %{error}", error: inspect(error))
 end

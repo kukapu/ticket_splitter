@@ -1,4 +1,4 @@
-<Layouts.app flash={@flash}>
+<Layouts.app flash={@flash} locale={@locale} current_path={@current_path}>
   <div
     class="w-full bg-base-200 min-h-screen"
     phx-hook="ParticipantStorage"
@@ -36,7 +36,7 @@
             >
             </div>
             <div>
-              <div class="text-xs text-base-content/50">Mi parte</div>
+              <div class="text-xs text-base-content/50">{gettext("My share")}</div>
               <div class="text-lg font-bold text-base-content">
                 €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
               </div>
@@ -56,7 +56,7 @@
               <span class="text-base font-bold text-base-content">
                 {@ticket.total_participants}
               </span>
-              <span class="text-[8px] text-base-content/40">personas</span>
+              <span class="text-[8px] text-base-content/40">{gettext("people")}</span>
             </div>
             <button
               phx-click="increment_participants"
@@ -71,14 +71,14 @@
             <button
               phx-click="open_share_modal"
               class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
-              title="Compartir"
+              title={gettext("Share")}
             >
               <.icon name="hero-share" class="w-4 h-4 stroke-2" />
             </button>
             <button
               phx-click="show_summary"
               class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
-              title="Resumen"
+              title={gettext("Summary")}
             >
               <.icon name="hero-presentation-chart-bar" class="w-4 h-4 stroke-2" />
             </button>
@@ -123,18 +123,18 @@
                       <% assigned = Tickets.get_total_assigned_units(product.id) %>
 
                       <span class="text-primary font-bold">
-                        {format_decimal(available)} disponibles
+                        {format_decimal(available)} {gettext("available")}
                       </span>
 
                       <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
                         <span class="text-accent font-bold">
-                          · {format_decimal(common_units)} comunes
+                          · {format_decimal(common_units)} {gettext("common")}
                         </span>
                       <% end %>
 
                       <%= if Decimal.compare(assigned, Decimal.new("0")) == :gt do %>
                         <span class="text-success font-bold">
-                          · {format_decimal(assigned)} asignadas
+                          · {format_decimal(assigned)} {gettext("assigned")}
                         </span>
                       <% end %>
                     </div>
@@ -147,7 +147,7 @@
                       phx-value-product_id={product.id}
                       phx-value-action="remove_unit"
                       class="aspect-square w-8 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-secondary/30"
-                      title="Quitar 1 unidad de mi cuenta"
+                      title={gettext("Remove 1 unit from my account")}
                     >
                       <span class="text-sm font-extrabold">−</span>
                     </button>
@@ -156,7 +156,7 @@
                       phx-click="make_common"
                       phx-value-product_id={product.id}
                       class="aspect-square w-8 bg-accent/25 hover:bg-accent/40 text-accent rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-accent/30"
-                      title="Hacer común para todos"
+                      title={gettext("Make common for everyone")}
                     >
                       <.icon name="hero-users" class="w-4 h-4 stroke-2" />
                     </button>
@@ -166,7 +166,7 @@
                       phx-value-product_id={product.id}
                       phx-value-action="add_unit"
                       class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
-                      title="Añadir 1 unidad a mi cuenta"
+                      title={gettext("Add 1 unit to my account")}
                     >
                       <span class="text-sm font-extrabold">+</span>
                     </button>
@@ -183,7 +183,7 @@
                       <div class="text-left min-w-0 flex-1">
                         <p class="text-xs font-bold text-base-content flex items-center gap-1">
                           <.icon name="hero-users" class="w-3.5 h-3.5" />
-                          <span>COMÚN ({@ticket.total_participants} pers.)</span>
+                          <span>{gettext("COMMON")} ({@ticket.total_participants} {gettext("pers.")})</span>
                         </p>
                         <p class="text-[9px] text-base-content/60">
                           {format_decimal(common_units)}u
@@ -213,7 +213,7 @@
                           phx-click="remove_common_unit"
                           phx-value-product_id={product.id}
                           class="aspect-square w-6 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-secondary/30"
-                          title="Quitar 1 unidad del común"
+                          title={gettext("Remove 1 unit from common")}
                         >
                           <span class="text-sm font-extrabold">−</span>
                         </button>
@@ -223,7 +223,7 @@
                           phx-click="add_common_unit"
                           phx-value-product_id={product.id}
                           class="aspect-square w-6 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
-                          title="Añadir 1 unidad más al común"
+                          title={gettext("Add 1 more unit to common")}
                         >
                           <span class="text-sm font-extrabold">+</span>
                         </button>
@@ -346,7 +346,7 @@
                                 <div class="w-1 h-4 bg-base-300 rounded"></div>
                               </div>
                               <div class="absolute bottom-1 left-1/2 transform -translate-x-1/2 bg-base-content/90 text-base-100 text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity">
-                                Arrastra para ajustar
+                                {gettext("Drag to adjust")}
                               </div>
                             </div>
                           <% end %>
@@ -390,7 +390,7 @@
                               <div class="text-left min-w-0">
                                 <p class="text-xs font-bold text-base-content truncate">
                                   <%= if is_shared && length(group.participants) > 2 do %>
-                                    👥 Compartido ({length(group.participants)})
+                                    👥 {gettext("Shared")} ({length(group.participants)})
                                   <% else %>
                                     {main_participant.name}
                                   <% end %>
@@ -422,7 +422,7 @@
                                   <%= if length(group.participants) == 2 do %>
                                     50-50
                                   <% else %>
-                                    {length(group.participants)} pers.
+                                    {length(group.participants)} {gettext("pers.")}
                                   <% end %>
                                 </p>
                               <% end %>
@@ -443,7 +443,7 @@
               phx-hook="SwipeHandler"
               data-product-id={product.id}
               data-is-common="true"
-              title="Desliza para quitar de común"
+              title={gettext("Swipe to remove from common")}
             >
               <div class="flex justify-between items-center gap-2">
                 <div class="min-w-0 flex-1">
@@ -457,20 +457,20 @@
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <div class="text-right">
                     <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
-                      <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> COMÚN
+                      <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> {gettext("COMMON")}
                     </span>
                     <p class="text-xs sm:text-sm font-bold text-base-content mt-1">
                       €{format_decimal(product.total_price)}
                     </p>
                     <p class="text-[10px] xs:text-xs text-base-content/50">
-                      ({@ticket.total_participants} pers.)
+                      ({@ticket.total_participants} {gettext("pers.")})
                     </p>
                   </div>
                   <button
                     phx-click="remove_from_common"
                     phx-value-product_id={product.id}
                     class="aspect-square w-9 sm:w-10 bg-secondary hover:bg-secondary/80 text-secondary-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
-                    title="Quitar de común"
+                    title={gettext("Remove from common")}
                   >
                     <span class="text-base sm:text-lg font-bold">−</span>
                   </button>
@@ -488,7 +488,7 @@
           class="w-full text-left bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-300 transition-colors"
         >
           <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-base-content/70">ℹ️ Instrucciones de uso</span>
+            <span class="text-sm font-medium text-base-content/70">ℹ️ {gettext("Usage instructions")}</span>
             <.icon
               name="hero-chevron-down"
               class={"w-4 h-4 text-base-content/50 transition-transform #{if @show_instructions, do: "rotate-180"}"}
@@ -499,16 +499,15 @@
           <div class="mt-2 bg-base-200 border border-base-300 rounded-lg p-3 text-xs text-base-content/70">
             <ul class="space-y-1">
               <li>
-                • <strong>Botón +</strong> en productos disponibles para añadirte 1 unidad
+                • <strong>{gettext("+ Button")}</strong> {gettext("on available products to add 1 unit to yourself")}
               </li>
               <li>
-                • <strong>Botón -</strong> en productos disponibles para quitarte 1 unidad
+                • <strong>{gettext("- Button")}</strong> {gettext("on available products to remove 1 unit from yourself")}
               </li>
               <li>
-                • <strong>Botón común</strong>
-                en productos disponibles para hacer común para todos
+                • <strong>{gettext("Common button")}</strong> {gettext("on available products to make common for everyone")}
               </li>
-              <li>• Click en grupo de otros para compartir (50-50)</li>
+              <li>• {gettext("Click on someone else's group to share (50-50)")}</li>
             </ul>
           </div>
         <% end %>
@@ -521,16 +520,16 @@
     <div class="fixed inset-0 bg-base-content/50 flex items-center justify-center z-50 p-3 sm:p-4">
       <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-4 sm:p-6 max-w-md w-full">
         <h2 class="text-xl sm:text-2xl font-bold text-base-content mb-3 sm:mb-4">
-          ¿Cómo te llamas?
+          {gettext("What's your name?")}
         </h2>
         <p class="text-sm sm:text-base text-base-content/50 mb-4 sm:mb-6">
-          Introduce tu nombre para empezar a dividir la cuenta.
+          {gettext("Enter your name to start splitting the bill.")}
         </p>
         <form phx-submit="set_participant_name">
           <input
             type="text"
             name="name"
-            placeholder="Tu nombre"
+            placeholder={gettext("Your name")}
             required
             autofocus
             class="w-full px-4 py-3 bg-base-300 border border-base-300 text-base-content text-base rounded-lg focus:ring-2 focus:ring-primary mb-4"
@@ -540,7 +539,7 @@
             type="submit"
             class="w-full px-6 py-3.5 bg-primary text-base-content font-semibold rounded-lg hover:bg-primary/90 transition-colors min-h-[44px]"
           >
-            Continuar
+            {gettext("Continue")}
           </button>
         </form>
       </div>
@@ -552,7 +551,7 @@
     <div class="fixed inset-0 bg-base-content/20 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
       <div class="bg-base-200 border border-base-300 rounded-2xl shadow-2xl p-4 sm:p-6 max-w-lg w-full max-h-[85dvh] overflow-y-auto">
         <div class="flex justify-between items-start mb-4 sm:mb-6">
-          <h2 class="text-xl sm:text-2xl font-bold text-base-content">Resumen</h2>
+          <h2 class="text-xl sm:text-2xl font-bold text-base-content">{gettext("Summary")}</h2>
           <button
             phx-click="close_summary"
             class="text-base-content/50 hover:text-base-content transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-1"
@@ -564,7 +563,7 @@
 <!-- Participants -->
         <div class="mb-4 sm:mb-6">
           <h3 class="text-base sm:text-lg font-semibold text-base-content mb-2 sm:mb-3">
-            Participantes
+            {gettext("Participants")}
           </h3>
           <div class="space-y-2">
             <%= for summary <- @participants_for_summary do %>
@@ -590,19 +589,19 @@
 <!-- Totals -->
         <div class="border-t border-base-300 pt-3 sm:pt-4 space-y-2">
           <div class="flex justify-between text-xs sm:text-sm">
-            <span class="text-base-content/50">Total del ticket:</span>
+            <span class="text-base-content/50">{gettext("Ticket total:")}</span>
             <span class="font-semibold text-base-content">
               €{format_decimal(@total_ticket_for_summary)}
             </span>
           </div>
           <div class="flex justify-between text-xs sm:text-sm">
-            <span class="text-base-content/50">Total asignado:</span>
+            <span class="text-base-content/50">{gettext("Total assigned:")}</span>
             <span class="font-semibold text-base-content">
               €{format_decimal(@total_assigned_for_summary)}
             </span>
           </div>
           <div class="flex justify-between text-base sm:text-lg font-bold pt-2 border-t border-base-300">
-            <span class="text-base-content">Pendiente:</span>
+            <span class="text-base-content">{gettext("Pending:")}</span>
             <span class="text-primary">
               €{format_decimal(@pending_for_summary)}
             </span>
@@ -617,23 +616,23 @@
     <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
       <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
         <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
-          Compartir producto
+          {gettext("Share product")}
         </h2>
         <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
-          ¿Estás seguro de que quieres compartir este producto con otro participante?
+          {gettext("Are you sure you want to share this product with another participant?")}
         </p>
         <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
           <button
             phx-click="cancel_share"
             class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
           >
-            Cancelar
+            {gettext("Cancel")}
           </button>
           <button
             phx-click="confirm_share"
             class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
           >
-            Confirmar
+            {gettext("Confirm")}
           </button>
         </div>
       </div>
@@ -645,23 +644,23 @@
     <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
       <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
         <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
-          Dejar de compartir
+          {gettext("Stop sharing")}
         </h2>
         <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
-          ¿Estás seguro de que quieres dejar de compartir este producto?
+          {gettext("Are you sure you want to stop sharing this product?")}
         </p>
         <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
           <button
             phx-click="cancel_unshare"
             class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
           >
-            Cancelar
+            {gettext("Cancel")}
           </button>
           <button
             phx-click="confirm_unshare"
             class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
           >
-            Confirmar
+            {gettext("Confirm")}
           </button>
         </div>
       </div>
@@ -674,7 +673,7 @@
       <div class="bg-base-100 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 border-2 border-accent/50">
         <!-- Header -->
         <div class="flex justify-between items-start mb-4 sm:mb-6">
-          <h2 class="text-xl sm:text-2xl font-bold text-base-content">Compartir Ticket</h2>
+          <h2 class="text-xl sm:text-2xl font-bold text-base-content">{gettext("Share Ticket")}</h2>
           <button
             phx-click="close_share_modal"
             class="text-base-content/50 hover:text-base-content transition-colors p-1 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-1"
@@ -689,26 +688,26 @@
             <div
               id="qr-code-container"
               phx-hook="QRCodeGenerator"
-              data-url={~p"/tickets/#{@ticket.id}"}
+              data-url={"/#{@locale}/tickets/#{@ticket.id}"}
               class="flex items-center justify-center min-h-[200px]"
             >
             </div>
           </div>
           <p class="text-sm text-base-content/60 text-center">
-            Escanea este código QR para acceder al ticket
+            {gettext("Scan this QR code to access the ticket")}
           </p>
         </div>
         
 <!-- URL Display and Copy -->
         <div class="mb-6">
           <label class="block text-sm font-medium text-base-content/70 mb-2">
-            Enlace del ticket
+            {gettext("Ticket link")}
           </label>
           <div class="flex gap-2">
             <input
               type="text"
               id="ticket-url-input"
-              value={url(~p"/tickets/#{@ticket.id}")}
+              value={url(~p"/#{@locale}/tickets/#{@ticket.id}")}
               readonly
               class="flex-1 px-3 py-2 bg-base-200 border border-base-300 text-base-content text-sm rounded-lg focus:ring-2 focus:ring-secondary"
             />
@@ -719,18 +718,18 @@
               class="px-4 py-2 bg-gradient-to-br from-violet-600/35 to-indigo-600/30 hover:from-violet-600/45 hover:to-indigo-600/40 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center gap-2 transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/50 dark:border-violet-700/40"
             >
               <.icon name="hero-clipboard" class="w-5 h-5" />
-              <span class="text-sm font-bold hidden sm:inline">Copiar</span>
+              <span class="text-sm font-bold hidden sm:inline">{gettext("Copy")}</span>
             </button>
           </div>
         </div>
         
 <!-- Share Options -->
         <div class="mb-4">
-          <h3 class="text-sm font-medium text-base-content/70 mb-3">Compartir en</h3>
+          <h3 class="text-sm font-medium text-base-content/70 mb-3">{gettext("Share on")}</h3>
           <div class="grid grid-cols-2 gap-2">
             <!-- WhatsApp -->
             <a
-              href={"https://wa.me/?text=#{URI.encode("¡Únete a mi ticket! " <> url(~p"/tickets/#{@ticket.id}"))}"}
+              href={"https://wa.me/?text=#{URI.encode(gettext("Join my ticket! ") <> url(~p"/#{@locale}/tickets/#{@ticket.id}"))}"}
               target="_blank"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-emerald-600/80 to-emerald-700/70 hover:from-emerald-600/90 hover:to-emerald-700/80 text-white rounded-lg transition-all duration-200 active:scale-95 shadow-sm border border-emerald-500/30"
             >
@@ -742,7 +741,7 @@
             
 <!-- Email -->
             <a
-              href={"mailto:?subject=#{URI.encode("Ticket Compartido")}&body=#{URI.encode("¡Únete a mi ticket!\n\n" <> url(~p"/tickets/#{@ticket.id}"))}"}
+              href={"mailto:?subject=#{URI.encode(gettext("Shared Ticket"))}&body=#{URI.encode(gettext("Join my ticket!") <> "\n\n" <> url(~p"/#{@locale}/tickets/#{@ticket.id}"))}"}
               class="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-slate-600/80 to-slate-700/70 hover:from-slate-600/90 hover:to-slate-700/80 text-white rounded-lg transition-all duration-200 active:scale-95 shadow-sm border border-slate-500/30"
             >
               <.icon name="hero-envelope" class="w-5 h-5" />
@@ -751,7 +750,7 @@
             
 <!-- Telegram -->
             <a
-              href={"https://t.me/share/url?url=#{URI.encode(url(~p"/tickets/#{@ticket.id}"))}&text=#{URI.encode("¡Únete a mi ticket!")}"}
+              href={"https://t.me/share/url?url=#{URI.encode(url(~p"/#{@locale}/tickets/#{@ticket.id}"))}&text=#{URI.encode(gettext("Join my ticket!"))}"}
               target="_blank"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-blue-600/80 to-blue-700/70 hover:from-blue-600/90 hover:to-blue-700/80 text-white rounded-lg transition-all duration-200 active:scale-95 shadow-sm border border-blue-500/30"
             >
@@ -763,7 +762,7 @@
             
 <!-- Twitter/X -->
             <a
-              href={"https://twitter.com/intent/tweet?text=#{URI.encode("¡Únete a mi ticket!")}&url=#{URI.encode(url(~p"/tickets/#{@ticket.id}"))}"}
+              href={"https://twitter.com/intent/tweet?text=#{URI.encode(gettext("Join my ticket!"))}&url=#{URI.encode(url(~p"/#{@locale}/tickets/#{@ticket.id}"))}"}}
               target="_blank"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-gray-800/90 to-gray-900/80 hover:from-gray-800 hover:to-gray-900 text-white rounded-lg transition-all duration-200 active:scale-95 shadow-sm border border-gray-600/40"
             >

@@ -10,17 +10,33 @@ defmodule TicketSplitterWeb.Router do
     plug :put_secure_browser_headers
   end
 
+  pipeline :set_locale do
+    plug TicketSplitterWeb.Plugs.SetLocale
+  end
+
   pipeline :api do
     plug :accepts, ["json"]
   end
 
+  # Root scope - traffic cop for language detection/redirection
   scope "/", TicketSplitterWeb do
     pipe_through :browser
 
+    get "/", PageController, :index
     get "/sitemap.xml", SitemapController, :index
+    # Legacy route redirect for old /tickets/:id URLs
+    get "/tickets/:id", PageController, :redirect_ticket
+  end
 
-    live "/", HomeLive
-    live "/tickets/:id", TicketLive
+  # Localized scope - all main routes with locale prefix
+  scope "/:locale", TicketSplitterWeb do
+    pipe_through [:browser, :set_locale]
+
+    live_session :localized,
+      on_mount: [{TicketSplitterWeb.Hooks.LocaleHook, :set_locale}] do
+      live "/", HomeLive
+      live "/tickets/:id", TicketLive
+    end
 
     scope "/ticket_splitter" do
       live "/users", TicketSplitter.UserLive.Index, :index
