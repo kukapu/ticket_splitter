@@ -28,6 +28,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href={~p"/images/icon-192x192.png"} />
     <link rel="icon" type="image/png" sizes="512x512" href={~p"/images/icon-512x512.png"} />
     <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/apple-touch-icon.png"} />
+    <link rel="manifest" href={~p"/manifest.json"} />
     <link rel="alternate icon" href={~p"/favicon.ico"} />
 
     <.live_title default="Ticket Splitter">
@@ -35,6 +36,18 @@
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            }, function(err) {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
     </script>
     <script>
       (() => {
