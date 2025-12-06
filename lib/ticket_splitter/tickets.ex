@@ -418,7 +418,7 @@ defmodule TicketSplitter.Tickets do
   If solo and has 1 unit: remove assignment
   If shared: leave the group
   """
-  def remove_participant_unit(product_id, participant_name) do
+  def remove_participant_unit(product_id, participant_name, target_group_id \\ nil) do
     # Normalize name to lowercase for case-insensitive comparison
     participant_name = String.downcase(String.trim(participant_name))
 
@@ -431,41 +431,72 @@ defmodule TicketSplitter.Tickets do
     if length(assignments) == 0 do
       {:error, :no_assignment}
     else
-      # Get the first assignment (prioritize solo ones)
-      assignment = hd(assignments)
-
-      # Check if it's shared
-      if assignment.assignment_group_id do
-        group_count =
-          ParticipantAssignment
-          |> where([pa], pa.assignment_group_id == ^assignment.assignment_group_id)
-          |> Repo.aggregate(:count)
-
-        if group_count > 1 do
-          # It's shared - remove from group
-          remove_from_assignment_group(assignment.assignment_group_id, participant_name)
+      assignment =
+        if target_group_id do
+          # Try to find the specific assignment for this group
+          Enum.find(assignments, fn pa -> pa.assignment_group_id == target_group_id end)
         else
-          # Solo - check units
+          # Fallback to smart prioritization
+          # Sort assignments to prioritize solo ones (group_count == 1 OR no group)
+          sorted_assignments =
+            Enum.sort_by(assignments, fn pa ->
+              if pa.assignment_group_id do
+                group_count =
+                  ParticipantAssignment
+                  |> where([pa2], pa2.assignment_group_id == ^pa.assignment_group_id)
+                  |> Repo.aggregate(:count)
+
+                # If count is 1, it's effectively solo (priority 0)
+                # If count > 1, it's shared (priority 1)
+                if group_count == 1, do: 0, else: 1
+              else
+                # No group is legacy solo (priority 0)
+                0
+              end
+            end)
+
+          hd(sorted_assignments)
+        end
+
+      # If for some reason target_group_id was not valid/found, we might have nil assignment
+      if is_nil(assignment) do
+        {:error, :assignment_not_found}
+      else
+        # Proceed with removal logic for the selected assignment
+
+        # Check if it's shared
+        if assignment.assignment_group_id do
+          group_count =
+            ParticipantAssignment
+            |> where([pa], pa.assignment_group_id == ^assignment.assignment_group_id)
+            |> Repo.aggregate(:count)
+
+          if group_count > 1 do
+            # It's shared - remove from group
+            remove_from_assignment_group(assignment.assignment_group_id, participant_name)
+          else
+            # Solo - check units
+            current_units = assignment.units_assigned || Decimal.new("0")
+
+            if Decimal.compare(current_units, Decimal.new("1")) == :eq do
+              # Only 1 unit - remove completely
+              Repo.delete(assignment)
+            else
+              # More than 1 unit - subtract one
+              new_units = Decimal.sub(current_units, Decimal.new("1"))
+              update_participant_assignment(assignment, %{units_assigned: new_units})
+            end
+          end
+        else
+          # No group (old data) - treat as solo
           current_units = assignment.units_assigned || Decimal.new("0")
 
           if Decimal.compare(current_units, Decimal.new("1")) == :eq do
-            # Only 1 unit - remove completely
             Repo.delete(assignment)
           else
-            # More than 1 unit - subtract one
             new_units = Decimal.sub(current_units, Decimal.new("1"))
             update_participant_assignment(assignment, %{units_assigned: new_units})
           end
-        end
-      else
-        # No group (old data) - treat as solo
-        current_units = assignment.units_assigned || Decimal.new("0")
-
-        if Decimal.compare(current_units, Decimal.new("1")) == :eq do
-          Repo.delete(assignment)
-        else
-          new_units = Decimal.sub(current_units, Decimal.new("1"))
-          update_participant_assignment(assignment, %{units_assigned: new_units})
         end
       end
     end
