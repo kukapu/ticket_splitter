@@ -1,39 +1,43 @@
 // Service Worker para Ticket Splitter PWA
-// Versión del caché - cambiar para forzar actualización
-const CACHE_VERSION = 'v1';
-const STATIC_CACHE = `app-shell-${CACHE_VERSION}`;
-const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
+// Versión del caché - cambiar esto para forzar actualización
+const CACHE_VERSION = 'v1.0.0';
+const STATIC_CACHE = `ticket-splitter-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `ticket-splitter-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
 
-// URLs que SIEMPRE deben estar en caché (críticas)
+// URLs críticas que SIEMPRE deben estar en caché
 const CRITICAL_ASSETS = [
   '/',
   '/offline.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/images/icon-192x192.png',
+  '/images/icon-512x512.png',
+  '/images/logo-color.svg',
+  '/favicon.ico'
 ];
 
-// Archivos a no cachear (LiveView, WebSockets, etc.)
-const NEVER_CACHE = [
+// Patrones que NUNCA deben cachearse (LiveView, WebSockets, API)
+const NEVER_CACHE_PATTERNS = [
   '/live',
+  '/phoenix',
   '/phx',
-  '/phx_join',
-  '/phx_leave',
-  '/phoenix/live_reload'
+  'websocket',
+  '/api/live'
 ];
 
 // ============= EVENTO: INSTALL =============
 // Se ejecuta cuando se instala el service worker por primera vez
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...', CACHE_VERSION);
-
+  console.log('[SW] Installing Service Worker version:', CACHE_VERSION);
+  
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('[SW] Precaching static assets');
+        console.log('[SW] Precaching critical assets');
         return cache.addAll(CRITICAL_ASSETS);
       })
       .then(() => {
-        // Forzar activación inmediata
+        // Activar inmediatamente sin esperar a que se cierren otras pestañas
         return self.skipWaiting();
       })
       .catch((error) => {
@@ -45,16 +49,18 @@ self.addEventListener('install', (event) => {
 // ============= EVENTO: ACTIVATE =============
 // Se ejecuta cuando el service worker se activa
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...', CACHE_VERSION);
-
+  console.log('[SW] Activating Service Worker version:', CACHE_VERSION);
+  
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
             .filter((cacheName) => {
-              // Eliminar caches antiguos
-              return cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE;
+              // Eliminar caches antiguos que no coincidan con la versión actual
+              return cacheName.startsWith('ticket-splitter-') && 
+                     cacheName !== STATIC_CACHE && 
+                     cacheName !== DYNAMIC_CACHE;
             })
             .map((cacheName) => {
               console.log('[SW] Deleting old cache:', cacheName);
@@ -63,156 +69,238 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => {
-        // Tomar control de páginas inmediatamente
+        // Tomar control de todas las páginas inmediatamente
         return self.clients.claim();
       })
   );
 });
 
 // ============= EVENTO: FETCH =============
-// Se intercepta cada request que hace la aplicación
+// Intercepta cada request que hace la aplicación
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-
-  // No cachear algunos tipos de requests
-  if (shouldNotCache(url)) {
-    event.respondWith(fetch(request));
+  
+  // Solo procesar requests HTTP/HTTPS del mismo origen
+  if (!url.protocol.startsWith('http')) {
     return;
   }
-
+  
+  // NUNCA cachear LiveView, WebSockets o patrones excluidos
+  if (shouldNeverCache(url)) {
+    return; // Dejar que la red maneje estos requests normalmente
+  }
+  
   // Determinar estrategia según tipo de contenido
   if (isStaticAsset(url)) {
-    // Cache first, network fallback
+    // Assets estáticos: Cache First con fallback a red
     event.respondWith(cacheFirstStrategy(request));
-  } else if (isHTMLPage(request)) {
-    // Network first para páginas HTML
-    event.respondWith(networkFirstStrategy(request));
+  } else if (isNavigationRequest(request)) {
+    // Navegación (páginas HTML): Network First con fallback a offline
+    event.respondWith(networkFirstForNavigation(request));
   } else {
-    // Network first para todo lo demás
+    // Otros recursos: Network First con caché dinámico
     event.respondWith(networkFirstStrategy(request));
   }
 });
 
 // ============= ESTRATEGIAS DE CACHING =============
 
-// Estrategia 1: Cache First, Network Fallback
-// Ideal para: Assets estáticos, imágenes, CSS, JS
+/**
+ * Cache First, Network Fallback
+ * Ideal para: Assets estáticos (CSS, JS, imágenes, fuentes)
+ */
 async function cacheFirstStrategy(request) {
   try {
     // Primero buscar en caché
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
-      console.log('[SW] Serving from cache:', request.url);
       return cachedResponse;
     }
-
+    
     // Si no está en caché, traer de la red
     const networkResponse = await fetch(request);
-
-    // Guardar en caché para futuro (solo si es exitoso y GET)
-    if (networkResponse.ok && request.method === 'GET' && !isExcludedFromCache(request.url)) {
-      const cache = await caches.open(DYNAMIC_CACHE);
+    
+    // Guardar en caché si es exitoso
+    if (networkResponse.ok) {
+      const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-
+    
     return networkResponse;
   } catch (error) {
     console.error('[SW] Cache first strategy failed:', error);
-
-    // Si es imagen, retornar placeholder
+    
+    // Si es imagen, retornar placeholder SVG
     if (request.destination === 'image') {
-      return createPlaceholderResponse();
+      return createPlaceholderImage();
     }
-
-    // Para todo lo demás, página offline
-    return caches.match(OFFLINE_PAGE) 
-      || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
+    
+    // Para otros, intentar página offline
+    return caches.match(OFFLINE_PAGE) || createOfflineResponse();
   }
 }
 
-// Estrategia 2: Network First, Cache Fallback
-// Ideal para: API calls, contenido dinámico, páginas HTML
+/**
+ * Network First, Cache Fallback
+ * Ideal para: Contenido dinámico, API calls
+ */
 async function networkFirstStrategy(request) {
-  const cache = await caches.open(DYNAMIC_CACHE);
-
   try {
     const networkResponse = await fetch(request);
-
-    // Guardar respuesta exitosa en caché (solo GET)
-    if (networkResponse.ok && request.method === 'GET' && !isExcludedFromCache(request.url)) {
+    
+    // Guardar respuesta exitosa en caché dinámico (solo GET)
+    if (networkResponse.ok && request.method === 'GET') {
+      const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-
+    
     return networkResponse;
   } catch (error) {
-    console.log('[SW] Network request failed:', request.url, error);
-
+    console.log('[SW] Network failed, trying cache:', request.url);
+    
     // Fallback al caché
-    const cachedResponse = await cache.match(request);
+    const cachedResponse = await caches.match(request);
     if (cachedResponse) {
-      console.log('[SW] Serving from cache (network failed):', request.url);
       return cachedResponse;
     }
+    
+    return createOfflineResponse();
+  }
+}
 
-    // Si es una página HTML y no hay caché, mostrar offline
-    if (request.mode === 'navigate') {
-      return caches.match(OFFLINE_PAGE) 
-        || new Response('Offline', { status: 503, headers: { 'Content-Type': 'text/html' } });
+/**
+ * Network First para navegación con fallback a página offline
+ * Ideal para: Páginas HTML
+ */
+async function networkFirstForNavigation(request) {
+  try {
+    const networkResponse = await fetch(request);
+    
+    // Guardar página en caché si es exitosa
+    if (networkResponse.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
     }
-
-    // Para otros recursos, retornar error
-    return new Response('Offline', { status: 503 });
+    
+    return networkResponse;
+  } catch (error) {
+    console.log('[SW] Navigation failed, trying cache/offline:', request.url);
+    
+    // Intentar obtener de caché
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    
+    // Último recurso: página offline
+    const offlinePage = await caches.match(OFFLINE_PAGE);
+    if (offlinePage) {
+      return offlinePage;
+    }
+    
+    return createOfflineResponse();
   }
 }
 
 // ============= FUNCIONES AUXILIARES =============
 
-function shouldNotCache(url) {
-  // No cachear WebSockets, live view, etc.
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return true;
-  }
-
-  // No cachear rutas de LiveView
-  return NEVER_CACHE.some(path => url.pathname.includes(path));
+/**
+ * Determina si una URL nunca debe cachearse
+ */
+function shouldNeverCache(url) {
+  const pathname = url.pathname;
+  return NEVER_CACHE_PATTERNS.some(pattern => 
+    pathname.includes(pattern) || url.href.includes(pattern)
+  );
 }
 
+/**
+ * Determina si es un asset estático
+ */
 function isStaticAsset(url) {
-  // Assets estáticos con hash (CSS, JS con hash)
-  if (url.pathname.startsWith('/assets/')) {
-    return true;
-  }
-
-  // Otros assets estáticos
-  return /\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico|webp)$/i.test(url.pathname);
+  return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp)$/i.test(url.pathname) ||
+         url.pathname.startsWith('/assets/');
 }
 
-function isHTMLPage(request) {
+/**
+ * Determina si es una request de navegación (página HTML)
+ */
+function isNavigationRequest(request) {
   return request.mode === 'navigate' || 
-         (request.headers.get('accept') && request.headers.get('accept').includes('text/html'));
+         (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'));
 }
 
-function isExcludedFromCache(url) {
-  // URLs que no queremos cachear aunque se carguen exitosamente
-  const excluded = [
-    '/live',
-    '/phx',
-    '/api/ws',
-    '/api/stream'
-  ];
-  return excluded.some(path => url.includes(path));
+/**
+ * Crea imagen placeholder SVG cuando no hay conexión
+ */
+function createPlaceholderImage() {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+      <rect fill="#1f2937" width="200" height="200"/>
+      <text x="100" y="100" text-anchor="middle" dy=".35em" fill="#9ca3af" font-family="system-ui" font-size="14">
+        Sin conexión
+      </text>
+    </svg>
+  `.trim();
+  
+  return new Response(svg, {
+    headers: { 'Content-Type': 'image/svg+xml' }
+  });
 }
 
-function createPlaceholderResponse() {
-  // Retornar imagen placeholder SVG cuando no hay conexión
+/**
+ * Crea respuesta offline básica cuando todo falla
+ */
+function createOfflineResponse() {
   return new Response(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-       <rect fill="#e5e7eb" width="100" height="100"/>
-       <text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#9ca3af" font-size="12">Sin conexión</text>
-     </svg>`,
+    `<!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Sin conexión - Ticket Splitter</title>
+      <style>
+        body {
+          font-family: system-ui, -apple-system, sans-serif;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          margin: 0;
+          background: linear-gradient(135deg, #13171C 0%, #1f2937 100%);
+          color: white;
+        }
+        .container {
+          text-align: center;
+          padding: 2rem;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        p { color: #9ca3af; }
+        button {
+          margin-top: 1rem;
+          padding: 0.75rem 1.5rem;
+          background: #7B61FF;
+          color: white;
+          border: none;
+          border-radius: 0.5rem;
+          font-size: 1rem;
+          cursor: pointer;
+        }
+        button:hover { background: #6B51EF; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>📱 Sin conexión</h1>
+        <p>No se puede conectar al servidor.</p>
+        <button onclick="window.location.reload()">Reintentar</button>
+      </div>
+    </body>
+    </html>`,
     {
-      headers: { 'Content-Type': 'image/svg+xml' }
+      status: 503,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' }
     }
   );
 }
@@ -222,11 +310,20 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-
-  if (event.data && event.data.type === 'GET_SW_VERSION') {
-    event.ports[0].postMessage({ version: CACHE_VERSION });
+  
+  if (event.data && event.data.type === 'GET_VERSION') {
+    event.ports[0]?.postMessage({ version: CACHE_VERSION });
+  }
+  
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => caches.delete(cacheName))
+      );
+    }).then(() => {
+      event.ports[0]?.postMessage({ cleared: true });
+    });
   }
 });
 
-console.log('[SW] Service Worker script loaded', CACHE_VERSION);
-
+console.log('[SW] Service Worker script loaded, version:', CACHE_VERSION);
