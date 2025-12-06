@@ -60,10 +60,7 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
 
-    <%!-- Modern Meta Tags --%>
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <%!-- Apple Web App Title --%>
     <meta name="apple-mobile-web-app-title" content={SEO.site_name()} />
     <meta name="format-detection" content="telephone=no" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
