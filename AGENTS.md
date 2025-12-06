@@ -331,4 +331,18 @@ And **never** do this:
 - **Never** use `<.form let={f} ...>` in the template, instead **always use `<.form for={@form} ...>`**, then drive all form references from the form assign as in `@form[:field]`. The UI should **always** be driven by a `to_form/2` assigned in the LiveView module that is derived from a changeset
 <!-- phoenix:liveview-end -->
 
+<!-- styles:guide-start -->
+## UI/UX Design System & Color Palette
+
+Brand Colors You must strictly use the following color palette for all application design elements (UI components, backgrounds, buttons, etc.):
+
+Primary: #7B61FF (Logo Left Side)
+
+Secondary: #FFB84C (Logo Right Side)
+
+Auxiliary: #14B8A6 (Complementary / Accent)
+
+⚠️ CRITICAL EXCEPTION: Do NOT modify, update, or suggest changes to the existing color array used for Users. That specific array must remain exactly as it is currently defined in the code.
+<!-- styles:guide-end -->
+
 <!-- usage-rules-end -->

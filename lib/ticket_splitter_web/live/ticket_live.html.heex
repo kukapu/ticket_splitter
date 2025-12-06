@@ -29,7 +29,7 @@
 <!-- Compact Actions Bar -->
         <div class="flex items-center justify-between gap-3">
           <!-- Mi Parte -->
-          <div class="flex items-center gap-2 bg-primary/5 rounded-md px-3 py-2 border border-primary/10">
+          <div class="flex items-center gap-2 bg-base-200 rounded-md px-3 py-2 border border-base-300">
             <div
               class="w-2 h-2 rounded-full"
               style={"background-color: #{if @participant_name, do: @participant_color, else: "#cbd5e1"}"}
@@ -44,13 +44,13 @@
           </div>
           
 <!-- Participants Counter -->
-          <div class="flex items-center gap-1 bg-secondary/5 rounded-md px-3 py-2 border border-secondary/10">
+          <div class="flex items-center gap-1 bg-base-200 rounded-md px-3 py-2 border border-base-300">
             <button
               phx-click="decrement_participants"
-              class="aspect-square w-7 rounded-md bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold shadow-sm hover:shadow border border-violet-300/30 dark:border-violet-700/30"
+              class="aspect-square w-7 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-secondary/30"
               disabled={@ticket.total_participants <= @min_participants}
             >
-              −
+              <span class="text-sm font-extrabold">−</span>
             </button>
             <div class="flex flex-col items-center min-w-[30px]">
               <span class="text-base font-bold text-base-content">
@@ -60,9 +60,9 @@
             </div>
             <button
               phx-click="increment_participants"
-              class="aspect-square w-7 rounded-md bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 transition-all duration-200 text-sm font-bold shadow-sm hover:shadow-md border border-cyan-300/40 dark:border-cyan-700/30"
+              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
             >
-              +
+              <span class="text-sm font-extrabold">+</span>
             </button>
           </div>
           
@@ -70,17 +70,17 @@
           <div class="flex gap-1">
             <button
               phx-click="open_share_modal"
-              class="aspect-square w-9 bg-gradient-to-br from-emerald-600/35 to-green-600/30 hover:from-emerald-600/45 hover:to-green-600/40 text-emerald-700 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300 rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-emerald-300/50 dark:border-emerald-700/40"
+              class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title="Compartir"
             >
-              <.icon name="hero-share" class="w-4 h-4" />
+              <.icon name="hero-share" class="w-4 h-4 stroke-2" />
             </button>
             <button
               phx-click="show_summary"
-              class="aspect-square w-9 bg-gradient-to-br from-violet-600/30 to-indigo-600/25 hover:from-violet-600/40 hover:to-indigo-600/35 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/50 dark:border-violet-700/40"
+              class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title="Resumen"
             >
-              <.icon name="hero-chart-bar" class="w-4 h-4" />
+              <.icon name="hero-presentation-chart-bar" class="w-4 h-4 stroke-2" />
             </button>
           </div>
         </div>
@@ -100,7 +100,7 @@
                 class={[
                   "product-header rounded-lg p-2",
                   available_decimal > 0 &&
-                    "bg-indigo-500/5 border border-dashed border-indigo-300/20 dark:border-indigo-600/15",
+                    "bg-primary/5 border border-dashed border-primary/20",
                   available_decimal <= 0 && "bg-base-200"
                 ]}
                 id={"available-units-#{product.id}"}
@@ -127,7 +127,7 @@
                       </span>
 
                       <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
-                        <span class="text-info font-bold">
+                        <span class="text-accent font-bold">
                           · {format_decimal(common_units)} comunes
                         </span>
                       <% end %>
@@ -146,29 +146,29 @@
                       phx-click="toggle_product"
                       phx-value-product_id={product.id}
                       phx-value-action="remove_unit"
-                      class="aspect-square w-8 bg-gradient-to-br from-violet-900/20 to-purple-800/15 hover:from-violet-900/30 hover:to-purple-800/25 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/30 dark:border-violet-700/30"
+                      class="aspect-square w-8 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-secondary/30"
                       title="Quitar 1 unidad de mi cuenta"
                     >
-                      <span class="text-sm font-bold">−</span>
+                      <span class="text-sm font-extrabold">−</span>
+                    </button>
+
+                    <button
+                      phx-click="make_common"
+                      phx-value-product_id={product.id}
+                      class="aspect-square w-8 bg-accent/25 hover:bg-accent/40 text-accent rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-accent/30"
+                      title="Hacer común para todos"
+                    >
+                      <.icon name="hero-users" class="w-4 h-4 stroke-2" />
                     </button>
 
                     <button
                       phx-click="toggle_product"
                       phx-value-product_id={product.id}
                       phx-value-action="add_unit"
-                      class="aspect-square w-8 bg-gradient-to-br from-cyan-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/30 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/30"
+                      class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
                       title="Añadir 1 unidad a mi cuenta"
                     >
-                      <span class="text-sm font-bold">+</span>
-                    </button>
-
-                    <button
-                      phx-click="make_common"
-                      phx-value-product_id={product.id}
-                      class="aspect-square w-8 bg-gradient-to-br from-violet-600/35 to-indigo-600/30 hover:from-violet-600/45 hover:to-indigo-600/40 text-violet-700 dark:text-violet-400 hover:text-violet-800 dark:hover:text-violet-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-violet-300/60 dark:border-violet-700/50"
-                      title="Hacer común para todos"
-                    >
-                      <.icon name="hero-users" class="w-4 h-4" />
+                      <span class="text-sm font-extrabold">+</span>
                     </button>
                   </div>
                 </div>
@@ -177,7 +177,7 @@
 <!-- Common Units Card -->
               <% common_units = product.common_units || Decimal.new("0") %>
               <%= if Decimal.compare(common_units, Decimal.new("0")) == :gt do %>
-                <div class="colored-card rounded-lg border-2 border-info bg-info/10 mb-1.5 mt-1.5 new-card">
+                <div class="colored-card rounded-lg border-2 border-accent bg-accent/10 mb-1.5 mt-1.5 new-card">
                   <div class="p-1.5 pl-3">
                     <div class="flex items-center justify-between gap-2">
                       <div class="text-left min-w-0 flex-1">
@@ -212,20 +212,20 @@
                           type="button"
                           phx-click="remove_common_unit"
                           phx-value-product_id={product.id}
-                          class="aspect-square w-6 bg-gradient-to-br from-amber-500/65 to-orange-500/55 hover:from-amber-500/75 hover:to-orange-500/65 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-amber-300/40 dark:border-amber-700/35"
+                          class="aspect-square w-6 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-secondary/30"
                           title="Quitar 1 unidad del común"
                         >
-                          <span class="text-sm font-bold">−</span>
+                          <span class="text-sm font-extrabold">−</span>
                         </button>
                         <!-- Add more common units -->
                         <button
                           type="button"
                           phx-click="add_common_unit"
                           phx-value-product_id={product.id}
-                          class="aspect-square w-6 bg-gradient-to-br from-cyan-500/65 to-blue-500/55 hover:from-cyan-500/75 hover:to-blue-500/65 text-cyan-700 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-300 rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-cyan-300/40 dark:border-cyan-700/35"
+                          class="aspect-square w-6 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
                           title="Añadir 1 unidad más al común"
                         >
-                          <span class="text-sm font-bold">+</span>
+                          <span class="text-sm font-extrabold">+</span>
                         </button>
                       </div>
                     </div>
@@ -469,7 +469,7 @@
                   <button
                     phx-click="remove_from_common"
                     phx-value-product_id={product.id}
-                    class="aspect-square w-9 sm:w-10 bg-error hover:bg-error/80 text-error-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
+                    class="aspect-square w-9 sm:w-10 bg-secondary hover:bg-secondary/80 text-secondary-content rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm"
                     title="Quitar de común"
                   >
                     <span class="text-base sm:text-lg font-bold">−</span>
@@ -603,7 +603,7 @@
           </div>
           <div class="flex justify-between text-base sm:text-lg font-bold pt-2 border-t border-base-300">
             <span class="text-base-content">Pendiente:</span>
-            <span class="text-error-content">
+            <span class="text-primary">
               €{format_decimal(@pending_for_summary)}
             </span>
           </div>
@@ -671,7 +671,7 @@
 <!-- Share Modal -->
   <%= if @show_share_modal do %>
     <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-      <div class="bg-base-100 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 border-2 border-secondary/50">
+      <div class="bg-base-100 rounded-2xl shadow-2xl max-w-lg w-full p-4 sm:p-6 border-2 border-accent/50">
         <!-- Header -->
         <div class="flex justify-between items-start mb-4 sm:mb-6">
           <h2 class="text-xl sm:text-2xl font-bold text-base-content">Compartir Ticket</h2>

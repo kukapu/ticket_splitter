@@ -5,22 +5,22 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @colors [
     # Paleta moderna inspirada en violeta/índigo - 15 colores profesionales
-    # Violeta primario (similar al logo TS)
-    "#7C3AED",
+    # Violeta primario (Sustituido por Purple-700 para evitar conflicto con Primary #7B61FF)
+    "#9333EA",
     # Verde esmeralda (como botón compartir)
     "#10B981",
     # Azul brillante (complementario del cyan)
     "#3B82F6",
-    # Naranja vibrante (energético y profesional)
-    "#F97316",
+    # Naranja vibrante (Sustituido por Orange-600 para evitar conflicto con Secondary #FFB84C)
+    "#EA580C",
     # Rosa moderno (elegante y sofisticado)
     "#EC4899",
-    # Verde teal (fresco y natural)
-    "#14B8A6",
-    # Índigo claro (armoniza con violeta)
-    "#8B5CF6",
-    # Ámbar (calido pero profesional)
-    "#F59E0B",
+    # Verde teal (Sustituido por Teal-700 para evitar conflicto con Auxiliary #14B8A6)
+    "#0D9488",
+    # Índigo claro (Sustituido por Indigo-600 para evitar conflicto con Primary)
+    "#4F46E5",
+    # Ámbar (Sustituido por Amber-600 para evitar conflicto con Secondary)
+    "#D97706",
     # Cyan profundo (moderno tecnológico)
     "#06B6D4",
     # Lima verde (vital y fresco)
