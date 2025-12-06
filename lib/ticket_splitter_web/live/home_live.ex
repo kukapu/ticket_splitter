@@ -8,6 +8,7 @@ defmodule TicketSplitterWeb.HomeLive do
   @openrouter_models [
     "google/gemini-2.5-flash-lite-preview-09-2025",
     "qwen/qwen-vl-plus",
+    "amazon/nova-2-lite-v1:free",
     "x-ai/grok-4.1-fast:free"
   ]
 
@@ -23,10 +24,13 @@ defmodule TicketSplitterWeb.HomeLive do
       |> assign(:error, nil)
       |> assign(:show_history, false)
       |> assign(:ticket_history, [])
-      |> assign(:page_title, SEO.page_title("Divide tus gastos fácilmente"))
+      |> assign(:ticket_to_delete, nil)
+      |> assign(:page_title, nil)
       |> assign(
         :page_description,
-        "Sube una foto de tu ticket y divide los gastos entre tus amigos de forma automática. Ticket Splitter analiza tu ticket con IA y te ayuda a repartir los gastos de manera justa."
+        gettext(
+          "Upload a photo of your ticket and split expenses with your friends automatically. Ticket Splitter analyzes your ticket with AI and helps you split costs fairly."
+        )
       )
       |> assign(:page_url, SEO.site_url())
       |> allow_upload(:image,
@@ -88,6 +92,41 @@ defmodule TicketSplitterWeb.HomeLive do
   @impl true
   def handle_event("history_loaded", %{"tickets" => tickets}, socket) do
     {:noreply, assign(socket, :ticket_history, tickets)}
+  end
+
+  @impl true
+  def handle_event("ask_delete", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :ticket_to_delete, id)}
+  end
+
+  @impl true
+  def handle_event("cancel_delete", _params, socket) do
+    {:noreply, assign(socket, :ticket_to_delete, nil)}
+  end
+
+  @impl true
+  def handle_event("delete_ticket", %{"id" => id}, socket) do
+    # Only proceed if we are confirming the deletion of the specific ticket
+    # This prevents accidental deletions if the UI is stale or clicked directly
+    if socket.assigns.ticket_to_delete == id do
+      new_history =
+        Enum.reject(socket.assigns.ticket_history, fn ticket -> ticket["id"] == id end)
+
+      socket =
+        socket
+        |> assign(:ticket_history, new_history)
+        |> assign(:ticket_to_delete, nil)
+        |> push_event("delete_ticket_from_history", %{id: id})
+
+      {:noreply, socket}
+    else
+      IO.puts(
+        "⚠️ Attempted to delete ticket #{id} without confirmation (expected #{inspect(socket.assigns.ticket_to_delete)})"
+      )
+
+      # Do not delete, just clear the deleting state if mismatched
+      {:noreply, assign(socket, :ticket_to_delete, nil)}
+    end
   end
 
   def handle_progress(:image, entry, socket) do
@@ -350,8 +389,8 @@ defmodule TicketSplitterWeb.HomeLive do
     end
   end
 
-  defp error_to_string(:too_large), do: "El archivo es demasiado grande (máx. 10MB)"
-  defp error_to_string(:not_accepted), do: "Formato de archivo no soportado"
-  defp error_to_string(:too_many_files), do: "Solo se permite un archivo a la vez"
-  defp error_to_string(error), do: "Error: #{inspect(error)}"
+  defp error_to_string(:too_large), do: gettext("File is too large (max. 10MB)")
+  defp error_to_string(:not_accepted), do: gettext("Unsupported file format")
+  defp error_to_string(:too_many_files), do: gettext("Only one file allowed at a time")
+  defp error_to_string(error), do: gettext("Error: %{error}", error: inspect(error))
 end

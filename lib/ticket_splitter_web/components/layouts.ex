@@ -33,6 +33,9 @@ defmodule TicketSplitterWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :locale, :string, default: "en", doc: "current locale"
+  attr :current_path, :string, default: "/", doc: "current request path"
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -41,7 +44,7 @@ defmodule TicketSplitterWeb.Layouts do
       <header class="bg-base-300 border-b border-base-content/20 flex-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-18 sm:h-22">
-            <a href="/" class="flex items-center gap-2.5 sm:gap-3">
+            <a href={"/#{@locale}/"} class="flex items-center gap-2.5 sm:gap-3">
               <img
                 src={~p"/images/logo-color.svg"}
                 alt=""
@@ -52,7 +55,8 @@ defmodule TicketSplitterWeb.Layouts do
               />
               <span class="text-xl sm:text-2xl font-bold text-base-content">Ticket Splitter</span>
             </a>
-            <div>
+            <div class="flex items-center gap-2">
+              <.language_selector locale={@locale} current_path={@current_path} />
               <.theme_toggle />
             </div>
           </div>
@@ -146,5 +150,85 @@ defmodule TicketSplitterWeb.Layouts do
       </button>
     </div>
     """
+  end
+
+  @doc """
+  Language selector component for switching between supported locales.
+  Displays as a dropdown menu using native HTML details/summary.
+  """
+  attr :locale, :string, required: true, doc: "current locale"
+  attr :current_path, :string, required: true, doc: "current request path"
+
+  @supported_locales [
+    %{code: "en", name: "English", flag: "🇬🇧"},
+    %{code: "es", name: "Español", flag: "🇪🇸"}
+  ]
+
+  def language_selector(assigns) do
+    assigns = assign(assigns, :locales, @supported_locales)
+
+    ~H"""
+    <details class="relative group" id="language-dropdown">
+      <summary class="flex items-center gap-1.5 px-2.5 py-1.5 bg-base-200 hover:bg-base-300 border border-base-300 rounded-lg transition-colors text-sm font-medium text-base-content cursor-pointer list-none select-none">
+        <span class="text-base">{current_flag(@locale)}</span>
+        <span class="hidden sm:inline">{String.upcase(@locale)}</span>
+        <.icon
+          name="hero-chevron-down"
+          class="w-3.5 h-3.5 transition-transform group-open:rotate-180"
+        />
+      </summary>
+
+      <div class="absolute right-0 mt-2 w-40 bg-base-100 border border-base-300 rounded-lg shadow-xl z-50 overflow-hidden">
+        <%= for lang <- @locales do %>
+          <%= if lang.code == @locale do %>
+            <div class="flex items-center gap-2.5 px-3 py-2.5 bg-primary/10 text-base-content cursor-default">
+              <span class="text-base">{lang.flag}</span>
+              <span class="text-sm font-medium">{lang.name}</span>
+              <.icon name="hero-check" class="w-4 h-4 ml-auto text-primary" />
+            </div>
+          <% else %>
+            <a
+              href={locale_path(@current_path, lang.code)}
+              class="flex items-center gap-2.5 px-3 py-2.5 hover:bg-base-200 text-base-content transition-colors"
+            >
+              <span class="text-base">{lang.flag}</span>
+              <span class="text-sm font-medium">{lang.name}</span>
+            </a>
+          <% end %>
+        <% end %>
+      </div>
+    </details>
+    """
+  end
+
+  defp current_flag("en"), do: "🇬🇧"
+  defp current_flag("es"), do: "🇪🇸"
+  defp current_flag(_), do: "🌐"
+
+  @doc """
+  Calculates the path for switching to a different locale.
+  Replaces the locale segment in the current path while preserving the rest.
+  """
+  def locale_path(current_path, new_locale) do
+    # Split path into segments, preserving empty first segment
+    segments = String.split(current_path, "/")
+
+    case segments do
+      # Path like "/en/tickets/123" -> ["", "en", "tickets", "123"]
+      ["", current_locale | rest] when current_locale in ["en", "es"] ->
+        "/" <> new_locale <> "/" <> Enum.join(rest, "/")
+
+      # Path like "/en/" -> ["", "en", ""]
+      ["", current_locale, ""] when current_locale in ["en", "es"] ->
+        "/" <> new_locale <> "/"
+
+      # Path like "/en" -> ["", "en"]
+      ["", current_locale] when current_locale in ["en", "es"] ->
+        "/" <> new_locale <> "/"
+
+      # Fallback
+      _ ->
+        "/" <> new_locale <> "/"
+    end
   end
 end

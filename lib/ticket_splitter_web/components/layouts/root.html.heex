@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" class="bg-base-300">
+<html lang={assigns[:locale] || "en"} class="bg-base-300">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -8,6 +8,8 @@
     <%!-- Theme color para barras del navegador móvil (mismo color que footer bg-base-300) --%>
     <meta name="theme-color" id="theme-color-meta" content="#E4E4E7" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
 
     <%!-- SEO Meta Tags (dinámicos) --%>
     <SEOMeta.seo_meta
@@ -21,12 +23,11 @@
     <%!-- Structured Data JSON-LD --%>
     <SEOMeta.structured_data page_url={assigns[:page_url]} />
 
-    <%!-- Favicon - SVG para mejor escalado --%>
+    <%!-- Favicon - SVG para navegadores, PNG para PWA --%>
     <link rel="icon" type="image/svg+xml" href={~p"/images/logo-color.svg"} />
-    <link rel="icon" type="image/png" sizes="192x192" href={~p"/images/logo-color.svg"} />
-    <link rel="icon" type="image/png" sizes="96x96" href={~p"/images/logo-color.svg"} />
-    <link rel="icon" type="image/png" sizes="32x32" href={~p"/images/logo-color.svg"} />
-    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/logo-color.svg"} />
+    <link rel="icon" type="image/png" sizes="192x192" href={~p"/images/icon-192x192.png"} />
+    <link rel="icon" type="image/png" sizes="512x512" href={~p"/images/icon-512x512.png"} />
+    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/apple-touch-icon.png"} />
     <link rel="alternate icon" href={~p"/favicon.ico"} />
 
     <.live_title default="Ticket Splitter">

@@ -3,38 +3,56 @@ defmodule TicketSplitterWeb.TicketLive do
 
   alias TicketSplitter.Tickets
 
+  # @colors [
+  #   # Paleta moderna inspirada en violeta/índigo - 15 colores profesionales
+  #   # Violeta primario (Sustituido por Purple-700 para evitar conflicto con Primary #7B61FF)
+  #   "#9333EA",
+  #   # Verde esmeralda (como botón compartir)
+  #   "#10B981",
+  #   # Azul brillante (complementario del cyan)
+  #   "#3B82F6",
+  #   # Naranja vibrante (Sustituido por Orange-600 para evitar conflicto con Secondary #FFB84C)
+  #   "#EA580C",
+  #   # Rosa moderno (elegante y sofisticado)
+  #   "#EC4899",
+  #   # Verde teal (Sustituido por Teal-700 para evitar conflicto con Auxiliary #14B8A6)
+  #   "#0D9488",
+  #   # Índigo claro (Sustituido por Indigo-600 para evitar conflicto con Primary)
+  #   "#4F46E5",
+  #   # Ámbar (Sustituido por Amber-600 para evitar conflicto con Secondary)
+  #   "#D97706",
+  #   # Cyan profundo (moderno tecnológico)
+  #   "#06B6D4",
+  #   # Lima verde (vital y fresco)
+  #   "#84CC16",
+  #   # Índigo-violeta intermedio
+  #   "#6366F1",
+  #   # Café elegante (sofisticado)
+  #   "#8B4513",
+  #   # Rojo intenso (emergencia pero moderno)
+  #   "#DC2626",
+  #   # Verde bosque profundo
+  #   "#059669",
+  #   # Terracota cálido (natural y elegante)
+  #   "#7C2D12"
+  # ]
+
   @colors [
-    # Paleta moderna inspirada en violeta/índigo - 15 colores profesionales
-    # Violeta primario (similar al logo TS)
-    "#7C3AED",
-    # Verde esmeralda (como botón compartir)
-    "#10B981",
-    # Azul brillante (complementario del cyan)
-    "#3B82F6",
-    # Naranja vibrante (energético y profesional)
-    "#F97316",
-    # Rosa moderno (elegante y sofisticado)
-    "#EC4899",
-    # Verde teal (fresco y natural)
-    "#14B8A6",
-    # Índigo claro (armoniza con violeta)
-    "#8B5CF6",
-    # Ámbar (calido pero profesional)
-    "#F59E0B",
-    # Cyan profundo (moderno tecnológico)
-    "#06B6D4",
-    # Lima verde (vital y fresco)
-    "#84CC16",
-    # Índigo-violeta intermedio
-    "#6366F1",
-    # Café elegante (sofisticado)
-    "#8B4513",
-    # Rojo intenso (emergencia pero moderno)
-    "#DC2626",
-    # Verde bosque profundo
-    "#059669",
-    # Terracota cálido (natural y elegante)
-    "#7C2D12"
+    "#FF3D00",
+    "#FF9100",
+    "#FFD600",
+    "#FF6D00",
+    "#F50057",
+    "#FF4081",
+    "#E040FB",
+    "#76FF03",
+    "#00E676",
+    "#00C853",
+    "#2979FF",
+    "#3D5AFE",
+    "#00B0FF",
+    "#90A4AE",
+    "#A1887F"
   ]
 
   @impl true
@@ -73,6 +91,7 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:show_share_modal, false)
       |> assign(:show_instructions, false)
       |> assign(:show_share_confirmation, false)
+      |> assign(:show_unshare_confirmation, false)
       |> assign(:pending_share_action, nil)
       |> assign(:editing_percentages_product_id, nil)
       |> assign(:my_total, Decimal.new("0"))
@@ -167,16 +186,52 @@ defmodule TicketSplitterWeb.TicketLive do
     unless participant_name do
       {:noreply, assign(socket, :show_name_modal, true)}
     else
-      # Si la acción es "join_group", mostrar modal de confirmación primero
-      if action == "join_group" do
-        {:noreply,
-         socket
-         |> assign(:show_share_confirmation, true)
-         |> assign(:pending_share_action, params)}
-      else
-        execute_toggle_action(action, params, socket)
+      cond do
+        action == "join_group" ->
+          {:noreply,
+           socket
+           |> assign(:show_share_confirmation, true)
+           |> assign(:pending_share_action, params)}
+
+        action == "remove_unit" ->
+          target_group_id = Map.get(params, "group_id")
+
+          if requires_unshare_confirmation?(
+               socket.assigns.products,
+               params["product_id"],
+               participant_name,
+               target_group_id
+             ) do
+            {:noreply,
+             socket
+             |> assign(:show_unshare_confirmation, true)
+             |> assign(:pending_share_action, params)}
+          else
+            execute_toggle_action(action, params, socket)
+          end
+
+        true ->
+          execute_toggle_action(action, params, socket)
       end
     end
+  end
+
+  def handle_event("confirm_unshare", _params, socket) do
+    params = socket.assigns.pending_share_action
+
+    socket =
+      socket
+      |> assign(:show_unshare_confirmation, false)
+      |> assign(:pending_share_action, nil)
+
+    execute_toggle_action("remove_unit", params, socket)
+  end
+
+  def handle_event("cancel_unshare", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_unshare_confirmation, false)
+     |> assign(:pending_share_action, nil)}
   end
 
   def handle_event("confirm_share", _params, socket) do
@@ -539,7 +594,8 @@ defmodule TicketSplitterWeb.TicketLive do
 
         "remove_unit" ->
           # Quitar 1 unidad (devolver al pool)
-          Tickets.remove_participant_unit(product_id, participant_name)
+          group_id = Map.get(params, "group_id")
+          Tickets.remove_participant_unit(product_id, participant_name, group_id)
 
         "join_group" ->
           # Unirse a un grupo existente (compartir)
@@ -862,6 +918,63 @@ defmodule TicketSplitterWeb.TicketLive do
     end)
   end
 
+  defp requires_unshare_confirmation?(
+         products,
+         product_id,
+         participant_name,
+         target_group_id \\ nil
+       ) do
+    product = Enum.find(products, fn p -> to_string(p.id) == to_string(product_id) end)
+
+    if product do
+      assignments =
+        Enum.filter(product.participant_assignments, fn pa ->
+          pa.participant_name == participant_name
+        end)
+
+      if target_group_id do
+        # Case A: User clicked a specific card (group_id provided)
+        target_assignment =
+          Enum.find(assignments, fn pa -> pa.assignment_group_id == target_group_id end)
+
+        if target_assignment do
+          is_shared_group?(product, target_assignment.assignment_group_id)
+        else
+          false
+        end
+      else
+        # Case B: User clicked generic Remove button (no group_id)
+        # Check if we have ANY solo assignment to remove first (priority)
+        has_solo =
+          Enum.any?(assignments, fn pa ->
+            !is_shared_group?(product, pa.assignment_group_id)
+          end)
+
+        if has_solo do
+          false
+        else
+          # If no solo assignments, but we have shared ones, we need confirmation
+          Enum.any?(assignments, fn pa ->
+            is_shared_group?(product, pa.assignment_group_id)
+          end)
+        end
+      end
+    else
+      false
+    end
+  end
+
+  defp is_shared_group?(_product, nil), do: false
+
+  defp is_shared_group?(product, group_id) do
+    count =
+      Enum.count(product.participant_assignments, fn pa ->
+        pa.assignment_group_id == group_id
+      end)
+
+    count > 1
+  end
+
   # Obtiene el color existente de un usuario basado en sus asignaciones previas
   defp get_existing_user_color(ticket_id, participant_name) do
     # Buscar todas las asignaciones del usuario en este ticket
@@ -903,10 +1016,7 @@ defmodule TicketSplitterWeb.TicketLive do
     color
   end
 
-  # Helper functions para SEO
   defp build_ticket_page_title(ticket) do
-    alias TicketSplitterWeb.SEO
-
     title_parts = []
 
     title_parts =
@@ -924,14 +1034,12 @@ defmodule TicketSplitterWeb.TicketLive do
         title_parts
       end
 
-    base_title =
-      if title_parts != [] do
-        Enum.join(title_parts, " - ")
-      else
-        "Ticket"
-      end
-
-    SEO.page_title(base_title)
+    if title_parts != [] do
+      ticket_title = Enum.join(title_parts, " - ")
+      "Ticket Splitter - #{ticket_title}"
+    else
+      "Ticket Splitter"
+    end
   end
 
   defp build_ticket_page_description(ticket, total_ticket) do
