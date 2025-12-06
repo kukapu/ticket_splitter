@@ -73,6 +73,7 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:show_share_modal, false)
       |> assign(:show_instructions, false)
       |> assign(:show_share_confirmation, false)
+      |> assign(:show_unshare_confirmation, false)
       |> assign(:pending_share_action, nil)
       |> assign(:editing_percentages_product_id, nil)
       |> assign(:my_total, Decimal.new("0"))
@@ -167,16 +168,41 @@ defmodule TicketSplitterWeb.TicketLive do
     unless participant_name do
       {:noreply, assign(socket, :show_name_modal, true)}
     else
-      # Si la acción es "join_group", mostrar modal de confirmación primero
-      if action == "join_group" do
-        {:noreply,
-         socket
-         |> assign(:show_share_confirmation, true)
-         |> assign(:pending_share_action, params)}
-      else
-        execute_toggle_action(action, params, socket)
+      cond do
+        action == "join_group" ->
+          {:noreply,
+           socket
+           |> assign(:show_share_confirmation, true)
+           |> assign(:pending_share_action, params)}
+
+        action == "remove_unit" ->
+          {:noreply,
+           socket
+           |> assign(:show_unshare_confirmation, true)
+           |> assign(:pending_share_action, params)}
+
+        true ->
+          execute_toggle_action(action, params, socket)
       end
     end
+  end
+
+  def handle_event("confirm_unshare", _params, socket) do
+    params = socket.assigns.pending_share_action
+
+    socket =
+      socket
+      |> assign(:show_unshare_confirmation, false)
+      |> assign(:pending_share_action, nil)
+
+    execute_toggle_action("remove_unit", params, socket)
+  end
+
+  def handle_event("cancel_unshare", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_unshare_confirmation, false)
+     |> assign(:pending_share_action, nil)}
   end
 
   def handle_event("confirm_share", _params, socket) do

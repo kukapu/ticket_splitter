@@ -383,7 +383,7 @@
                         </div>
                         <div class={[
                           "py-1 px-1.5 sm:py-1.5 sm:px-1.5",
-                          (has_me && "pl-5") || "pl-3"
+                          (has_me && "pl-5 sm:pl-6") || "pl-3 sm:pl-3"
                         ]}>
                           <div class="flex items-center justify-between gap-2">
                             <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -631,6 +631,34 @@
           </button>
           <button
             phx-click="confirm_share"
+            class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+<!-- Unshare Confirmation Modal -->
+  <%= if @show_unshare_confirmation do %>
+    <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+      <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
+        <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
+          Dejar de compartir
+        </h2>
+        <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
+          ¿Estás seguro de que quieres dejar de compartir este producto?
+        </p>
+        <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
+          <button
+            phx-click="cancel_unshare"
+            class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
+          >
+            Cancelar
+          </button>
+          <button
+            phx-click="confirm_unshare"
             class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
           >
             Confirmar
