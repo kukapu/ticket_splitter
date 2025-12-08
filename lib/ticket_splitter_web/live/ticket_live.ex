@@ -419,13 +419,62 @@ defmodule TicketSplitterWeb.TicketLive do
 
     pending = Decimal.sub(total_ticket, total_assigned)
 
+    # Calculate "Rest of participants" if applicable
+    active_count = length(participants)
+    total_participants = socket.assigns.ticket.total_participants
+
+    participant_summaries =
+      if total_participants > active_count do
+        rest_count = total_participants - active_count
+
+        # Calculate total common cost
+        total_common = calculate_total_common(socket.assigns.products)
+
+        # Calculate rest share of common: (Total Common / Total Participants) * Rest Count
+        rest_common_share =
+          if total_participants > 0 do
+            share_per_person = Decimal.div(total_common, Decimal.new(total_participants))
+            Decimal.mult(share_per_person, Decimal.new(rest_count))
+          else
+            Decimal.new("0")
+          end
+
+        # Rest group pays for their common share + ALL pending (unassigned)
+        rest_total = Decimal.add(rest_common_share, pending)
+
+        # Calculate individual share for display
+        rest_individual_total =
+          if rest_count > 0 do
+            Decimal.div(rest_total, Decimal.new(rest_count))
+          else
+            Decimal.new("0")
+          end
+
+        rest_summary = %{
+          name: "#{gettext("Rest of participants")} (#{rest_count}x)",
+          # Slate-400
+          color: "#94a3b8",
+          total: rest_individual_total,
+          is_rest: true
+        }
+
+        # Return updated list and updated totals (Pending is fully absorbed by Rest)
+        # Note: We still add the FULL rest_total to total_assigned calculation to balance the ticket 0 sum
+        {participant_summaries ++ [rest_summary], Decimal.add(total_assigned, pending),
+         Decimal.new("0")}
+      else
+        {participant_summaries, total_assigned, pending}
+      end
+
+    {final_summaries, final_total_assigned, final_pending} = participant_summaries
+
     {:noreply,
      socket
      |> assign(:show_summary_modal, true)
-     |> assign(:participants_for_summary, participant_summaries)
+     |> assign(:participants_for_summary, final_summaries)
      |> assign(:total_ticket_for_summary, total_ticket)
-     |> assign(:total_assigned_for_summary, total_assigned)
-     |> assign(:pending_for_summary, pending)}
+     |> assign(:total_assigned_for_summary, final_total_assigned)
+     |> assign(:pending_for_summary, final_pending)}
   end
 
   @impl true
@@ -915,6 +964,33 @@ defmodule TicketSplitterWeb.TicketLive do
   defp calculate_ticket_total(products) do
     Enum.reduce(products, Decimal.new("0"), fn product, acc ->
       Decimal.add(acc, product.total_price)
+    end)
+  end
+
+  defp calculate_total_common(products) do
+    Enum.reduce(products, Decimal.new("0"), fn product, acc ->
+      # Legacy is_common support
+      legacy_common_cost =
+        if product.is_common do
+          product.total_price
+        else
+          Decimal.new("0")
+        end
+
+      # New common_units support
+      common_units = product.common_units || Decimal.new("0")
+
+      common_units_cost =
+        if Decimal.compare(common_units, Decimal.new("0")) == :gt do
+          unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+          Decimal.mult(unit_cost, common_units)
+        else
+          Decimal.new("0")
+        end
+
+      # Sum common costs
+      product_common_total = Decimal.add(legacy_common_cost, common_units_cost)
+      Decimal.add(acc, product_common_total)
     end)
   end
 

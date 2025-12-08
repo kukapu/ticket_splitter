@@ -398,3 +398,8 @@ msgstr ""
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Shared Ticket"
 msgstr "Compartir Ticket"
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:99
+#, elixir-autogen, elixir-format
+msgid "Rest of participants"
+msgstr "Resto de participantes"
