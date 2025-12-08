@@ -354,8 +354,14 @@
                       </div>
                     <% else %>
                       <!-- Single Color Card - Full Width Row -->
-                      <% # For single user or multi-user (more than 2), use first participant color
-                      main_participant = hd(group.participants)
+                      <% # For single user or multi-user (more than 2), prioritize current user's color if present
+                      main_participant =
+                        if has_me do
+                          Enum.find(group.participants, fn p -> p.name == @participant_name end)
+                        else
+                          hd(group.participants)
+                        end
+
                       card_color = main_participant.color %>
                       <div
                         class={[
