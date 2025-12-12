@@ -14,7 +14,7 @@ const CRITICAL_ASSETS = [
   '/images/icon-512x512.png',
   '/images/icon-maskable-192x192.png',
   '/images/icon-maskable-512x512.png',
-  '/images/logo-color.svg',
+  '/images/logo.svg',
   '/favicon.ico'
 ];
 

@@ -46,7 +46,7 @@ defmodule TicketSplitterWeb.Layouts do
           <div class="flex items-center justify-between h-18 sm:h-22">
             <a href={"/#{@locale}/"} class="flex items-center gap-2.5 sm:gap-3">
               <img
-                src={~p"/images/logo-color.svg"}
+                src={~p"/images/logo.svg"}
                 alt=""
                 class="h-7 sm:h-9 w-auto"
                 loading="eager"

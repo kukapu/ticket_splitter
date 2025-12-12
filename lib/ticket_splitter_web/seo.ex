@@ -43,10 +43,10 @@ defmodule TicketSplitterWeb.SEO do
 
   @doc """
   Returns the absolute URL for the Open Graph image.
-  Falls back to logo-color.svg if og-image.png doesn't exist.
+  Falls back to logo.svg if og-image.png doesn't exist.
   """
   def og_image_url do
-    # Try og-image.png first, fallback to logo-color.svg
+    # Try og-image.png first, fallback to logo.svg
     absolute_url("/images/og-image.png")
   end
 
