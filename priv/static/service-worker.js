@@ -1,6 +1,6 @@
 // Service Worker para Ticket Splitter PWA
 // Versión del caché - cambiar esto para forzar actualización
-const CACHE_VERSION = 'v1.0.1';
+const CACHE_VERSION = 'v1.0.2';
 const STATIC_CACHE = `ticket-splitter-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ticket-splitter-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -12,6 +12,8 @@ const CRITICAL_ASSETS = [
   '/manifest.json',
   '/images/icon-192x192.png',
   '/images/icon-512x512.png',
+  '/images/icon-maskable-192x192.png',
+  '/images/icon-maskable-512x512.png',
   '/images/logo-color.svg',
   '/favicon.ico'
 ];

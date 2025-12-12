@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "name": "Ticket Splitter",
-  "short_name": "Splitter",
+  "short_name": "Ticket Splitter",
   "description": "Divide gastos fácilmente con tus amigos. Escanea tickets, asigna productos y calcula lo que debe cada uno.",
   "lang": "es-ES",
   "start_url": "/",
@@ -23,6 +23,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/images/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/images/icon-maskable-512x512.png",
@@ -59,4 +65,3 @@
     }
   ]
 }
-
