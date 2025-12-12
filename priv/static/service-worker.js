@@ -1,6 +1,6 @@
 // Service Worker para Ticket Splitter PWA
 // Versión del caché - cambiar esto para forzar actualización
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v1.0.1';
 const STATIC_CACHE = `ticket-splitter-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ticket-splitter-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -29,7 +29,7 @@ const NEVER_CACHE_PATTERNS = [
 // Se ejecuta cuando se instala el service worker por primera vez
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker version:', CACHE_VERSION);
-  
+
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
@@ -50,7 +50,7 @@ self.addEventListener('install', (event) => {
 // Se ejecuta cuando el service worker se activa
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker version:', CACHE_VERSION);
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -58,9 +58,9 @@ self.addEventListener('activate', (event) => {
           cacheNames
             .filter((cacheName) => {
               // Eliminar caches antiguos que no coincidan con la versión actual
-              return cacheName.startsWith('ticket-splitter-') && 
-                     cacheName !== STATIC_CACHE && 
-                     cacheName !== DYNAMIC_CACHE;
+              return cacheName.startsWith('ticket-splitter-') &&
+                cacheName !== STATIC_CACHE &&
+                cacheName !== DYNAMIC_CACHE;
             })
             .map((cacheName) => {
               console.log('[SW] Deleting old cache:', cacheName);
@@ -80,17 +80,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // Solo procesar requests HTTP/HTTPS del mismo origen
   if (!url.protocol.startsWith('http')) {
     return;
   }
-  
+
   // NUNCA cachear LiveView, WebSockets o patrones excluidos
   if (shouldNeverCache(url)) {
     return; // Dejar que la red maneje estos requests normalmente
   }
-  
+
   // Determinar estrategia según tipo de contenido
   if (isStaticAsset(url)) {
     // Assets estáticos: Cache First con fallback a red
@@ -117,25 +117,25 @@ async function cacheFirstStrategy(request) {
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // Si no está en caché, traer de la red
     const networkResponse = await fetch(request);
-    
+
     // Guardar en caché si es exitoso
     if (networkResponse.ok) {
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Cache first strategy failed:', error);
-    
+
     // Si es imagen, retornar placeholder SVG
     if (request.destination === 'image') {
       return createPlaceholderImage();
     }
-    
+
     // Para otros, intentar página offline
     return caches.match(OFFLINE_PAGE) || createOfflineResponse();
   }
@@ -148,23 +148,23 @@ async function cacheFirstStrategy(request) {
 async function networkFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
-    
+
     // Guardar respuesta exitosa en caché dinámico (solo GET)
     if (networkResponse.ok && request.method === 'GET') {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[SW] Network failed, trying cache:', request.url);
-    
+
     // Fallback al caché
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     return createOfflineResponse();
   }
 }
@@ -176,29 +176,29 @@ async function networkFirstStrategy(request) {
 async function networkFirstForNavigation(request) {
   try {
     const networkResponse = await fetch(request);
-    
+
     // Guardar página en caché si es exitosa
     if (networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[SW] Navigation failed, trying cache/offline:', request.url);
-    
+
     // Intentar obtener de caché
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // Último recurso: página offline
     const offlinePage = await caches.match(OFFLINE_PAGE);
     if (offlinePage) {
       return offlinePage;
     }
-    
+
     return createOfflineResponse();
   }
 }
@@ -210,7 +210,7 @@ async function networkFirstForNavigation(request) {
  */
 function shouldNeverCache(url) {
   const pathname = url.pathname;
-  return NEVER_CACHE_PATTERNS.some(pattern => 
+  return NEVER_CACHE_PATTERNS.some(pattern =>
     pathname.includes(pattern) || url.href.includes(pattern)
   );
 }
@@ -220,15 +220,15 @@ function shouldNeverCache(url) {
  */
 function isStaticAsset(url) {
   return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp)$/i.test(url.pathname) ||
-         url.pathname.startsWith('/assets/');
+    url.pathname.startsWith('/assets/');
 }
 
 /**
  * Determina si es una request de navegación (página HTML)
  */
 function isNavigationRequest(request) {
-  return request.mode === 'navigate' || 
-         (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'));
+  return request.mode === 'navigate' ||
+    (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'));
 }
 
 /**
@@ -243,7 +243,7 @@ function createPlaceholderImage() {
       </text>
     </svg>
   `.trim();
-  
+
   return new Response(svg, {
     headers: { 'Content-Type': 'image/svg+xml' }
   });
@@ -310,11 +310,11 @@ self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
-  
+
   if (event.data && event.data.type === 'GET_VERSION') {
     event.ports[0]?.postMessage({ version: CACHE_VERSION });
   }
-  
+
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     caches.keys().then((cacheNames) => {
       return Promise.all(
