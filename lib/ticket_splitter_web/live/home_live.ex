@@ -180,7 +180,7 @@ defmodule TicketSplitterWeb.HomeLive do
               {:ok, ticket} ->
                 IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
                 # Redirigir a la página del ticket
-                push_navigate(socket, to: "/tickets/#{ticket.id}")
+                push_navigate(socket, to: "/#{socket.assigns.locale}/tickets/#{ticket.id}")
 
               {:error, error} ->
                 IO.puts("❌ Error guardando ticket: #{inspect(error)}")
