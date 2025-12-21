@@ -18,12 +18,12 @@ msgid_plural "%{count} saved tickets"
 msgstr[0] ""
 msgstr[1] ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:521
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:527
 #, elixir-autogen, elixir-format
 msgid "+ Button"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:524
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:530
 #, elixir-autogen, elixir-format
 msgid "- Button"
 msgstr ""
@@ -33,12 +33,12 @@ msgstr ""
 msgid "Actions"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:239
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:245
 #, elixir-autogen, elixir-format
 msgid "Add 1 more unit to common"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:182
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:188
 #, elixir-autogen, elixir-format
 msgid "Add 1 unit to my account"
 msgstr ""
@@ -48,17 +48,17 @@ msgstr ""
 msgid "Analyzing your ticket..."
 msgstr ""
 
-#: lib/ticket_splitter_web/live/home_live.html.heex:210
+#: lib/ticket_splitter_web/live/home_live.html.heex:212
 #, elixir-autogen, elixir-format
 msgid "Are you sure you want to delete this ticket from history? This action cannot be undone."
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:678
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:798
 #, elixir-autogen, elixir-format
 msgid "Are you sure you want to share this product with another participant?"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:706
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:826
 #, elixir-autogen, elixir-format
 msgid "Are you sure you want to stop sharing this product?"
 msgstr ""
@@ -69,39 +69,39 @@ msgstr ""
 msgid "Attempting to reconnect"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:199
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:479
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:205
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:485
 #, elixir-autogen, elixir-format
 msgid "COMMON"
 msgstr ""
 
-#: lib/ticket_splitter_web/components/layouts.ex:229
-#: lib/ticket_splitter_web/live/home_live.html.heex:217
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:685
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:713
+#: lib/ticket_splitter_web/components/layouts.ex:236
+#: lib/ticket_splitter_web/live/home_live.html.heex:219
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:805
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:833
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:529
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:535
 #, elixir-autogen, elixir-format
 msgid "Click on someone else's group to share (50-50)"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:527
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:533
 #, elixir-autogen, elixir-format
 msgid "Common button"
 msgstr ""
 
 #: lib/ticket_splitter_web/live/home_live.html.heex:9
-#: lib/ticket_splitter_web/live/home_live.html.heex:224
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:691
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:719
+#: lib/ticket_splitter_web/live/home_live.html.heex:226
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:811
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:839
 #, elixir-autogen, elixir-format
 msgid "Confirm"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:777
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:897
 #, elixir-autogen, elixir-format
 msgid "Copy"
 msgstr ""
@@ -111,12 +111,12 @@ msgstr ""
 msgid "Delete from history"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/home_live.html.heex:207
+#: lib/ticket_splitter_web/live/home_live.html.heex:209
 #, elixir-autogen, elixir-format
 msgid "Delete ticket"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:362
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:368
 #, elixir-autogen, elixir-format
 msgid "Drag to adjust"
 msgstr ""
@@ -141,12 +141,12 @@ msgstr ""
 msgid "JPG, PNG or WEBP (max. 10MB)"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:172
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:178
 #, elixir-autogen, elixir-format
 msgid "Make common for everyone"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:52
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:54
 #, elixir-autogen, elixir-format
 msgid "My share"
 msgstr ""
@@ -166,12 +166,12 @@ msgstr ""
 msgid "Only one file allowed at a time"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:622
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:673
 #, elixir-autogen, elixir-format
 msgid "Participants"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:660
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:698
 #, elixir-autogen, elixir-format
 msgid "Pending:"
 msgstr ""
@@ -181,17 +181,17 @@ msgstr ""
 msgid "Recent tickets"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:229
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:235
 #, elixir-autogen, elixir-format
 msgid "Remove 1 unit from common"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:163
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:169
 #, elixir-autogen, elixir-format
 msgid "Remove 1 unit from my account"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:492
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:498
 #, elixir-autogen, elixir-format
 msgid "Remove from common"
 msgstr ""
@@ -201,7 +201,7 @@ msgstr ""
 msgid "Retry"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:753
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:873
 #, elixir-autogen, elixir-format
 msgid "Scan this QR code to access the ticket"
 msgstr ""
@@ -211,27 +211,27 @@ msgstr ""
 msgid "Select image"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:87
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:93
 #, elixir-autogen, elixir-format
 msgid "Share"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:732
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:852
 #, elixir-autogen, elixir-format
 msgid "Share Ticket"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:784
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:904
 #, elixir-autogen, elixir-format
 msgid "Share on"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:675
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:795
 #, elixir-autogen, elixir-format
 msgid "Share product"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:412
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:418
 #, elixir-autogen, elixir-format
 msgid "Shared"
 msgstr ""
@@ -241,18 +241,18 @@ msgstr ""
 msgid "Something went wrong!"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:703
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:823
 #, elixir-autogen, elixir-format
 msgid "Stop sharing"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:94
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:610
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:100
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:623
 #, elixir-autogen, elixir-format
 msgid "Summary"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:465
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:471
 #, elixir-autogen, elixir-format
 msgid "Swipe to remove from common"
 msgstr ""
@@ -262,17 +262,17 @@ msgstr ""
 msgid "Take photo"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:760
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:880
 #, elixir-autogen, elixir-format
 msgid "Ticket link"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:648
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:690
 #, elixir-autogen, elixir-format
 msgid "Ticket total:"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:654
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:694
 #, elixir-autogen, elixir-format
 msgid "Total assigned:"
 msgstr ""
@@ -302,7 +302,7 @@ msgstr ""
 msgid "Upload your ticket"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:510
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:516
 #, elixir-autogen, elixir-format
 msgid "Usage instructions"
 msgstr ""
@@ -317,12 +317,12 @@ msgstr ""
 msgid "Your name"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:150
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:156
 #, elixir-autogen, elixir-format
 msgid "assigned"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:139
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:145
 #, elixir-autogen, elixir-format
 msgid "available"
 msgstr ""
@@ -332,51 +332,52 @@ msgstr ""
 msgid "close"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:144
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:150
 #, elixir-autogen, elixir-format
 msgid "common"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:521
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:527
 #, elixir-autogen, elixir-format
 msgid "on available products to add 1 unit to yourself"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:527
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:533
 #, elixir-autogen, elixir-format
 msgid "on available products to make common for everyone"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:524
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:530
 #, elixir-autogen, elixir-format
 msgid "on available products to remove 1 unit from yourself"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:72
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:78
 #, elixir-autogen, elixir-format
 msgid "people"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:199
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:444
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:485
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:205
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:450
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:491
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:666
 #, elixir-autogen, elixir-format
 msgid "pers."
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:800
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:809
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:821
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:920
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:929
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:941
 #, elixir-autogen, elixir-format
 msgid "Join my ticket!"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:788
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:908
 #, elixir-autogen, elixir-format
 msgid "Join my ticket! "
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:800
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:920
 #, elixir-autogen, elixir-format
 msgid "Shared Ticket"
 msgstr ""
@@ -386,27 +387,27 @@ msgstr ""
 msgid "Crop your ticket"
 msgstr ""
 
-#: lib/ticket_splitter_web/components/layouts.ex:221
+#: lib/ticket_splitter_web/components/layouts.ex:227
 #, elixir-autogen, elixir-format
 msgid "Enter your name"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:868
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:988
 #, elixir-autogen, elixir-format
 msgid "Pinch or scroll to zoom"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.ex:474
+#: lib/ticket_splitter_web/live/ticket_live.ex:477
 #, elixir-autogen, elixir-format
 msgid "Rest of participants"
 msgstr ""
 
-#: lib/ticket_splitter_web/components/layouts.ex:236
+#: lib/ticket_splitter_web/components/layouts.ex:243
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:859
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:978
 #, elixir-autogen, elixir-format
 msgid "Ticket image"
 msgstr ""
@@ -421,27 +422,82 @@ msgstr ""
 msgid "View ticket image"
 msgstr ""
 
-#: lib/ticket_splitter_web/components/layouts.ex:211
+#: lib/ticket_splitter_web/components/layouts.ex:217
 #, elixir-autogen, elixir-format
 msgid "Edit"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:599
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:604
 #, elixir-autogen, elixir-format
 msgid "I'm new here"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:561
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:563
 #, elixir-autogen, elixir-format
 msgid "Select your name if you're already in the ticket, or create a new one."
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:550
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:552
 #, elixir-autogen, elixir-format
 msgid "Who are you?"
 msgstr ""
 
-#: lib/ticket_splitter_web/live/ticket_live.html.heex:589
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:594
 #, elixir-autogen, elixir-format
 msgid "or"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:741
+#, elixir-autogen, elixir-format
+msgid "(me)"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:52
+#, elixir-autogen, elixir-format
+msgid "Acting as"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:739
+#, elixir-autogen, elixir-format
+msgid "Me"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:780
+#, elixir-autogen, elixir-format
+msgid "Add"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:768
+#, elixir-autogen, elixir-format
+msgid "Add new person"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:630
+#, elixir-autogen, elixir-format
+msgid "Assign"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:713
+#, elixir-autogen, elixir-format
+msgid "Assigning to:"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:720
+#, elixir-autogen, elixir-format
+msgid "Clear"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:648
+#, elixir-autogen, elixir-format
+msgid "I pay for"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:773
+#, elixir-autogen, elixir-format
+msgid "Name..."
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:724
+#, elixir-autogen, elixir-format
+msgid "Select a person to assign items on their behalf"
 msgstr ""

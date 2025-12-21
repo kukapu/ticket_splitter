@@ -489,6 +489,7 @@ defmodule TicketSplitterWeb.CoreComponents do
   attr :id, :string, required: true
   attr :show, :boolean, default: false
   attr :on_cancel, JS, default: %JS{}
+  attr :border_class, :string, default: nil
 
   attr :width, :string,
     default: "max-w-md",
@@ -525,7 +526,8 @@ defmodule TicketSplitterWeb.CoreComponents do
             phx-window-keydown={JS.exec("data-cancel", to: "##{@id}")}
             phx-key="escape"
             class={[
-              "w-full transform overflow-hidden rounded-2xl bg-base-300 border border-base-300 p-4 sm:p-6 text-left align-middle shadow-2xl transition-all sm:my-8",
+              "w-full transform overflow-hidden rounded-2xl bg-base-300 p-4 sm:p-6 text-left align-middle shadow-2xl transition-all sm:my-8",
+              @border_class || "border border-base-300",
               @width
             ]}
           >
