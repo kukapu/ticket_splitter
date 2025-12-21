@@ -37,8 +37,7 @@ defmodule TicketSplitterWeb.HomeLive do
         accept: ~w(.jpg .jpeg .png .webp),
         max_entries: 1,
         max_file_size: 10_000_000,
-        auto_upload: true,
-        progress: &handle_progress/3
+        auto_upload: false
       )
 
     {:ok, socket}
@@ -56,13 +55,8 @@ defmodule TicketSplitterWeb.HomeLive do
       IO.puts("    Done: #{entry.done?}")
     end)
 
-    # Activar el loader inmediatamente cuando se selecciona una imagen
-    socket =
-      if length(socket.assigns.uploads.image.entries) > 0 do
-        assign(socket, :processing, true)
-      else
-        socket
-      end
+    # NO activar el loader aquí - el hook ImageCropper manejará la imagen
+    # El loader se activará cuando se reciba el evento cropped_image_ready
 
     {:noreply, socket}
   end
@@ -126,6 +120,65 @@ defmodule TicketSplitterWeb.HomeLive do
 
       # Do not delete, just clear the deleting state if mismatched
       {:noreply, assign(socket, :ticket_to_delete, nil)}
+    end
+  end
+
+  @impl true
+  def handle_event("start_processing", _params, socket) do
+    IO.puts("🔄 Iniciando procesamiento - mostrando spinner")
+    # Set processing state to show spinner
+    {:noreply, assign(socket, :processing, true)}
+  end
+
+  @impl true
+  def handle_event("cropped_image_ready", %{"base64" => base64, "filename" => filename, "content_type" => content_type, "size" => size}, socket) do
+    IO.puts("🎨 Imagen recortada recibida:")
+    IO.puts("  - Filename: #{filename}")
+    IO.puts("  - Content-Type: #{content_type}")
+    IO.puts("  - Size: #{(size / 1024) |> Float.round(2)}KB")
+
+    # Processing is already true from start_processing event
+    socket = assign(socket, :processing, true)
+
+    # Decode base64
+    binary_data = Base.decode64!(base64)
+
+    # Process and upload to S3
+    case process_and_upload_image(binary_data, filename) do
+      {:ok, image_url, processed_binary} ->
+        # Re-encode for OpenRouter (use already processed binary)
+        base64_content = Base.encode64(processed_binary)
+
+        uploaded_file = %{
+          filename: filename,
+          content_type: content_type,
+          base64: base64_content,
+          image_url: image_url
+        }
+
+        socket =
+          socket
+          |> update(:uploaded_files, &(&1 ++ [uploaded_file]))
+          |> process_image(uploaded_file)
+
+        {:noreply, socket}
+
+      {:error, reason} ->
+        IO.puts("⚠️ S3 upload failed, using cropped image directly: #{inspect(reason)}")
+
+        uploaded_file = %{
+          filename: filename,
+          content_type: content_type,
+          base64: base64,
+          image_url: nil
+        }
+
+        socket =
+          socket
+          |> update(:uploaded_files, &(&1 ++ [uploaded_file]))
+          |> process_image(uploaded_file)
+
+        {:noreply, socket}
     end
   end
 

@@ -97,7 +97,7 @@ msgstr ""
 #: lib/ticket_splitter_web/live/ticket_live.html.heex:663
 #, elixir-autogen, elixir-format
 msgid "Confirm"
-msgstr ""
+msgstr "Confirm"
 
 #: lib/ticket_splitter_web/live/ticket_live.html.heex:542
 #, elixir-autogen, elixir-format
@@ -398,3 +398,8 @@ msgstr ""
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Shared Ticket"
 msgstr ""
+
+#: assets/js/app.js
+#, elixir-autogen, elixir-format
+msgid "Crop your ticket"
+msgstr "Crop your ticket"

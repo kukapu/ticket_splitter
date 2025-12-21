@@ -403,3 +403,8 @@ msgstr "Compartir Ticket"
 #, elixir-autogen, elixir-format
 msgid "Rest of participants"
 msgstr "Resto de participantes"
+
+#: assets/js/app.js
+#, elixir-autogen, elixir-format
+msgid "Crop your ticket"
+msgstr "Recorta tu ticket"

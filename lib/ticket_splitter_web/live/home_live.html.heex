@@ -1,12 +1,20 @@
 <Layouts.app flash={@flash} locale={@locale} current_path={@current_path}>
   <div class="flex-1 flex items-center justify-center px-4 w-full" id="home-container" phx-hook="TicketHistory">
     <div class="max-w-md w-full">
-      <!-- Hidden upload input (always present for auto_upload to work) -->
-      <form id="upload-form" phx-submit="validate" phx-change="validate" class="hidden">
-        <div phx-drop-target={@uploads.image.ref}>
-          <.live_file_input upload={@uploads.image} />
-        </div>
-      </form>
+      <!-- Hidden upload input (manual handling with ImageCropper hook) -->
+      <div
+        id="image-cropper-container"
+        phx-hook="ImageCropper"
+        data-i18n-crop-title={gettext("Crop your ticket")}
+        data-i18n-confirm={gettext("Confirm")}
+        class="hidden">
+        <input
+          type="file"
+          id="image-file-input"
+          accept=".jpg,.jpeg,.png,.webp"
+          class="hidden"
+        />
+      </div>
       
 <!-- Ticket History Section (only visible when NOT processing) -->
       <%= if !@processing do %>
@@ -155,27 +163,20 @@
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-primary text-primary-content font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  onclick="document.querySelector('#upload-form input[type=file]').click()"
+                  onclick="document.getElementById('image-file-input').removeAttribute('capture'); document.getElementById('image-file-input').click();"
                 >
                   <.icon name="hero-photo" class="w-5 h-5 inline mr-2" /> {gettext("Select image")}
                 </button>
-                
+
 <!-- Camera Button (Mobile) -->
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-base-300 text-base-content font-semibold rounded-xl hover:bg-base-300/80 transition-all duration-200 shadow-lg sm:hidden"
-                  onclick="document.querySelector('#upload-form input[type=file]').setAttribute('capture', 'environment'); document.querySelector('#upload-form input[type=file]').click();"
+                  onclick="document.getElementById('image-file-input').setAttribute('capture', 'environment'); document.getElementById('image-file-input').click();"
                 >
                   <.icon name="hero-camera" class="w-5 h-5 inline mr-2" /> {gettext("Take photo")}
                 </button>
               </div>
-              
-<!-- Upload Errors -->
-              <%= for err <- upload_errors(@uploads.image) do %>
-                <div class="mt-4 p-3 bg-error/20 border border-error rounded-lg text-sm text-error-content">
-                  {error_to_string(err)}
-                </div>
-              <% end %>
             </div>
           </div>
         </div>

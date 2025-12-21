@@ -104,6 +104,39 @@
 
 /* This file is for your main application CSS */
 
+/* Import Cropper.js CSS */
+@import "cropperjs/dist/cropper.css";
+
+/* Cropper.js resize points customization - make all points equal size */
+.cropper-point {
+  width: 14px !important;
+  height: 14px !important;
+  background-color: #fff !important;
+  border: 3px solid #7B61FF !important;
+  border-radius: 0 !important;
+  opacity: 1 !important;
+}
+
+/* Specific overrides for all corner and edge points */
+.cropper-point.point-e,
+.cropper-point.point-w,
+.cropper-point.point-n,
+.cropper-point.point-s,
+.cropper-point.point-ne,
+.cropper-point.point-nw,
+.cropper-point.point-se,
+.cropper-point.point-sw {
+  width: 14px !important;
+  height: 14px !important;
+  background-color: #fff !important;
+}
+
+/* Make crop box lines more visible */
+.cropper-view-box {
+  outline: 2px solid #7B61FF !important;
+  outline-offset: -2px;
+}
+
 /* Global fix for aspect-square buttons - maintain 1:1 ratio everywhere */
 .aspect-square {
   aspect-ratio: 1 / 1 !important;
