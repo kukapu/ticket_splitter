@@ -46,3 +46,9 @@ npm-debug.log
 
 # Node modules
 /node_modules/
+
+# AI Research
+ai_research/venv/
+ai_research/__pycache__/
+*.pyc
+.env.python
