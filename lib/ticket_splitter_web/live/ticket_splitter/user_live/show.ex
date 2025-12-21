@@ -11,12 +11,12 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Show do
         User {@user.id}
         <:subtitle>This is a user record from your database.</:subtitle>
         <:actions>
-          <.button navigate={~p"/ticket_splitter/users"}>
+          <.button navigate={~p"/#{@locale}/ticket_splitter/users"}>
             <.icon name="hero-arrow-left" />
           </.button>
           <.button
             variant="primary"
-            navigate={~p"/ticket_splitter/users/#{@user}/edit?return_to=show"}
+            navigate={~p"/#{@locale}/ticket_splitter/users/#{@user}/edit?return_to=show"}
           >
             <.icon name="hero-pencil-square" /> Edit user
           </.button>
@@ -32,10 +32,11 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Show do
   end
 
   @impl true
-  def mount(%{"id" => id}, _session, socket) do
+  def mount(%{"id" => id, "locale" => locale}, _session, socket) do
     {:ok,
      socket
      |> assign(:page_title, "Show User")
+     |> assign(:locale, locale)
      |> assign(:user, Accounts.get_user!(id))}
   end
 end

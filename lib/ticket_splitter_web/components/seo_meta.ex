@@ -24,15 +24,17 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
   attr :page_type, :string, default: "website"
 
   def seo_meta(assigns) do
-    title = assigns.page_title || SEO.site_name()
-    description = assigns.page_description || SEO.default_description()
-    image = assigns.page_image || SEO.og_image_url()
-    url = assigns.page_url || SEO.site_url()
-    type = assigns.page_type
+    assigns =
+      assigns
+      |> assign_new(:title, fn -> assigns.page_title || SEO.site_name() end)
+      |> assign_new(:description, fn -> assigns.page_description || SEO.default_description() end)
+      |> assign_new(:image, fn -> assigns.page_image || SEO.og_image_url() end)
+      |> assign_new(:url, fn -> assigns.page_url || SEO.site_url() end)
+      |> assign_new(:type, fn -> assigns.page_type end)
 
     ~H"""
     <%!-- Basic SEO Meta Tags --%>
-    <meta name="description" content={description} />
+    <meta name="description" content={@description} />
     <meta
       name="keywords"
       content="ticket splitter, dividir gastos, compartir tickets, gestión de gastos, dividir cuenta restaurante"
@@ -41,24 +43,24 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
     <meta name="robots" content="index, follow" />
 
     <%!-- Canonical URL --%>
-    <link rel="canonical" href={url} />
+    <link rel="canonical" href={@url} />
 
     <%!-- Open Graph / Facebook --%>
-    <meta property="og:type" content={type} />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:image" content={image} />
+    <meta property="og:type" content={@type} />
+    <meta property="og:title" content={@title} />
+    <meta property="og:description" content={@description} />
+    <meta property="og:image" content={@image} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:url" content={url} />
+    <meta property="og:url" content={@url} />
     <meta property="og:site_name" content={SEO.site_name()} />
     <meta property="og:locale" content="es_ES" />
 
     <%!-- Twitter Card --%>
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={title} />
-    <meta name="twitter:description" content={description} />
-    <meta name="twitter:image" content={image} />
+    <meta name="twitter:title" content={@title} />
+    <meta name="twitter:description" content={@description} />
+    <meta name="twitter:image" content={@image} />
 
     <%!-- Apple Web App Title --%>
     <meta name="apple-mobile-web-app-title" content={SEO.site_name()} />
@@ -83,10 +85,10 @@ defmodule TicketSplitterWeb.Components.SEOMeta do
       "description" => SEO.default_description()
     }
 
-    json_string = Phoenix.json_library().encode!(json_ld)
+    assigns = assign(assigns, :json_string, Phoenix.json_library().encode!(json_ld))
 
     ~H"""
-    <script type="application/ld+json" phx-no-format>{raw(json_string)}</script>
+    <script type="application/ld+json" phx-no-format>{raw(@json_string)}</script>
     """
   end
 end
