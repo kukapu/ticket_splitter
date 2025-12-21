@@ -40,20 +40,20 @@
         <% end %>
         
 <!-- Compact Actions Bar -->
-        <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center justify-between gap-2 sm:gap-3">
           <!-- Mi Parte (simplified) -->
-          <div class="relative flex items-center gap-2 bg-base-200 rounded-md px-3 py-2 border border-base-300">
+          <div class="relative flex items-center gap-1.5 bg-base-200 rounded-md px-2 py-1.5 border border-base-300 max-w-[45%]">
             <div
-              class="w-3 h-3 rounded-full flex-shrink-0"
+              class="w-2.5 h-2.5 rounded-full flex-shrink-0"
               style={"background-color: #{if @acting_as_participant, do: @acting_as_color, else: (if @participant_name, do: @participant_color, else: "#cbd5e1")}"}
             ></div>
             <div class="flex-1 min-w-0">
               <%= if @acting_as_participant do %>
-                <div class="text-[10px] text-warning font-medium truncate">{gettext("Acting as")} {@acting_as_participant}</div>
-                <div class="text-lg font-bold text-warning">€{format_decimal(@acting_as_total)}</div>
+                <div class="text-[9px] text-warning font-medium truncate leading-tight">{gettext("Acting as")} {@acting_as_participant}</div>
+                <div class="text-base font-bold text-warning leading-tight">€{format_decimal(@acting_as_total)}</div>
               <% else %>
-                <div class="text-xs text-base-content/50">{gettext("My share")}</div>
-                <div class="text-lg font-bold text-base-content flex items-center gap-1">
+                <div class="text-[10px] text-base-content/50 leading-tight">{gettext("My share")}</div>
+                <div class="text-base font-bold text-base-content flex items-center gap-1 leading-tight">
                   €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
                   <%= if @my_multiplier > 1 do %>
                     <span class="text-xs font-normal text-primary">(×{@my_multiplier})</span>
@@ -74,23 +74,23 @@
           </div>
           
 <!-- Participants Counter -->
-          <div class="flex items-center gap-1 bg-base-200 rounded-md px-3 py-2 border border-base-300">
+          <div class="flex items-center gap-1 bg-base-200 rounded-md px-2 py-1.5 border border-base-300 flex-shrink-0">
             <button
               phx-click="decrement_participants"
-              class="aspect-square w-7 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-secondary/30"
+              class="aspect-square w-6 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-secondary/30"
               disabled={@ticket.total_participants <= @min_participants}
             >
               <span class="text-sm font-extrabold">−</span>
             </button>
-            <div class="flex flex-col items-center min-w-[30px]">
-              <span class="text-base font-bold text-base-content">
+            <div class="flex flex-col items-center min-w-[24px]">
+              <span class="text-sm font-bold text-base-content leading-none">
                 {@ticket.total_participants}
               </span>
-              <span class="text-[8px] text-base-content/40">{gettext("people")}</span>
+              <span class="text-[8px] text-base-content/40 leading-none">{gettext("people")}</span>
             </div>
             <button
               phx-click="increment_participants"
-              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-6 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
             >
               <span class="text-sm font-extrabold">+</span>
             </button>
@@ -100,14 +100,14 @@
           <div class="flex gap-1">
             <button
               phx-click="open_share_modal"
-              class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Share")}
             >
               <.icon name="hero-share" class="w-4 h-4 stroke-2" />
             </button>
             <button
               phx-click="show_summary"
-              class="aspect-square w-9 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Summary")}
             >
               <.icon name="hero-presentation-chart-bar" class="w-4 h-4 stroke-2" />
