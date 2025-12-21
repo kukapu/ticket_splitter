@@ -438,7 +438,9 @@ defmodule TicketSplitterWeb.TicketLive do
     active_count = length(participants)
     total_participants = socket.assigns.ticket.total_participants
 
-    participant_summaries =
+    # Add "Rest of participants" summary if there are more total participants than active ones
+    # but DO NOT modify total_assigned and pending - those should reflect only active participants
+    final_summaries =
       if total_participants > active_count do
         rest_count = total_participants - active_count
 
@@ -473,23 +475,19 @@ defmodule TicketSplitterWeb.TicketLive do
           is_rest: true
         }
 
-        # Return updated list and updated totals (Pending is fully absorbed by Rest)
-        # Note: We still add the FULL rest_total to total_assigned calculation to balance the ticket 0 sum
-        {participant_summaries ++ [rest_summary], Decimal.add(total_assigned, pending),
-         Decimal.new("0")}
+        # Add rest summary to the list, but keep original total_assigned and pending
+        participant_summaries ++ [rest_summary]
       else
-        {participant_summaries, total_assigned, pending}
+        participant_summaries
       end
-
-    {final_summaries, final_total_assigned, final_pending} = participant_summaries
 
     {:noreply,
      socket
      |> assign(:show_summary_modal, true)
      |> assign(:participants_for_summary, final_summaries)
      |> assign(:total_ticket_for_summary, total_ticket)
-     |> assign(:total_assigned_for_summary, final_total_assigned)
-     |> assign(:pending_for_summary, final_pending)}
+     |> assign(:total_assigned_for_summary, total_assigned)
+     |> assign(:pending_for_summary, pending)}
   end
 
   @impl true
