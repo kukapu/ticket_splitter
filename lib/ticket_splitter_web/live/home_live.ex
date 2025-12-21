@@ -3,14 +3,10 @@ defmodule TicketSplitterWeb.HomeLive do
 
   alias TicketSplitter.Tickets
 
-  # Modelos de OpenRouter en orden de preferencia (fallback)
-  # Si el primer modelo falla, se intenta con el siguiente
-  @openrouter_models [
-    "google/gemini-2.5-flash-lite-preview-09-2025",
-    "qwen/qwen-vl-plus",
-    "amazon/nova-2-lite-v1:free",
-    "x-ai/grok-4.1-fast:free"
-  ]
+  # Modelo único para análisis
+  @openrouter_model "google/gemini-2.5-flash-lite-preview-09-2025"
+  # Intentos maximos de validación cruzada
+  @max_retries 3
 
   @impl true
   def mount(_params, _session, socket) do
@@ -131,7 +127,16 @@ defmodule TicketSplitterWeb.HomeLive do
   end
 
   @impl true
-  def handle_event("cropped_image_ready", %{"base64" => base64, "filename" => filename, "content_type" => content_type, "size" => size}, socket) do
+  def handle_event(
+        "cropped_image_ready",
+        %{
+          "base64" => base64,
+          "filename" => filename,
+          "content_type" => content_type,
+          "size" => size
+        },
+        socket
+      ) do
     IO.puts("🎨 Imagen recortada recibida:")
     IO.puts("  - Filename: #{filename}")
     IO.puts("  - Content-Type: #{content_type}")
@@ -369,47 +374,190 @@ defmodule TicketSplitterWeb.HomeLive do
 
   defp make_openrouter_request(uploaded_file) do
     api_key = Application.get_env(:ticket_splitter, :openrouter_api_key)
-    prompt = read_prompt_from_file()
+    main_prompt = read_prompt_from_file()
+
+    # Prompt de validación para obtener solo el total
+    validation_prompt = """
+    Analiza la imagen y devuelve ÚNICAMENTE un objeto JSON con el total a pagar del ticket.
+    Formato: {"total_amount": <numero>}.
+    Si hay multiples tickets, suma los totales.
+    Ejemplo: {"total_amount": 24.50}
+    NO incluyas texto extra, solo el JSON.
+    """
 
     IO.puts(
       "🔑 API Key configurada: #{if api_key, do: "Sí (***#{String.slice(api_key, -4..-1)})", else: "No"}"
     )
 
-    IO.puts("🤖 Modelos disponibles (en orden de preferencia): #{inspect(@openrouter_models)}")
-    IO.puts("💬 Prompt: #{String.slice(prompt, 0, 50)}...")
+    IO.puts("🤖 Usando modelo único: #{@openrouter_model}")
+    IO.puts("💬 Prompt: #{String.slice(main_prompt, 0, 50)}...")
 
     unless api_key do
       {:error, "API key no configurada"}
     else
-      # Intentar con cada modelo en orden hasta que uno funcione
-      try_models_in_order(@openrouter_models, uploaded_file, api_key, prompt)
+      # Iniciar bucle de validación
+      process_with_validation_loop(
+        uploaded_file,
+        api_key,
+        @openrouter_model,
+        main_prompt,
+        validation_prompt,
+        @max_retries
+      )
     end
   end
 
-  # Intenta con cada modelo en orden hasta que uno funcione
-  defp try_models_in_order([], _uploaded_file, _api_key, _prompt) do
-    {:error, "Todos los modelos fallaron"}
-  end
+  # Bucle de reintentos con validación paralela
+  defp process_with_validation_loop(
+         uploaded_file,
+         api_key,
+         model,
+         main_prompt,
+         val_prompt,
+         attempts_left
+       ) do
+    IO.puts("\n🔄 Intento ##{4 - attempts_left} de #{@max_retries}...")
 
-  defp try_models_in_order([model | rest], uploaded_file, api_key, prompt) do
-    IO.puts("\n🤖 Intentando con modelo: #{model}")
+    # Lanzar tareas en paralelo
+    main_task =
+      Task.async(fn ->
+        IO.puts("🚀 Lanzando petición MAIN...")
+        call_openrouter_api(model, uploaded_file, api_key, main_prompt)
+      end)
 
-    case call_openrouter_api(model, uploaded_file, api_key, prompt) do
-      {:ok, body} ->
-        IO.puts("✅ Modelo #{model} respondió exitosamente")
-        {:ok, body}
+    val_task =
+      Task.async(fn ->
+        IO.puts("🚀 Lanzando petición VALIDATION...")
+        call_openrouter_api(model, uploaded_file, api_key, val_prompt)
+      end)
 
-      {:error, reason} ->
-        IO.puts("⚠️ Modelo #{model} falló: #{inspect(reason)}")
+    # Esperar resultados (Timeout generoso de 30s)
+    result_main = Task.await(main_task, 30_000)
+    result_val = Task.await(val_task, 30_000)
 
-        if rest == [] do
-          IO.puts("❌ No quedan más modelos para intentar")
-          {:error, reason}
+    case {result_main, result_val} do
+      {{:ok, body_main}, {:ok, body_val}} ->
+        IO.puts("📥 Ambas peticiones respondieron. Verificando totales...")
+
+        # Extraer totales
+        total_main = extract_total_from_response(body_main)
+        total_val = extract_total_from_response(body_val)
+
+        IO.puts("💰 Total Main: #{inspect(total_main)}")
+        IO.puts("💰 Total Validation: #{inspect(total_val)}")
+
+        if totals_match?(total_main, total_val) do
+          IO.puts("✅ ¡TOTALES COINCIDEN! Validación exitosa.")
+          {:ok, body_main}
         else
-          IO.puts("🔄 Intentando con el siguiente modelo...")
-          try_models_in_order(rest, uploaded_file, api_key, prompt)
+          IO.puts("⚠️ DISCREPANCIA EN TOTALES.")
+
+          retry_or_fail(
+            "Totales no coinciden",
+            uploaded_file,
+            api_key,
+            model,
+            main_prompt,
+            val_prompt,
+            attempts_left
+          )
         end
+
+      _ ->
+        IO.puts("⚠️ Error en alguna de las peticiones HTTP.")
+
+        retry_or_fail(
+          "Error en petición API",
+          uploaded_file,
+          api_key,
+          model,
+          main_prompt,
+          val_prompt,
+          attempts_left
+        )
     end
+  end
+
+  defp retry_or_fail(
+         reason,
+         uploaded_file,
+         api_key,
+         model,
+         main_prompt,
+         val_prompt,
+         attempts_left
+       ) do
+    if attempts_left > 1 do
+      IO.puts("🔄 Reintentando proceso...")
+
+      process_with_validation_loop(
+        uploaded_file,
+        api_key,
+        model,
+        main_prompt,
+        val_prompt,
+        attempts_left - 1
+      )
+    else
+      IO.puts("❌ Se agotaron los intentos. Fallo definitivo.")
+      {:error, reason}
+    end
+  end
+
+  # Helper para comparar totales con tolerancia pequeña
+  defp totals_match?(nil, _), do: false
+  defp totals_match?(_, nil), do: false
+
+  defp totals_match?(val1, val2) do
+    # Convertir a Decimal para comparación segura
+    d1 = Decimal.new(to_string(val1))
+    d2 = Decimal.new(to_string(val2))
+
+    # Permitir diferencia pequeña por errores de redondeo (0.05)
+    diff = Decimal.sub(d1, d2) |> Decimal.abs()
+    Decimal.compare(diff, Decimal.new("0.05")) in [:lt, :eq]
+  rescue
+    _ -> false
+  end
+
+  # Extrae el total_amount de un body de OpenRouter
+  defp extract_total_from_response(body) do
+    with {:ok, content} <- extract_content(body),
+         {:ok, json} <- Jason.decode(sanitize_json_content(content)) do
+      case json do
+        %{"total_amount" => amount} when is_number(amount) ->
+          amount
+
+        %{"total_amount" => amount} when is_binary(amount) ->
+          case Float.parse(amount) do
+            {val, _} -> val
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
+    else
+      _ -> nil
+    end
+  end
+
+  defp extract_content(response) do
+    with {:ok, choices} <- Map.fetch(response, "choices"),
+         [first_choice | _] <- choices,
+         {:ok, message} <- Map.fetch(first_choice, "message"),
+         {:ok, content} <- Map.fetch(message, "content") do
+      {:ok, content}
+    else
+      _ -> :error
+    end
+  end
+
+  defp sanitize_json_content(content) do
+    content
+    |> String.replace(~r/^```json\s*/m, "")
+    |> String.replace(~r/```\s*$/m, "")
+    |> String.trim()
   end
 
   # Hace la llamada real a la API de OpenRouter
@@ -445,20 +593,23 @@ defmodule TicketSplitterWeb.HomeLive do
 
     IO.puts("🌐 Enviando petición a OpenRouter con modelo #{model}...")
 
-    # Usar Task con timeout para garantizar máximo 6 segundos por modelo
+    # Usar Task con timeout para garantizar máximo 15 segundos por modelo
+    # NOTA: Como la llamada ya está envuelta en Task.async desde process_with_validation_loop,
+    # esta espera es interna de la tarea.
     task =
       Task.async(fn ->
         Req.post("https://openrouter.ai/api/v1/chat/completions",
           json: payload,
-          headers: headers
+          headers: headers,
+          receive_timeout: 25_000
         )
       end)
 
-    case Task.yield(task, 12_000) || Task.shutdown(task, :brutal_kill) do
+    case Task.yield(task, 25_000) || Task.shutdown(task, :brutal_kill) do
       {:ok, {:ok, %{status: 200, body: body}}} ->
         IO.puts("✅ Respuesta HTTP 200 recibida")
-        IO.puts("📦 Body completo de OpenRouter:")
-        IO.inspect(body, pretty: true, limit: :infinity)
+        # IO.puts("📦 Body completo de OpenRouter:")
+        # IO.inspect(body, pretty: true, limit: :infinity)
         {:ok, body}
 
       {:ok, {:ok, %{status: status, body: body}}} ->
@@ -470,7 +621,7 @@ defmodule TicketSplitterWeb.HomeLive do
         {:error, error}
 
       nil ->
-        IO.puts("⏱️ Timeout después de 6 segundos para modelo #{model}")
+        IO.puts("⏱️ Timeout después de 25 segundos para modelo #{model}")
         {:error, :timeout}
     end
   end
