@@ -32,6 +32,54 @@ import "cropperjs/dist/cropper.css"
 // Custom Hooks
 const Hooks = {}
 
+// Keyboard detection using VisualViewport API
+// Uses inline transform to smoothly reposition the modal when keyboard opens
+if (window.visualViewport) {
+  let isKeyboardVisible = false;
+
+  const handleViewportChange = () => {
+    const viewport = window.visualViewport;
+    const modal = document.getElementById('user-settings-modal');
+    const modalContent = modal?.querySelector(':scope > div');
+
+    if (!modal || !modalContent) return;
+
+    // Check if modal is visible - if not, reset state and exit early
+    if (!modal.classList.contains('flex')) {
+      if (isKeyboardVisible) {
+        isKeyboardVisible = false;
+        document.body.classList.remove('keyboard-is-open');
+        modalContent.style.transform = '';
+      }
+      return;
+    }
+
+    // Calculate the offset needed to keep modal visible
+    const keyboardHeight = window.innerHeight - viewport.height;
+    const isKeyboardOpen = keyboardHeight > window.innerHeight * 0.15; // More than 15% of screen is keyboard
+
+    if (isKeyboardOpen && !isKeyboardVisible) {
+      isKeyboardVisible = true;
+      document.body.classList.add('keyboard-is-open');
+      // Apply transform to move modal up smoothly
+      // We want to move it up by about 15% of viewport height when keyboard is open, plus 50px extra
+      const translateY = Math.min(viewport.height * 0.15, keyboardHeight * 0.3) + 50;
+      modalContent.style.transform = `translateY(-${translateY}px)`;
+    } else if (!isKeyboardOpen && isKeyboardVisible) {
+      isKeyboardVisible = false;
+      document.body.classList.remove('keyboard-is-open');
+      modalContent.style.transform = '';
+    }
+  };
+
+  // Use both resize and scroll events for better coverage
+  window.visualViewport.addEventListener('resize', handleViewportChange);
+  window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+  // Also check on orientation change
+  window.addEventListener('orientationchange', () => setTimeout(handleViewportChange, 300));
+}
+
 // ParticipantStorage Hook - Manages participant name in localStorage
 Hooks.ParticipantStorage = {
   mounted() {
@@ -44,6 +92,14 @@ Hooks.ParticipantStorage = {
       // Normalize name to lowercase before saving
       const normalizedName = name ? name.toLowerCase() : ""
       localStorage.setItem('participant_name', normalizedName)
+    })
+
+    // Handle opening the user settings modal from the header
+    this.handleEvent("open_user_settings_modal", (payload) => {
+      if (window.openUserSettingsModal) {
+        // Pass editMode=true to open directly in edit mode (for new users)
+        window.openUserSettingsModal(payload?.editMode ?? true)
+      }
     })
 
     // Handle ticket history saving
@@ -172,6 +228,32 @@ Hooks.TicketHistory = {
     } catch (error) {
       console.warn('Could not delete ticket from history:', error)
     }
+  }
+}
+
+// UserSettings Hook - Manages user settings in localStorage (for header user modal)
+Hooks.UserSettings = {
+  mounted() {
+    // Load the current user name and send to LiveView
+    this.loadUserName()
+
+    // Handle save event from LiveView
+    this.handleEvent("save_user_name", ({ name }) => {
+      const normalizedName = name ? name.toLowerCase().trim() : ""
+      localStorage.setItem('participant_name', normalizedName)
+      // Confirm save back to LiveView
+      this.pushEvent("user_name_saved", { name: normalizedName })
+    })
+
+    // Handle request to load username
+    this.handleEvent("request_user_name", () => {
+      this.loadUserName()
+    })
+  },
+
+  loadUserName() {
+    const name = localStorage.getItem('participant_name') || ""
+    this.pushEvent("user_name_loaded", { name: name })
   }
 }
 
@@ -1027,12 +1109,12 @@ Hooks.ImageCropper = {
     // Create modal
     modal = document.createElement('div')
     modal.id = 'cropper-modal'
-    modal.className = 'fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4'
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4 transition-opacity'
 
     modal.innerHTML = `
-      <div class="bg-base-100 rounded-xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden">
+      <div class="bg-base-300 border border-base-300 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all animate-fade-in">
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-2 border-b border-base-300 flex-shrink-0">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-base-100/10 flex-shrink-0 text-left">
           <h2 class="text-lg font-bold text-base-content">${cropTitle}</h2>
           <button id="close-cropper" class="btn btn-ghost btn-sm btn-circle">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1042,13 +1124,13 @@ Hooks.ImageCropper = {
         </div>
 
         <!-- Image Container -->
-        <div id="cropper-container" style="max-height: 70vh; background: #000;">
+        <div id="cropper-container" style="max-height: 50vh; background: #000;">
           <img id="cropper-image" src="${imageSrc}" style="max-width: 100%; display: block;" />
         </div>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-base-300 flex-shrink-0">
-          <button id="confirm-crop" class="btn btn-primary w-full">
+        <div class="p-4 border-t border-base-100/10 flex-shrink-0">
+          <button id="confirm-crop" class="btn btn-primary w-full shadow-lg">
             ${confirmText}
           </button>
         </div>
@@ -1056,6 +1138,7 @@ Hooks.ImageCropper = {
     `
 
     document.body.appendChild(modal)
+    document.body.classList.add('overflow-hidden')
 
     // Wait for image to load before initializing Cropper
     imageElement = document.getElementById('cropper-image')
@@ -1105,6 +1188,7 @@ Hooks.ImageCropper = {
       if (modal) {
         modal.remove()
         modal = null
+        document.body.classList.remove('overflow-hidden')
       }
       if (fileInput) {
         fileInput.value = '' // Reset file input

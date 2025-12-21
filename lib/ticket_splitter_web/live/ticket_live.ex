@@ -86,10 +86,11 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:products, ticket.products)
       |> assign(:participant_name, nil)
       |> assign(:participant_color, nil)
-      |> assign(:show_name_modal, false)
       |> assign(:show_summary_modal, false)
       |> assign(:show_share_modal, false)
       |> assign(:show_image_modal, false)
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
       |> assign(:show_instructions, false)
       |> assign(:show_share_confirmation, false)
       |> assign(:show_unshare_confirmation, false)
@@ -174,7 +175,6 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:ticket, ticket)
       |> assign(:participant_name, name)
       |> assign(:participant_color, color)
-      |> assign(:show_name_modal, false)
       |> push_event("save_participant_name", %{name: name})
       |> push_event("save_ticket_to_history", %{
         ticket: %{
@@ -199,7 +199,8 @@ defmodule TicketSplitterWeb.TicketLive do
     _color = socket.assigns.participant_color
 
     unless participant_name do
-      {:noreply, assign(socket, :show_name_modal, true)}
+      # Usar la misma lógica que cuando no hay nombre en localStorage
+      handle_event("participant_name_from_storage", %{"name" => ""}, socket)
     else
       cond do
         action == "join_group" ->
@@ -648,9 +649,67 @@ defmodule TicketSplitterWeb.TicketLive do
       # El usuario ya tiene nombre guardado
       handle_event("set_participant_name", %{"name" => name}, socket)
     else
-      # Mostrar modal para pedir nombre
-      {:noreply, assign(socket, :show_name_modal, true)}
+      # Sin nombre - decidir qué hacer según los participantes existentes
+      existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
+
+      if Enum.empty?(existing_participants) do
+        # No hay participantes - abrir directamente el modal del header
+        socket =
+          socket
+          |> push_event("open_user_settings_modal", %{})
+
+        {:noreply, socket}
+      else
+        # Hay participantes - mostrar modal de selección con colores
+        participants_with_colors =
+          Enum.map(existing_participants, fn p ->
+            %{
+              name: p.name,
+              color:
+                get_existing_user_color(socket.assigns.ticket.id, p.name) ||
+                  get_deterministic_color(p.name, existing_participants)
+            }
+          end)
+
+        socket =
+          socket
+          |> assign(:show_participant_selector, true)
+          |> assign(:existing_participants_for_selector, participants_with_colors)
+
+        {:noreply, socket}
+      end
     end
+  end
+
+  @impl true
+  def handle_event("select_existing_participant", %{"name" => name}, socket) do
+    # Usuario selecciona un participante existente
+    socket =
+      socket
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
+
+    handle_event("set_participant_name", %{"name" => name}, socket)
+  end
+
+  @impl true
+  def handle_event("create_new_participant", _params, socket) do
+    # Usuario quiere crear nuevo - abrir el modal del header
+    socket =
+      socket
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
+      |> push_event("open_user_settings_modal", %{})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("close_participant_selector", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_participant_selector, false)
+     |> assign(:existing_participants_for_selector, [])}
   end
 
   defp execute_toggle_action(action, params, socket) do

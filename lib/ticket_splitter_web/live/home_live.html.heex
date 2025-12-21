@@ -199,34 +199,34 @@
         </div>
       <% end %>
       
-<!-- Delete Confirmation Modal -->
-      <%= if @ticket_to_delete do %>
-        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-          <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
-            <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
-              {gettext("Delete ticket")}
-            </h2>
-            <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
-              {gettext("Are you sure you want to delete this ticket from history? This action cannot be undone.")}
-            </p>
-            <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
-              <button
-                phx-click="cancel_delete"
-                class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
-              >
-                {gettext("Cancel")}
-              </button>
-              <button
-                phx-click="delete_ticket"
-                phx-value-id={@ticket_to_delete}
-                class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
-              >
-                {gettext("Confirm")}
-              </button>
-            </div>
-          </div>
+      <.modal
+        :if={@ticket_to_delete}
+        id="delete-ticket-modal"
+        show
+        on_cancel={JS.push("cancel_delete")}
+      >
+        <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
+          {gettext("Delete ticket")}
+        </h2>
+        <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
+          {gettext("Are you sure you want to delete this ticket from history? This action cannot be undone.")}
+        </p>
+        <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
+          <button
+            phx-click="cancel_delete"
+            class="px-6 py-3 bg-base-200 text-base-content rounded-lg hover:bg-base-200/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
+          >
+            {gettext("Cancel")}
+          </button>
+          <button
+            phx-click="delete_ticket"
+            phx-value-id={@ticket_to_delete}
+            class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
+          >
+            {gettext("Confirm")}
+          </button>
         </div>
-      <% end %>
+      </.modal>
     </div>
   </div>
 </Layouts.app>

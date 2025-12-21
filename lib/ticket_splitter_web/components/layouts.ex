@@ -44,20 +44,23 @@ defmodule TicketSplitterWeb.Layouts do
       <header class="bg-base-300 border-b border-base-content/20 flex-none">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="flex items-center justify-between h-18 sm:h-22">
-            <a href={"/#{@locale}/"} class="flex items-center gap-2.5 sm:gap-3">
+            <a href={"/#{@locale}/"} class="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <img
                 src={~p"/images/logo.svg"}
                 alt=""
-                class="h-7 sm:h-9 w-auto"
+                class="h-6 sm:h-7 w-auto flex-shrink-0"
                 loading="eager"
-                width="28"
-                height="28"
+                width="24"
+                height="24"
               />
-              <span class="text-xl sm:text-2xl font-bold text-base-content">Ticket Splitter</span>
+              <span class="text-lg sm:text-xl font-bold text-base-content whitespace-nowrap">
+                TicketSplitter
+              </span>
             </a>
             <div class="flex items-center gap-2">
               <.language_selector locale={@locale} current_path={@current_path} />
               <.theme_toggle />
+              <.user_settings_button />
             </div>
           </div>
         </div>
@@ -153,6 +156,244 @@ defmodule TicketSplitterWeb.Layouts do
   end
 
   @doc """
+  User settings button that opens a modal to edit the username stored in localStorage.
+  Includes the modal markup and JavaScript for localStorage management.
+  Shows name first with edit button, then input when editing.
+  Refreshes page on save if name changed.
+  """
+  def user_settings_button(assigns) do
+    ~H"""
+    <div id="user-settings-container">
+      <button
+        id="user-settings-btn"
+        class="flex items-center justify-center p-1 sm:p-3 aspect-square bg-base-200 hover:bg-base-300 border sm:border-2 border-base-300 rounded-full transition-all hover:scale-110 cursor-pointer shadow-sm"
+        onclick="window.openUserSettingsModal()"
+        title={gettext("User settings")}
+      >
+        <.icon
+          name="hero-user"
+          class="size-5 sm:size-7 text-base-content opacity-75 hover:opacity-100"
+        />
+      </button>
+
+      <%!-- User Settings Modal --%>
+      <div
+        id="user-settings-modal"
+        class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md transition-opacity p-4"
+        onclick="if(event.target === this) { event.preventDefault(); window.closeUserSettingsModal(); }"
+      >
+        <div class="bg-base-300 border border-base-300 rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-5 transform transition-all animate-fade-in text-left">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-base sm:text-lg font-bold text-base-content flex items-center gap-2">
+              <.icon name="hero-user-circle" class="size-5 text-primary" />
+              {gettext("Your name")}
+            </h3>
+            <button
+              onclick="window.closeUserSettingsModal()"
+              class="btn btn-ghost btn-sm btn-circle"
+            >
+              <.icon name="hero-x-mark" class="size-5" />
+            </button>
+          </div>
+
+          <%!-- View Mode --%>
+          <div id="user-name-view" class="space-y-3">
+            <div class="flex items-center gap-3 p-2.5 bg-base-200 rounded-xl">
+              <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <.icon name="hero-user" class="size-4 text-primary" />
+              </div>
+              <span
+                id="user-name-display"
+                class="text-base-content font-medium text-sm sm:text-base truncate flex-1"
+              >
+                -
+              </span>
+            </div>
+            <button
+              onclick="window.startEditingUserName()"
+              class="w-full flex items-center justify-center gap-2 p-3 bg-primary/10 hover:bg-primary/20 border-2 border-dashed border-primary/40 hover:border-primary rounded-xl transition-colors"
+            >
+              <.icon name="hero-pencil" class="size-4 text-primary" />
+              <span class="font-medium text-sm text-primary">{gettext("Edit")}</span>
+            </button>
+          </div>
+
+          <%!-- Edit Mode (hidden by default) --%>
+          <div id="user-name-edit" class="space-y-3 hidden">
+            <input
+              type="text"
+              id="user-name-input"
+              class="w-full bg-base-200 border border-base-100/20 focus:border-primary focus:ring-4 focus:ring-primary/20 rounded-xl px-3.5 py-2.5 text-sm sm:text-base text-base-content transition-all outline-none"
+              placeholder={gettext("Enter your name")}
+              maxlength="50"
+              style="font-size: 16px"
+            />
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                onclick="window.cancelEditingUserName()"
+                class="flex items-center justify-center gap-2 p-3 bg-base-200 hover:bg-base-200/80 rounded-xl transition-colors"
+              >
+                <span class="font-medium text-sm text-base-content">{gettext("Cancel")}</span>
+              </button>
+              <button
+                onclick="window.saveUserSettings()"
+                class="flex items-center justify-center gap-2 p-3 bg-primary hover:bg-primary/90 rounded-xl transition-colors"
+              >
+                <.icon name="hero-check" class="size-4 text-primary-content" />
+                <span class="font-medium text-sm text-primary-content">{gettext("Save")}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        // Store original name to detect changes
+        window._originalUserName = '';
+        window._openInEditMode = false;
+
+        // User Settings Modal Functions
+        window.openUserSettingsModal = function(editMode) {
+          const modal = document.getElementById('user-settings-modal');
+          const viewMode = document.getElementById('user-name-view');
+          const editModeEl = document.getElementById('user-name-edit');
+          const display = document.getElementById('user-name-display');
+          const input = document.getElementById('user-name-input');
+
+          // Load current name from localStorage
+          const currentName = localStorage.getItem('participant_name') || '';
+          window._originalUserName = currentName;
+
+          // Update display
+          display.textContent = currentName || '-';
+
+          // Show modal and block scroll
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.body.classList.add('overflow-hidden');
+
+          // Ensure scroll lock is applied even if another modal animation removes it
+          // This fixes a race condition when coming from the participant selector modal
+          window._ensureScrollLockInterval = setInterval(() => {
+            if (modal.classList.contains('flex') && !modal.classList.contains('hidden')) {
+              document.body.classList.add('overflow-hidden');
+            } else {
+              clearInterval(window._ensureScrollLockInterval);
+            }
+          }, 50);
+
+          // Stop checking after 500ms (covers 200ms Phoenix modal hide animation)
+          setTimeout(() => {
+            if (window._ensureScrollLockInterval) {
+              clearInterval(window._ensureScrollLockInterval);
+            }
+          }, 500);
+
+          // If editMode is true or there's no name, go directly to edit mode
+          if (editMode === true || editMode === 'true' || !currentName) {
+            viewMode.classList.add('hidden');
+            editModeEl.classList.remove('hidden');
+            input.value = currentName;
+            setTimeout(() => input.focus(), 100);
+          } else {
+            // Show view mode
+            viewMode.classList.remove('hidden');
+            editModeEl.classList.add('hidden');
+          }
+        };
+
+        // Alias for opening in edit mode directly
+        window.openUserSettingsModalEditMode = function() {
+          window.openUserSettingsModal(true);
+        };
+
+        window.closeUserSettingsModal = function() {
+          const modal = document.getElementById('user-settings-modal');
+          // Clear the scroll lock interval if still running
+          if (window._ensureScrollLockInterval) {
+            clearInterval(window._ensureScrollLockInterval);
+            window._ensureScrollLockInterval = null;
+          }
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          document.body.classList.remove('overflow-hidden');
+        };
+
+        window.startEditingUserName = function() {
+          const viewMode = document.getElementById('user-name-view');
+          const editMode = document.getElementById('user-name-edit');
+          const input = document.getElementById('user-name-input');
+
+          // Load current name into input
+          input.value = localStorage.getItem('participant_name') || '';
+
+          // Switch to edit mode
+          viewMode.classList.add('hidden');
+          editMode.classList.remove('hidden');
+
+          // Focus input
+          setTimeout(() => input.focus(), 50);
+        };
+
+        window.cancelEditingUserName = function() {
+          const viewMode = document.getElementById('user-name-view');
+          const editMode = document.getElementById('user-name-edit');
+          const currentName = localStorage.getItem('participant_name') || '';
+
+          // If there's no name, close modal instead
+          if (!currentName) {
+            window.closeUserSettingsModal();
+            return;
+          }
+
+          // Switch back to view mode
+          editMode.classList.add('hidden');
+          viewMode.classList.remove('hidden');
+        };
+
+        window.saveUserSettings = function() {
+          const input = document.getElementById('user-name-input');
+          const newName = input.value.trim().toLowerCase();
+          const originalName = window._originalUserName;
+
+          // Don't save empty names
+          if (!newName) {
+            input.focus();
+            return;
+          }
+
+          // Save to localStorage
+          localStorage.setItem('participant_name', newName);
+
+          // Close modal
+          window.closeUserSettingsModal();
+
+          // If name changed, refresh the page
+          if (newName !== originalName) {
+            window.location.reload();
+          }
+        };
+
+        // Handle Enter key in input
+        document.addEventListener('DOMContentLoaded', function() {
+          const input = document.getElementById('user-name-input');
+          if (input) {
+            input.addEventListener('keydown', function(e) {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                window.saveUserSettings();
+              } else if (e.key === 'Escape') {
+                window.cancelEditingUserName();
+              }
+            });
+          }
+        });
+      </script>
+    </div>
+    """
+  end
+
+  @doc """
   Language selector component for switching between supported locales.
   Displays as a dropdown menu using native HTML details/summary.
   """
@@ -178,7 +419,7 @@ defmodule TicketSplitterWeb.Layouts do
         />
       </summary>
 
-      <div class="absolute right-0 mt-2 w-40 bg-base-100 border border-base-300 rounded-lg shadow-xl z-50 overflow-hidden">
+      <div class="absolute right-0 mt-2 w-40 bg-base-300 border border-base-300 rounded-lg shadow-xl z-50 overflow-hidden">
         <%= for lang <- @locales do %>
           <%= if lang.code == @locale do %>
             <div class="flex items-center gap-2.5 px-3 py-2.5 bg-primary/10 text-base-content cursor-default">
