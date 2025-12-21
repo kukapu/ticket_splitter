@@ -18,7 +18,7 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Form do
         <.input field={@form[:id]} type="text" label="Id" />
         <footer>
           <.button phx-disable-with="Saving..." variant="primary">Save User</.button>
-          <.button navigate={return_path(@return_to, @user)}>Cancel</.button>
+          <.button navigate={return_path(@return_to, @user, @locale)}>Cancel</.button>
         </footer>
       </.form>
     </Layouts.app>
@@ -27,8 +27,11 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Form do
 
   @impl true
   def mount(params, _session, socket) do
+    locale = params["locale"] || "en"
+
     {:ok,
      socket
+     |> assign(:locale, locale)
      |> assign(:return_to, return_to(params["return_to"]))
      |> apply_action(socket.assigns.live_action, params)}
   end
@@ -65,12 +68,14 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Form do
   end
 
   defp save_user(socket, :edit, user_params) do
+    locale = socket.assigns.locale
+
     case Accounts.update_user(socket.assigns.user, user_params) do
       {:ok, user} ->
         {:noreply,
          socket
          |> put_flash(:info, "User updated successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, user))}
+         |> push_navigate(to: return_path(socket.assigns.return_to, user, locale))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
@@ -78,18 +83,20 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Form do
   end
 
   defp save_user(socket, :new, user_params) do
+    locale = socket.assigns.locale
+
     case Accounts.create_user(user_params) do
       {:ok, user} ->
         {:noreply,
          socket
          |> put_flash(:info, "User created successfully")
-         |> push_navigate(to: return_path(socket.assigns.return_to, user))}
+         |> push_navigate(to: return_path(socket.assigns.return_to, user, locale))}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
     end
   end
 
-  defp return_path("index", _user), do: ~p"/ticket_splitter/users"
-  defp return_path("show", user), do: ~p"/ticket_splitter/users/#{user}"
+  defp return_path("index", _user, locale), do: ~p"/#{locale}/ticket_splitter/users"
+  defp return_path("show", user, locale), do: ~p"/#{locale}/ticket_splitter/users/#{user}"
 end

@@ -1023,7 +1023,7 @@ defmodule TicketSplitterWeb.TicketLive do
          products,
          product_id,
          participant_name,
-         target_group_id \\ nil
+         target_group_id
        ) do
     product = Enum.find(products, fn p -> to_string(p.id) == to_string(product_id) end)
 

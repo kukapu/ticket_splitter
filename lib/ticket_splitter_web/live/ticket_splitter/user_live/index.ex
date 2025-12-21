@@ -10,7 +10,7 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Index do
       <.header>
         Listing Users
         <:actions>
-          <.button variant="primary" navigate={~p"/ticket_splitter/users/new"}>
+          <.button variant="primary" navigate={~p"/#{@locale}/ticket_splitter/users/new"}>
             <.icon name="hero-plus" /> New User
           </.button>
         </:actions>
@@ -19,15 +19,15 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Index do
       <.table
         id="users"
         rows={@streams.users}
-        row_click={fn {_id, user} -> JS.navigate(~p"/ticket_splitter/users/#{user}") end}
+        row_click={fn {_id, user} -> JS.navigate(~p"/#{@locale}/ticket_splitter/users/#{user}") end}
       >
         <:col :let={{_id, user}} label="Name">{user.name}</:col>
         <:col :let={{_id, user}} label="Id">{user.id}</:col>
         <:action :let={{_id, user}}>
           <div class="sr-only">
-            <.link navigate={~p"/ticket_splitter/users/#{user}"}>Show</.link>
+            <.link navigate={~p"/#{@locale}/ticket_splitter/users/#{user}"}>Show</.link>
           </div>
-          <.link navigate={~p"/ticket_splitter/users/#{user}/edit"}>Edit</.link>
+          <.link navigate={~p"/#{@locale}/ticket_splitter/users/#{user}/edit"}>Edit</.link>
         </:action>
         <:action :let={{id, user}}>
           <.link
@@ -43,10 +43,11 @@ defmodule TicketSplitterWeb.TicketSplitter.UserLive.Index do
   end
 
   @impl true
-  def mount(_params, _session, socket) do
+  def mount(%{"locale" => locale}, _session, socket) do
     {:ok,
      socket
      |> assign(:page_title, "Listing Users")
+     |> assign(:locale, locale)
      |> stream(:users, list_users())}
   end
 
