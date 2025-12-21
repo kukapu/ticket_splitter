@@ -1,13 +1,14 @@
 # Use the official Elixir image with a specific version
 FROM hexpm/elixir:1.18.3-erlang-27.3.3-debian-bookworm-20250407-slim AS builder
 
-# Install build dependencies
+# Install build dependencies (including libvips for image processing)
 RUN apt-get update && apt-get install -y \
     build-essential \
     npm \
     git \
     curl \
     ca-certificates \
+    libvips-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Prepare build directory
@@ -56,6 +57,7 @@ RUN apt-get update && apt-get install -y \
     openssl \
     libncurses6 \
     ca-certificates \
+    libvips42 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

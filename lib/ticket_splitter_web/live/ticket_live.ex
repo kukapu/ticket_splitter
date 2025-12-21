@@ -89,6 +89,7 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:show_name_modal, false)
       |> assign(:show_summary_modal, false)
       |> assign(:show_share_modal, false)
+      |> assign(:show_image_modal, false)
       |> assign(:show_instructions, false)
       |> assign(:show_share_confirmation, false)
       |> assign(:show_unshare_confirmation, false)
@@ -103,6 +104,20 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:page_title, page_title)
       |> assign(:page_description, page_description)
       |> assign(:page_url, page_url)
+
+    # Save ticket to history when visiting (only when connected to prevent double-save)
+    socket =
+      if connected?(socket) do
+        push_event(socket, "save_ticket_to_history", %{
+          ticket: %{
+            id: ticket.id,
+            merchant_name: ticket.merchant_name,
+            date: ticket.date
+          }
+        })
+      else
+        socket
+      end
 
     {:ok, socket}
   end
@@ -495,6 +510,16 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("close_share_modal", _params, socket) do
     {:noreply, assign(socket, :show_share_modal, false)}
+  end
+
+  @impl true
+  def handle_event("open_image_modal", _params, socket) do
+    {:noreply, assign(socket, :show_image_modal, true)}
+  end
+
+  @impl true
+  def handle_event("close_image_modal", _params, socket) do
+    {:noreply, assign(socket, :show_image_modal, false)}
   end
 
   @impl true

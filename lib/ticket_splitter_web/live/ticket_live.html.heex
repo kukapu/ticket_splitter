@@ -11,12 +11,23 @@
         <%= if @ticket.merchant_name || @ticket.date do %>
           <div class="text-center mb-3">
             <%= if @ticket.merchant_name do %>
-              <h1 class="text-xl font-bold text-base-content tracking-tight mb-1">
-                {@ticket.merchant_name}
-              </h1>
+              <div class="flex items-center justify-center gap-2">
+                <%= if @ticket.image_url do %>
+                  <button
+                    phx-click="open_image_modal"
+                    class="w-8 h-8 rounded-full bg-primary/20 hover:bg-primary/30 flex items-center justify-center transition-all duration-200 active:scale-95 border border-primary/30"
+                    title={gettext("View ticket image")}
+                  >
+                    <.icon name="hero-photo" class="w-4 h-4 text-primary" />
+                  </button>
+                <% end %>
+                <h1 class="text-xl font-bold text-base-content tracking-tight">
+                  {@ticket.merchant_name}
+                </h1>
+              </div>
             <% end %>
             <%= if @ticket.date do %>
-              <div class="flex items-center justify-center gap-1 text-base-content/40">
+              <div class="flex items-center justify-center gap-1 text-base-content/40 mt-1">
                 <.icon name="hero-calendar-days" class="w-3 h-3" />
                 <time class="text-xs">
                   {Calendar.strftime(@ticket.date, "%d %b %Y")}
@@ -779,6 +790,43 @@
             </a>
           </div>
         </div>
+      </div>
+    </div>
+  <% end %>
+
+<!-- Image Viewer Modal -->
+  <%= if @show_image_modal && @ticket.image_url do %>
+    <div 
+      class="fixed inset-0 bg-black/95 flex items-center justify-center z-50"
+      phx-click="close_image_modal"
+    >
+      <!-- Close button -->
+      <button
+        phx-click="close_image_modal"
+        class="absolute top-4 right-4 z-50 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+      >
+        <.icon name="hero-x-mark" class="w-6 h-6 text-white" />
+      </button>
+      
+      <!-- Image container with zoom support -->
+      <div 
+        class="w-full h-full flex items-center justify-center p-4 overflow-hidden"
+        id="image-zoom-container"
+        phx-hook="ImageZoom"
+        phx-click-away="close_image_modal"
+      >
+        <img 
+          src={@ticket.image_url} 
+          alt={gettext("Ticket image")}
+          class="max-w-full max-h-full object-contain select-none"
+          draggable="false"
+        />
+      </div>
+      
+      <!-- Zoom hint -->
+      <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/10 text-white text-xs px-3 py-1.5 rounded-full">
+        <.icon name="hero-arrows-pointing-out" class="w-3 h-3 inline mr-1" />
+        {gettext("Pinch or scroll to zoom")}
       </div>
     </div>
   <% end %>

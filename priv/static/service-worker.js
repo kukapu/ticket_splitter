@@ -1,6 +1,6 @@
 // Service Worker para Ticket Splitter PWA
 // Versión del caché - cambiar esto para forzar actualización
-const CACHE_VERSION = 'v1.0.2';
+const CACHE_VERSION = 'v1.0.3';
 const STATIC_CACHE = `ticket-splitter-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `ticket-splitter-dynamic-${CACHE_VERSION}`;
 const OFFLINE_PAGE = '/offline.html';
@@ -94,8 +94,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Determinar estrategia según tipo de contenido
-  if (isStaticAsset(url)) {
-    // Assets estáticos: Cache First con fallback a red
+  if (isScriptOrStyle(url)) {
+    // JS y CSS: Network First para obtener siempre la última versión
+    // pero con fallback a cache para funcionamiento offline
+    event.respondWith(networkFirstStrategy(request));
+  } else if (isStaticAsset(url)) {
+    // Assets verdaderamente estáticos (imágenes, fuentes): Cache First
     event.respondWith(cacheFirstStrategy(request));
   } else if (isNavigationRequest(request)) {
     // Navegación (páginas HTML): Network First con fallback a offline
@@ -218,11 +222,21 @@ function shouldNeverCache(url) {
 }
 
 /**
- * Determina si es un asset estático
+ * Determina si es un script o stylesheet (JS/CSS)
+ * Estos usarán Network First para siempre obtener la versión más reciente
+ */
+function isScriptOrStyle(url) {
+  return /\.(js|css)$/i.test(url.pathname) ||
+    url.pathname.startsWith('/assets/js/') ||
+    url.pathname.startsWith('/assets/css/');
+}
+
+/**
+ * Determina si es un asset estático (imágenes, fuentes)
+ * NO incluye JS/CSS ya que esos usan Network First
  */
 function isStaticAsset(url) {
-  return /\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp)$/i.test(url.pathname) ||
-    url.pathname.startsWith('/assets/');
+  return /\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp)$/i.test(url.pathname);
 }
 
 /**

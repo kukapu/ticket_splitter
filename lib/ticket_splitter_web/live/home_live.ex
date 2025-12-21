@@ -137,16 +137,36 @@ defmodule TicketSplitterWeb.HomeLive do
 
       uploaded_file =
         consume_uploaded_entry(socket, entry, fn %{path: path} ->
-          # Leer el archivo y codificarlo en base64
+          # Read the file
           file_content = File.read!(path)
-          base64_content = Base.encode64(file_content)
 
-          {:ok,
-           %{
-             filename: entry.client_name,
-             content_type: entry.client_type,
-             base64: base64_content
-           }}
+          # Process and upload to S3
+          case process_and_upload_image(file_content, entry.client_name) do
+            {:ok, image_url, processed_binary} ->
+              # Use processed binary for OpenRouter
+              base64_content = Base.encode64(processed_binary)
+
+              {:ok,
+               %{
+                 filename: entry.client_name,
+                 content_type: "image/webp",
+                 base64: base64_content,
+                 image_url: image_url
+               }}
+
+            {:error, _reason} ->
+              # Fallback: use original image without S3 upload
+              IO.puts("⚠️ S3 upload failed, using original image")
+              base64_content = Base.encode64(file_content)
+
+              {:ok,
+               %{
+                 filename: entry.client_name,
+                 content_type: entry.client_type,
+                 base64: base64_content,
+                 image_url: nil
+               }}
+          end
         end)
 
       socket =
@@ -158,6 +178,20 @@ defmodule TicketSplitterWeb.HomeLive do
       {:noreply, socket}
     else
       {:noreply, socket}
+    end
+  end
+
+  # Process image (detect ticket, crop, optimize) and upload to S3
+  defp process_and_upload_image(binary_data, filename) do
+    alias TicketSplitter.{ImageProcessor, Storage}
+
+    with {:ok, processed_binary, content_type} <- ImageProcessor.process(binary_data),
+         {:ok, url} <- Storage.upload_image(processed_binary, filename, content_type) do
+      {:ok, url, processed_binary}
+    else
+      {:error, reason} ->
+        IO.puts("❌ Error processing/uploading image: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -175,12 +209,21 @@ defmodule TicketSplitterWeb.HomeLive do
         # Parsear el JSON de la respuesta
         case parse_openrouter_response(response) do
           {:ok, products_json} ->
-            # Guardar el ticket en la base de datos
-            case Tickets.create_ticket_from_json(products_json, uploaded_file.filename) do
+            # Guardar el ticket en la base de datos (with S3 image URL)
+            case Tickets.create_ticket_from_json(products_json, uploaded_file.image_url) do
               {:ok, ticket} ->
                 IO.puts("✅ Ticket guardado con ID: #{ticket.id}")
-                # Redirigir a la página del ticket
-                push_navigate(socket, to: "/#{socket.assigns.locale}/tickets/#{ticket.id}")
+
+                # Save to localStorage history before navigating
+                socket
+                |> push_event("save_ticket_to_history", %{
+                  ticket: %{
+                    id: ticket.id,
+                    merchant_name: ticket.merchant_name,
+                    date: ticket.date
+                  }
+                })
+                |> push_navigate(to: "/#{socket.assigns.locale}/tickets/#{ticket.id}")
 
               {:error, error} ->
                 IO.puts("❌ Error guardando ticket: #{inspect(error)}")

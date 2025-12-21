@@ -1,5 +1,5 @@
 <Layouts.app flash={@flash} locale={@locale} current_path={@current_path}>
-  <div class="flex-1 flex items-center justify-center px-4 w-full">
+  <div class="flex-1 flex items-center justify-center px-4 w-full" id="home-container" phx-hook="TicketHistory">
     <div class="max-w-md w-full">
       <!-- Hidden upload input (always present for auto_upload to work) -->
       <form id="upload-form" phx-submit="validate" phx-change="validate" class="hidden">
@@ -12,7 +12,6 @@
       <%= if !@processing do %>
         <div
           id="ticket-history-container"
-          phx-hook="TicketHistory"
           class="mb-3 relative"
         >
           <div class="bg-base-200 rounded-3xl home-card-shadow border border-base-300 relative z-10">
