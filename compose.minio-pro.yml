@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio_server
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    environment:
+      # Las variables las cogerá de la pestaña "Environment" de Dokploy
+      MINIO_ROOT_USER: "${MINIO_ROOT_USER}"
+      MINIO_ROOT_PASSWORD: "${MINIO_ROOT_PASSWORD}"
+      # Las URLs públicas que vas a configurar luego en la UI
+      # MINIO_SERVER_URL: "https://s3.kukapu.dev"
+      # MINIO_BROWSER_REDIRECT_URL: "https://console.kukapu.dev"
+
+    volumes:
+      # Mapeo: Tu carpeta del VPS : La carpeta interna de MinIO
+      - /home/kukapu/dockers/minio_data:/data
+
+    # Solo exponemos los puertos para que Dokploy sepa que existen
+    expose:
+      - "9000"
+      - "9001"
