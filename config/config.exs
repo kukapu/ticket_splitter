@@ -41,9 +41,8 @@ config :esbuild,
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
-# Configure tailwind (the version is required)
+# Configure tailwind (uses npm-installed version)
 config :tailwind,
-  version: "4.1.7",
   ticket_splitter: [
     args: ~w(
       --input=assets/css/app.css

@@ -4,5 +4,8 @@
   "dependencies": {
     "cropperjs": "^1.6.2",
     "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.7"
   }
 }

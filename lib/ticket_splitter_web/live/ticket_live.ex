@@ -862,207 +862,6 @@ defmodule TicketSplitterWeb.TicketLive do
      |> assign(:existing_participants_for_selector, [])}
   end
 
-  defp execute_toggle_action(action, params, socket) do
-    # Use acting_as_participant if in admin mode, otherwise use own participant
-    {participant_name, color} = get_active_participant(socket)
-    product_id = Map.get(params, "product_id")
-
-    result =
-      case action do
-        "add_unit" ->
-          # Añadir 1 unidad desde el pool
-          Tickets.add_participant_unit(product_id, participant_name, color)
-
-        "remove_unit" ->
-          # Quitar 1 unidad (devolver al pool)
-          group_id = Map.get(params, "group_id")
-          Tickets.remove_participant_unit(product_id, participant_name, group_id)
-
-        "join_group" ->
-          # Unirse a un grupo existente (compartir)
-          group_id = Map.get(params, "group_id")
-          Tickets.join_assignment_group(group_id, participant_name, color)
-
-        _ ->
-          {:error, :invalid_action}
-      end
-
-    case result do
-      {:ok, _} ->
-        # Broadcast a todos los usuarios conectados
-        broadcast_ticket_update(socket.assigns.ticket.id)
-
-        # Recargar ticket con productos actualizados
-        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
-
-        # Recalcular min_participants
-        real_participants_count =
-          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
-
-        min_participants = max(real_participants_count, 1)
-
-        socket =
-          socket
-          |> assign(:ticket, ticket)
-          |> assign(:products, ticket.products)
-          |> assign(:min_participants, min_participants)
-          |> calculate_my_total()
-          |> update_main_saldos()
-
-        # Also recalculate acting_as_total if in acting_as mode
-        socket =
-          if socket.assigns.acting_as_participant do
-            acting_as_total =
-              Tickets.calculate_participant_total_with_multiplier(
-                socket.assigns.ticket.id,
-                socket.assigns.acting_as_participant
-              )
-
-            assign(socket, :acting_as_total, acting_as_total)
-          else
-            socket
-          end
-
-        {:noreply, socket}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  defp update_participants_count(new_count, socket) do
-    case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count}) do
-      {:ok, ticket} ->
-        # Broadcast a todos los usuarios conectados
-        broadcast_ticket_update(socket.assigns.ticket.id)
-
-        # Recalcular datos del resumen si el modal está abierto
-        socket =
-          if socket.assigns.show_summary_modal do
-            participants = get_all_participants(socket.assigns)
-
-            participant_summaries =
-              Enum.map(participants, fn participant ->
-                calculate_participant_summary(socket.assigns.ticket.id, participant)
-              end)
-
-            total_ticket = calculate_ticket_total(socket.assigns.products)
-            total_assigned = calculate_total_assigned(socket.assigns.products, new_count)
-            pending = Decimal.sub(total_ticket, total_assigned)
-
-            socket
-            |> assign(:ticket, ticket)
-            |> assign(:participants_for_summary, participant_summaries)
-            |> assign(:total_ticket_for_summary, total_ticket)
-            |> assign(:total_assigned_for_summary, total_assigned)
-            |> assign(:pending_for_summary, pending)
-            |> calculate_my_total()
-            |> update_main_saldos()
-          else
-            socket
-            |> assign(:ticket, ticket)
-            |> calculate_my_total()
-            |> update_main_saldos()
-          end
-
-        {:noreply, socket}
-
-      {:error, _} ->
-        {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:ticket_updated, ticket_id}, socket) do
-    # Recibir actualización del ticket desde otro usuario
-    if ticket_id == socket.assigns.ticket.id do
-      ticket = Tickets.get_ticket_with_products!(ticket_id)
-
-      # Recalcular min_participants
-      real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
-      min_participants = max(real_participants_count, 1)
-
-      # Recalcular datos del resumen si el modal está abierto
-      socket =
-        if socket.assigns.show_summary_modal do
-          participants = get_all_participants(socket.assigns)
-
-          participant_summaries =
-            Enum.map(participants, fn participant ->
-              calculate_participant_summary(socket.assigns.ticket.id, participant)
-            end)
-
-          total_ticket = calculate_ticket_total(ticket.products)
-          total_assigned = calculate_total_assigned(ticket.products, ticket.total_participants)
-          pending = Decimal.sub(total_ticket, total_assigned)
-
-          socket
-          |> assign(:ticket, ticket)
-          |> assign(:products, ticket.products)
-          |> assign(:min_participants, min_participants)
-          |> assign(:participants_for_summary, participant_summaries)
-          |> assign(:total_ticket_for_summary, total_ticket)
-          |> assign(:total_assigned_for_summary, total_assigned)
-          |> assign(:pending_for_summary, pending)
-          |> calculate_my_total()
-          |> update_main_saldos()
-        else
-          socket
-          |> assign(:ticket, ticket)
-          |> assign(:products, ticket.products)
-          |> assign(:min_participants, min_participants)
-          |> calculate_my_total()
-          |> update_main_saldos()
-        end
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info({:slider_locked, group_id, locked_by}, socket) do
-    # Another user has locked a slider
-    locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, locked_by)
-
-    socket =
-      socket
-      |> assign(:locked_sliders, locked_sliders)
-      |> push_event("slider_locked", %{group_id: group_id, locked_by: locked_by})
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:slider_unlocked, group_id}, socket) do
-    # Another user has unlocked a slider
-    locked_sliders = Map.delete(socket.assigns.locked_sliders, group_id)
-
-    socket =
-      socket
-      |> assign(:locked_sliders, locked_sliders)
-      |> push_event("slider_unlocked", %{group_id: group_id})
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def terminate(_reason, socket) do
-    # When a user disconnects, unlock all sliders they had locked
-    participant_name = socket.assigns.participant_name
-
-    if participant_name do
-      Enum.each(socket.assigns.locked_sliders, fn {group_id, locked_by} ->
-        if locked_by == participant_name do
-          broadcast_slider_unlock(socket.assigns.ticket.id, group_id)
-        end
-      end)
-    end
-
-    :ok
-  end
-
   # Multiplier events - now applies to the active user (acting_as or self)
   @impl true
   def handle_event("update_my_multiplier", %{"multiplier" => multiplier_str}, socket) do
@@ -1243,6 +1042,207 @@ defmodule TicketSplitterWeb.TicketLive do
       end
     else
       {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:ticket_updated, ticket_id}, socket) do
+    # Recibir actualización del ticket desde otro usuario
+    if ticket_id == socket.assigns.ticket.id do
+      ticket = Tickets.get_ticket_with_products!(ticket_id)
+
+      # Recalcular min_participants
+      real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
+      min_participants = max(real_participants_count, 1)
+
+      # Recalcular datos del resumen si el modal está abierto
+      socket =
+        if socket.assigns.show_summary_modal do
+          participants = get_all_participants(socket.assigns)
+
+          participant_summaries =
+            Enum.map(participants, fn participant ->
+              calculate_participant_summary(socket.assigns.ticket.id, participant)
+            end)
+
+          total_ticket = calculate_ticket_total(ticket.products)
+          total_assigned = calculate_total_assigned(ticket.products, ticket.total_participants)
+          pending = Decimal.sub(total_ticket, total_assigned)
+
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> assign(:min_participants, min_participants)
+          |> assign(:participants_for_summary, participant_summaries)
+          |> assign(:total_ticket_for_summary, total_ticket)
+          |> assign(:total_assigned_for_summary, total_assigned)
+          |> assign(:pending_for_summary, pending)
+          |> calculate_my_total()
+          |> update_main_saldos()
+        else
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> assign(:min_participants, min_participants)
+          |> calculate_my_total()
+          |> update_main_saldos()
+        end
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:slider_locked, group_id, locked_by}, socket) do
+    # Another user has locked a slider
+    locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, locked_by)
+
+    socket =
+      socket
+      |> assign(:locked_sliders, locked_sliders)
+      |> push_event("slider_locked", %{group_id: group_id, locked_by: locked_by})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:slider_unlocked, group_id}, socket) do
+    # Another user has unlocked a slider
+    locked_sliders = Map.delete(socket.assigns.locked_sliders, group_id)
+
+    socket =
+      socket
+      |> assign(:locked_sliders, locked_sliders)
+      |> push_event("slider_unlocked", %{group_id: group_id})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def terminate(_reason, socket) do
+    # When a user disconnects, unlock all sliders they had locked
+    participant_name = socket.assigns.participant_name
+
+    if participant_name do
+      Enum.each(socket.assigns.locked_sliders, fn {group_id, locked_by} ->
+        if locked_by == participant_name do
+          broadcast_slider_unlock(socket.assigns.ticket.id, group_id)
+        end
+      end)
+    end
+
+    :ok
+  end
+
+  defp execute_toggle_action(action, params, socket) do
+    # Use acting_as_participant if in admin mode, otherwise use own participant
+    {participant_name, color} = get_active_participant(socket)
+    product_id = Map.get(params, "product_id")
+
+    result =
+      case action do
+        "add_unit" ->
+          # Añadir 1 unidad desde el pool
+          Tickets.add_participant_unit(product_id, participant_name, color)
+
+        "remove_unit" ->
+          # Quitar 1 unidad (devolver al pool)
+          group_id = Map.get(params, "group_id")
+          Tickets.remove_participant_unit(product_id, participant_name, group_id)
+
+        "join_group" ->
+          # Unirse a un grupo existente (compartir)
+          group_id = Map.get(params, "group_id")
+          Tickets.join_assignment_group(group_id, participant_name, color)
+
+        _ ->
+          {:error, :invalid_action}
+      end
+
+    case result do
+      {:ok, _} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recargar ticket con productos actualizados
+        ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
+
+        # Recalcular min_participants
+        real_participants_count =
+          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+
+        min_participants = max(real_participants_count, 1)
+
+        socket =
+          socket
+          |> assign(:ticket, ticket)
+          |> assign(:products, ticket.products)
+          |> assign(:min_participants, min_participants)
+          |> calculate_my_total()
+          |> update_main_saldos()
+
+        # Also recalculate acting_as_total if in acting_as mode
+        socket =
+          if socket.assigns.acting_as_participant do
+            acting_as_total =
+              Tickets.calculate_participant_total_with_multiplier(
+                socket.assigns.ticket.id,
+                socket.assigns.acting_as_participant
+              )
+
+            assign(socket, :acting_as_total, acting_as_total)
+          else
+            socket
+          end
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
+    end
+  end
+
+  defp update_participants_count(new_count, socket) do
+    case Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count}) do
+      {:ok, ticket} ->
+        # Broadcast a todos los usuarios conectados
+        broadcast_ticket_update(socket.assigns.ticket.id)
+
+        # Recalcular datos del resumen si el modal está abierto
+        socket =
+          if socket.assigns.show_summary_modal do
+            participants = get_all_participants(socket.assigns)
+
+            participant_summaries =
+              Enum.map(participants, fn participant ->
+                calculate_participant_summary(socket.assigns.ticket.id, participant)
+              end)
+
+            total_ticket = calculate_ticket_total(socket.assigns.products)
+            total_assigned = calculate_total_assigned(socket.assigns.products, new_count)
+            pending = Decimal.sub(total_ticket, total_assigned)
+
+            socket
+            |> assign(:ticket, ticket)
+            |> assign(:participants_for_summary, participant_summaries)
+            |> assign(:total_ticket_for_summary, total_ticket)
+            |> assign(:total_assigned_for_summary, total_assigned)
+            |> assign(:pending_for_summary, pending)
+            |> calculate_my_total()
+            |> update_main_saldos()
+          else
+            socket
+            |> assign(:ticket, ticket)
+            |> calculate_my_total()
+            |> update_main_saldos()
+          end
+
+        {:noreply, socket}
+
+      {:error, _} ->
+        {:noreply, socket}
     end
   end
 

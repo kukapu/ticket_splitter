@@ -635,9 +635,4 @@ defmodule TicketSplitterWeb.HomeLive do
       {:error, _} -> "Analiza esta imagen y describe lo que ves."
     end
   end
-
-  defp error_to_string(:too_large), do: gettext("File is too large (max. 10MB)")
-  defp error_to_string(:not_accepted), do: gettext("Unsupported file format")
-  defp error_to_string(:too_many_files), do: gettext("Only one file allowed at a time")
-  defp error_to_string(error), do: gettext("Error: %{error}", error: inspect(error))
 end
