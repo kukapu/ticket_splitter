@@ -39,7 +39,7 @@ RUN mix compile
 COPY assets assets
 
 # Copy package files to assets and install npm dependencies
-COPY package.json package-lock.json ./assets/
+COPY assets/package.json assets/package-lock.json ./assets/
 RUN npm ci --prefix assets
 
 # Build assets
