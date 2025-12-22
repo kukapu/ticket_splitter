@@ -1,12 +1,11 @@
 import Config
 
 # Configure your database
-config :ticket_splitter, TicketSplitter.Repo, [
+config :ticket_splitter, TicketSplitter.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
   database: "ticket_splitter_dev"
-]
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

@@ -198,6 +198,115 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event(
+        "change_participant_name",
+        %{"old_name" => old_name, "new_name" => new_name},
+        socket
+      ) do
+    old_name = String.downcase(String.trim(old_name))
+    new_name = String.downcase(String.trim(new_name))
+
+    ticket_id = socket.assigns.ticket.id
+
+    # Caso 1: Mismo nombre - no hacer nada
+    if old_name == new_name do
+      {:noreply, socket}
+    else
+      # Verificar si tengo asignaciones con el nombre antiguo
+      has_assignments = Tickets.participant_has_assignments?(ticket_id, old_name)
+
+      # Verificar si el nuevo nombre ya existe
+      name_exists = Tickets.participant_name_exists?(ticket_id, new_name)
+
+      cond do
+        # Caso 2: Tengo asignaciones Y el nuevo nombre ya existe -> ERROR
+        has_assignments && name_exists ->
+          socket =
+            socket
+            |> put_flash(
+              :error,
+              gettext(
+                "This name is already being used by another participant with assigned items"
+              )
+            )
+            |> push_event("name_change_error", %{})
+
+          {:noreply, socket}
+
+        # Caso 3: Tengo asignaciones Y el nuevo nombre NO existe -> ACTUALIZAR
+        has_assignments && !name_exists ->
+          case Tickets.update_participant_name(ticket_id, old_name, new_name) do
+            {:ok, _count} ->
+              # Broadcast para actualizar a todos los usuarios
+              broadcast_ticket_update(ticket_id)
+
+              # Recargar ticket
+              ticket = Tickets.get_ticket_with_products!(ticket_id)
+
+              socket =
+                socket
+                |> assign(:ticket, ticket)
+                |> assign(:participant_name, new_name)
+                |> push_event("save_participant_name", %{name: new_name})
+                |> push_event("name_change_success", %{})
+                |> calculate_my_total()
+                |> update_main_saldos()
+
+              {:noreply, socket}
+
+            {:error, _} ->
+              socket =
+                socket
+                |> put_flash(:error, gettext("Failed to update name"))
+                |> push_event("name_change_error", %{})
+
+              {:noreply, socket}
+          end
+
+        # Caso 4: NO tengo asignaciones Y el nuevo nombre ya existe -> ADOPTAR
+        !has_assignments && name_exists ->
+          # Simplemente cambiar al nuevo nombre (adoptarlo)
+          existing_user_color = get_existing_user_color(ticket_id, new_name)
+          existing_participants = Tickets.get_ticket_participants(ticket_id)
+
+          color =
+            if existing_user_color do
+              existing_user_color
+            else
+              get_deterministic_color(new_name, existing_participants)
+            end
+
+          socket =
+            socket
+            |> assign(:participant_name, new_name)
+            |> assign(:participant_color, color)
+            |> push_event("save_participant_name", %{name: new_name})
+            |> push_event("name_change_success", %{})
+            |> calculate_my_total()
+            |> update_main_saldos()
+
+          {:noreply, socket}
+
+        # Caso 5: NO tengo asignaciones Y el nuevo nombre NO existe -> CAMBIAR
+        !has_assignments && !name_exists ->
+          existing_participants = Tickets.get_ticket_participants(ticket_id)
+          color = get_deterministic_color(new_name, existing_participants)
+
+          socket =
+            socket
+            |> assign(:participant_name, new_name)
+            |> assign(:participant_color, color)
+            |> push_event("save_participant_name", %{name: new_name})
+            |> push_event("name_change_success", %{})
+            |> calculate_my_total()
+            |> update_main_saldos()
+
+          {:noreply, socket}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event(
         "toggle_product",
         %{"product_id" => _product_id, "action" => action} = params,
         socket

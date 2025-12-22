@@ -106,6 +106,47 @@ Hooks.ParticipantStorage = {
     this.handleEvent("save_ticket_to_history", ({ ticket }) => {
       this.saveTicketToHistory(ticket)
     })
+
+    // Listen for user name change requests from the modal
+    this.handleUserNameChange = (event) => {
+      const { old_name, new_name } = event.detail
+      console.log('🔄 User name change requested:', { old_name, new_name })
+      
+      // Push event to LiveView for validation
+      this.pushEvent("change_participant_name", {
+        old_name: old_name,
+        new_name: new_name
+      })
+    }
+    
+    document.addEventListener('user-name-change-request', this.handleUserNameChange)
+
+    // Handle successful name change from server
+    this.handleEvent("name_change_success", () => {
+      console.log('✅ Name changed successfully')
+      // Name was already saved to localStorage by the server
+      // Flash message will be shown automatically by Phoenix
+    })
+
+    // Handle name change errors from server
+    this.handleEvent("name_change_error", () => {
+      console.error('❌ Name change error')
+      
+      // Reopen modal in edit mode to allow user to try again
+      // Flash error message will be shown automatically by Phoenix
+      if (window.openUserSettingsModal) {
+        setTimeout(() => {
+          window.openUserSettingsModal(true)
+        }, 100)
+      }
+    })
+  },
+
+  destroyed() {
+    // Clean up event listener
+    if (this.handleUserNameChange) {
+      document.removeEventListener('user-name-change-request', this.handleUserNameChange)
+    }
   },
 
   saveTicketToHistory(ticket) {

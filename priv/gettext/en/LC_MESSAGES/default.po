@@ -511,3 +511,23 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "Select a person to assign items on their behalf"
 msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.ex
+#, elixir-autogen, elixir-format
+msgid "This name is already in use"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.ex
+#, elixir-autogen, elixir-format
+msgid "Failed to update name"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.ex
+#, elixir-autogen, elixir-format
+msgid "Name cannot be empty"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/ticket_live.ex
+#, elixir-autogen, elixir-format
+msgid "This name is already being used by another participant with assigned items"
+msgstr ""

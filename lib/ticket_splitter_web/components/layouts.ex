@@ -362,15 +362,21 @@ defmodule TicketSplitterWeb.Layouts do
             return;
           }
 
-          // Save to localStorage
-          localStorage.setItem('participant_name', newName);
-
-          // Close modal
-          window.closeUserSettingsModal();
-
-          // If name changed, refresh the page
+          // If name changed, dispatch custom event that the hook will listen to
           if (newName !== originalName) {
-            window.location.reload();
+            // Dispatch custom event with name change data
+            document.dispatchEvent(new CustomEvent('user-name-change-request', {
+              detail: {
+                old_name: originalName,
+                new_name: newName
+              }
+            }));
+
+            // Close modal - the hook will handle the validation and response
+            window.closeUserSettingsModal();
+          } else {
+            // Name didn't change, just close modal
+            window.closeUserSettingsModal();
           }
         };
 

@@ -11,22 +11,22 @@
         <%= if @ticket.merchant_name || @ticket.date do %>
           <div class="text-center mb-3">
             <%= if @ticket.merchant_name do %>
-                <div class="flex items-center justify-center">
-                  <div class="relative inline-flex items-center">
-                    <%= if @ticket.image_url do %>
-                      <button
-                        phx-click="open_image_modal"
-                        class="absolute -left-4 -top-0.5 !w-5 !h-5 !min-w-0 !min-h-0 aspect-square rounded-full bg-primary/40 backdrop-blur-xl hover:bg-primary/60 flex items-center justify-center transition-all duration-200 active:scale-95 border border-primary/50 shadow-sm z-10"
-                        title={gettext("View ticket image")}
-                      >
-                        <.icon name="hero-photo" class="!w-3 !h-3 text-primary" />
-                      </button>
-                    <% end %>
-                    <h1 class="text-xl font-bold text-base-content tracking-tight">
-                      {@ticket.merchant_name}
-                    </h1>
-                  </div>
+              <div class="flex items-center justify-center">
+                <div class="relative inline-flex items-center">
+                  <%= if @ticket.image_url do %>
+                    <button
+                      phx-click="open_image_modal"
+                      class="absolute -left-4 -top-0.5 !w-5 !h-5 !min-w-0 !min-h-0 aspect-square rounded-full bg-primary/40 backdrop-blur-xl hover:bg-primary/60 flex items-center justify-center transition-all duration-200 active:scale-95 border border-primary/50 shadow-sm z-10"
+                      title={gettext("View ticket image")}
+                    >
+                      <.icon name="hero-photo" class="!w-3 !h-3 text-primary" />
+                    </button>
+                  <% end %>
+                  <h1 class="text-xl font-bold text-base-content tracking-tight">
+                    {@ticket.merchant_name}
+                  </h1>
                 </div>
+              </div>
             <% end %>
             <%= if @ticket.date do %>
               <div class="flex items-center justify-center gap-1 text-base-content/40 mt-1">
@@ -50,7 +50,8 @@
             <div
               class="w-2 h-2 rounded-full flex-shrink-0 mb-1"
               style={"background-color: #{if @acting_as_participant, do: @acting_as_color, else: (if @participant_name, do: @participant_color, else: "#cbd5e1")}"}
-            ></div>
+            >
+            </div>
             <div class="flex-1 min-w-0">
               <%= if @acting_as_participant do %>
                 <div class="text-[10px] text-base-content/90 font-bold truncate leading-none mb-0.5 uppercase tracking-wide">
@@ -60,16 +61,22 @@
                   €{format_decimal(@acting_as_total)}
                 </div>
               <% else %>
-                <div class="text-[8px] text-base-content/50 leading-tight truncate">{gettext("My share")}</div>
+                <div class="text-[8px] text-base-content/50 leading-tight truncate">
+                  {gettext("My share")}
+                </div>
                 <div class="text-sm font-bold text-base-content flex items-center gap-0.5 leading-tight">
-                  <span class="truncate">€{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}</span>
+                  <span class="truncate">
+                    €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
+                  </span>
                   <%= if @my_multiplier > 1 do %>
-                    <span class="text-[9px] font-normal text-primary flex-shrink-0">(×{@my_multiplier})</span>
+                    <span class="text-[9px] font-normal text-primary flex-shrink-0">
+                      (×{@my_multiplier})
+                    </span>
                   <% end %>
                 </div>
               <% end %>
             </div>
-            
+
             <%= if @acting_as_participant do %>
               <button
                 phx-click="clear_acting_as"
@@ -80,7 +87,7 @@
               </button>
             <% end %>
           </div>
-
+          
 <!-- Participants Counter (perfectly centered) -->
           <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-base-200 rounded-md px-1.5 py-1 border border-base-300">
             <button
@@ -94,7 +101,9 @@
               <span class="text-base font-bold text-base-content leading-none">
                 {@ticket.total_participants}
               </span>
-              <span class="text-[7px] text-base-content/40 leading-none">{gettext("people")}</span>
+              <span class="text-[7px] text-base-content/40 leading-none">
+                {gettext("people")}
+              </span>
             </div>
             <button
               phx-click="increment_participants"
@@ -103,7 +112,7 @@
               <span class="text-xs font-extrabold leading-none">+</span>
             </button>
           </div>
-
+          
 <!-- Action Buttons -->
           <div class="flex gap-1">
             <button
@@ -127,8 +136,7 @@
 <!-- Visual Colored Cards Layout -->
       <div class="space-y-2">
         <% # Determine the active participant name for all product logic (shares, etc.)
-           active_participant_name = @acting_as_participant || @participant_name
-        %>
+        active_participant_name = @acting_as_participant || @participant_name %>
         <%= for product <- @products do %>
           <%= if !product.is_common do %>
             <% available_units = Tickets.get_available_units(product.id) %>
@@ -224,7 +232,9 @@
                       <div class="text-left min-w-0 flex-1">
                         <p class="text-xs font-bold text-base-content flex items-center gap-1">
                           <.icon name="hero-users" class="w-3.5 h-3.5" />
-                          <span>{gettext("COMMON")} ({@ticket.total_participants} {gettext("pers.")})</span>
+                          <span>
+                            {gettext("COMMON")} ({@ticket.total_participants} {gettext("pers.")})
+                          </span>
                         </p>
                         <p class="text-[9px] text-base-content/60">
                           {format_decimal(common_units)}u
@@ -398,7 +408,9 @@
                       <% # For single user or multi-user (more than 2), prioritize current user's color if present
                       main_participant =
                         if has_me do
-                          Enum.find(group.participants, fn p -> p.name == active_participant_name end)
+                          Enum.find(group.participants, fn p ->
+                            p.name == active_participant_name
+                          end)
                         else
                           hd(group.participants)
                         end
@@ -504,7 +516,9 @@
                 <div class="flex items-center gap-2 flex-shrink-0">
                   <div class="text-right">
                     <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
-                      <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> {gettext("COMMON")}
+                      <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> {gettext(
+                        "COMMON"
+                      )}
                     </span>
                     <p class="text-xs sm:text-sm font-bold text-base-content mt-1">
                       €{format_decimal(product.total_price)}
@@ -535,7 +549,9 @@
           class="w-full text-left bg-base-200 border border-base-300 rounded-lg p-3 hover:bg-base-300 transition-colors"
         >
           <div class="flex justify-between items-center">
-            <span class="text-sm font-medium text-base-content/70">ℹ️ {gettext("Usage instructions")}</span>
+            <span class="text-sm font-medium text-base-content/70">
+              ℹ️ {gettext("Usage instructions")}
+            </span>
             <.icon
               name="hero-chevron-down"
               class={"w-4 h-4 text-base-content/50 transition-transform #{if @show_instructions, do: "rotate-180"}"}
@@ -546,13 +562,22 @@
           <div class="mt-2 bg-base-200 border border-base-300 rounded-lg p-3 text-xs text-base-content/70">
             <ul class="space-y-1">
               <li>
-                • <strong>{gettext("+ Button")}</strong> {gettext("on available products to add 1 unit to yourself")}
+                •
+                <strong>{gettext("+ Button")}</strong> {gettext(
+                  "on available products to add 1 unit to yourself"
+                )}
               </li>
               <li>
-                • <strong>{gettext("- Button")}</strong> {gettext("on available products to remove 1 unit from yourself")}
+                •
+                <strong>{gettext("- Button")}</strong> {gettext(
+                  "on available products to remove 1 unit from yourself"
+                )}
               </li>
               <li>
-                • <strong>{gettext("Common button")}</strong> {gettext("on available products to make common for everyone")}
+                •
+                <strong>{gettext("Common button")}</strong> {gettext(
+                  "on available products to make common for everyone"
+                )}
               </li>
               <li>• {gettext("Click on someone else's group to share (50-50)")}</li>
             </ul>
@@ -561,11 +586,11 @@
       </div>
     </div>
   </div>
-  
-  <.modal 
-    :if={@show_participant_selector} 
-    id="participant-selector-modal" 
-    show 
+
+  <.modal
+    :if={@show_participant_selector}
+    id="participant-selector-modal"
+    show
     on_cancel={JS.push("close_participant_selector")}
   >
     <!-- Header (fixed) -->
@@ -580,35 +605,35 @@
         <.icon name="hero-x-mark" class="w-5 h-5" />
       </button>
     </div>
-    
+
     <p class="text-xs text-base-content/60 mb-3 flex-shrink-0">
       {gettext("Select your name if you're already in the ticket, or create a new one.")}
     </p>
     
-    <!-- Existing Participants List (scrollable - limited height) -->
+<!-- Existing Participants List (scrollable - limited height) -->
     <div class="space-y-2 mb-3 overflow-y-auto max-h-[380px] scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent">
-        <%= for participant <- @existing_participants_for_selector do %>
-          <button
-            phx-click="select_existing_participant"
-            phx-value-name={participant.name}
-            class="w-full flex items-center justify-between p-2.5 sm:p-3 bg-base-200 hover:bg-base-200/80 rounded-lg transition-colors text-left"
-          >
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div
-                class="w-4 h-4 rounded-full flex-shrink-0"
-                style={"background-color: #{participant.color}"}
-              >
-              </div>
-              <span class="font-medium text-base-content text-sm sm:text-base truncate">
-                {participant.name}
-              </span>
+      <%= for participant <- @existing_participants_for_selector do %>
+        <button
+          phx-click="select_existing_participant"
+          phx-value-name={participant.name}
+          class="w-full flex items-center justify-between p-2.5 sm:p-3 bg-base-200 hover:bg-base-200/80 rounded-lg transition-colors text-left"
+        >
+          <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div
+              class="w-4 h-4 rounded-full flex-shrink-0"
+              style={"background-color: #{participant.color}"}
+            >
             </div>
+            <span class="font-medium text-base-content text-sm sm:text-base truncate">
+              {participant.name}
+            </span>
+          </div>
           <.icon name="hero-chevron-right" class="size-4 text-base-content/40 flex-shrink-0" />
-          </button>
-        <% end %>
+        </button>
+      <% end %>
     </div>
     
-    <!-- Footer (fixed) -->
+<!-- Footer (fixed) -->
     <div class="flex-shrink-0">
       <!-- Divider -->
       <div class="flex items-center gap-2 my-3">
@@ -617,7 +642,7 @@
         <div class="flex-1 h-px bg-base-100/10"></div>
       </div>
       
-      <!-- Create New Button -->
+<!-- Create New Button -->
       <button
         phx-click="create_new_participant"
         class="w-full flex items-center justify-center gap-2 p-2.5 bg-primary/10 hover:bg-primary/20 border border-dashed border-primary/40 hover:border-primary rounded-lg transition-colors"
@@ -627,13 +652,15 @@
       </button>
     </div>
   </.modal>
-  
+
   <.modal
     :if={@show_summary_modal}
     id="summary-modal"
     show
     on_cancel={JS.push("close_summary")}
-    border_class={if @acting_as_participant, do: "border-2 border-warning", else: "border border-base-300"}
+    border_class={
+      if @acting_as_participant, do: "border-2 border-warning", else: "border border-base-300"
+    }
   >
     <!-- Header with tabs -->
     <div class="flex justify-between items-center mb-4">
@@ -661,19 +688,24 @@
       </button>
     </div>
     
-    <!-- Tab: Summary -->
+<!-- Tab: Summary -->
     <%= if @summary_tab == "summary" do %>
       <!-- Compact Multiplier Control -->
       <%= if @participant_name || @acting_as_participant do %>
-        <% 
-          active_name = @acting_as_participant || @participant_name
-          active_multiplier = if @acting_as_participant, do: @acting_as_multiplier, else: @my_multiplier
-        %>
+        <% active_name = @acting_as_participant || @participant_name
+
+        active_multiplier =
+          if @acting_as_participant, do: @acting_as_multiplier, else: @my_multiplier %>
         <div class={"mb-4 p-2.5 rounded-lg flex items-center justify-between #{if @acting_as_participant, do: "bg-warning/10 border border-warning/30", else: "bg-base-200"}"}>
           <div class="flex items-center gap-2 min-w-0">
-            <.icon name="hero-user-group" class={"w-4 h-4 #{if @acting_as_participant, do: "text-warning", else: "text-primary"}"} />
+            <.icon
+              name="hero-user-group"
+              class={"w-4 h-4 #{if @acting_as_participant, do: "text-warning", else: "text-primary"}"}
+            />
             <div class="min-w-0">
-              <span class={"text-sm #{if @acting_as_participant, do: "text-warning", else: "text-base-content"}"}>{gettext("I pay for")}</span>
+              <span class={"text-sm #{if @acting_as_participant, do: "text-warning", else: "text-base-content"}"}>
+                {gettext("I pay for")}
+              </span>
               <%= if @acting_as_participant do %>
                 <div class="text-[10px] text-warning/70 truncate">{active_name}</div>
               <% end %>
@@ -687,7 +719,9 @@
             >
               <span class="text-sm font-bold">−</span>
             </button>
-            <span class={"min-w-[28px] text-center text-base font-bold #{if @acting_as_participant, do: "text-warning", else: "text-base-content"}"}>{active_multiplier}</span>
+            <span class={"min-w-[28px] text-center text-base font-bold #{if @acting_as_participant, do: "text-warning", else: "text-base-content"}"}>
+              {active_multiplier}
+            </span>
             <button
               phx-click="increment_multiplier"
               class={"w-7 h-7 rounded-md flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 #{if @acting_as_participant, do: "bg-warning/20 hover:bg-warning/30 text-warning", else: "bg-primary/25 hover:bg-primary/40 text-primary"}"}
@@ -700,33 +734,46 @@
         </div>
       <% end %>
       
-      <!-- Participants List -->
+<!-- Participants List -->
       <div class="mb-4">
         <h3 class="text-sm font-semibold text-base-content/60 mb-2">{gettext("Participants")}</h3>
         <div class="space-y-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent">
           <%= for summary <- @participants_for_summary do %>
             <div class="flex items-center justify-between p-2.5 bg-base-200 rounded-lg">
               <div class="flex items-center gap-2 min-w-0 flex-1">
-                <div class="w-3 h-3 rounded-full flex-shrink-0" style={"background-color: #{summary.color}"}></div>
+                <div
+                  class="w-3 h-3 rounded-full flex-shrink-0"
+                  style={"background-color: #{summary.color}"}
+                >
+                </div>
                 <span class="font-medium text-base-content text-sm truncate">
-                  {summary.name}<%= if Map.get(summary, :multiplier, 1) > 1 do %><span class="text-primary font-normal"> (×{summary.multiplier})</span><% end %>
+                  {summary.name}
+                  <%= if Map.get(summary, :multiplier, 1) > 1 do %>
+                    <span class="text-primary font-normal"> (×{summary.multiplier})</span>
+                  <% end %>
                 </span>
               </div>
-              <span class="text-base font-semibold text-primary flex-shrink-0">€{format_decimal(summary.total)}</span>
+              <span class="text-base font-semibold text-primary flex-shrink-0">
+                €{format_decimal(summary.total)}
+              </span>
             </div>
           <% end %>
         </div>
       </div>
       
-      <!-- Totals -->
+<!-- Totals -->
       <div class="border-t border-base-200 pt-3 space-y-1.5">
         <div class="flex justify-between text-xs">
           <span class="text-base-content/50">{gettext("Ticket total:")}</span>
-          <span class="font-medium text-base-content">€{format_decimal(@total_ticket_for_summary)}</span>
+          <span class="font-medium text-base-content">
+            €{format_decimal(@total_ticket_for_summary)}
+          </span>
         </div>
         <div class="flex justify-between text-xs">
           <span class="text-base-content/50">{gettext("Total assigned:")}</span>
-          <span class="font-medium text-base-content">€{format_decimal(@total_assigned_for_summary)}</span>
+          <span class="font-medium text-base-content">
+            €{format_decimal(@total_assigned_for_summary)}
+          </span>
         </div>
         <div class="flex justify-between text-sm font-bold pt-1.5 border-t border-base-200">
           <span class="text-base-content">{gettext("Pending:")}</span>
@@ -735,14 +782,15 @@
       </div>
     <% end %>
     
-    <!-- Tab: Assign to others -->
+<!-- Tab: Assign to others -->
     <%= if @summary_tab == "assign" do %>
       <div class="space-y-4">
         <!-- Current selection indicator -->
         <%= if @acting_as_participant do %>
           <div class="p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <div class="w-4 h-4 rounded-full" style={"background-color: #{@acting_as_color}"}></div>
+              <div class="w-4 h-4 rounded-full" style={"background-color: #{@acting_as_color}"}>
+              </div>
               <span class="text-sm font-medium text-base-content">
                 {gettext("Assigning to:")} <strong>{@acting_as_participant}</strong>
               </span>
@@ -755,10 +803,12 @@
             </button>
           </div>
         <% else %>
-          <p class="text-sm text-base-content/60">{gettext("Select a person to assign items on their behalf")}</p>
+          <p class="text-sm text-base-content/60">
+            {gettext("Select a person to assign items on their behalf")}
+          </p>
         <% end %>
         
-        <!-- Participants selector (bigger buttons) -->
+<!-- Participants selector (bigger buttons) -->
         <div class="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent">
           <!-- Return to self -->
           <button
@@ -768,7 +818,8 @@
             <div
               class="w-5 h-5 rounded-full flex-shrink-0"
               style={"background-color: #{if @participant_name, do: @participant_color, else: "#cbd5e1"}"}
-            ></div>
+            >
+            </div>
             <span class="text-sm font-medium text-base-content flex-1 truncate">
               {if @participant_name, do: @participant_name, else: gettext("Me")}
             </span>
@@ -778,7 +829,7 @@
             <% end %>
           </button>
           
-          <!-- Other participants -->
+<!-- Other participants -->
           <% existing_participants = Tickets.get_ticket_participants(@ticket.id) %>
           <%= for participant <- existing_participants do %>
             <%= if participant.name != @participant_name do %>
@@ -787,17 +838,26 @@
                 phx-value-name={participant.name}
                 class={"w-full flex items-center gap-3 p-3 rounded-lg border transition-colors text-left #{if @acting_as_participant == participant.name, do: "bg-primary/10 border-primary/30", else: "bg-base-200 border-base-300 hover:border-primary/30"}"}
               >
-                <div class="w-5 h-5 rounded-full flex-shrink-0" style={"background-color: #{participant.color}"}></div>
-                <span class="text-sm font-medium text-base-content flex-1 truncate">{participant.name}</span>
+                <div
+                  class="w-5 h-5 rounded-full flex-shrink-0"
+                  style={"background-color: #{participant.color}"}
+                >
+                </div>
+                <span class="text-sm font-medium text-base-content flex-1 truncate">
+                  {participant.name}
+                </span>
                 <%= if @acting_as_participant == participant.name do %>
-                  <.icon name="hero-check-circle-solid" class="w-5 h-5 text-primary flex-shrink-0" />
+                  <.icon
+                    name="hero-check-circle-solid"
+                    class="w-5 h-5 text-primary flex-shrink-0"
+                  />
                 <% end %>
               </button>
             <% end %>
           <% end %>
         </div>
         
-        <!-- Add new person (outside the selector) -->
+<!-- Add new person (outside the selector) -->
         <div class="pt-3 border-t border-base-200">
           <p class="text-xs text-base-content/50 mb-2">{gettext("Add new person")}</p>
           <form phx-submit="create_ghost_participant" class="flex gap-2">
@@ -818,7 +878,7 @@
       </div>
     <% end %>
   </.modal>
-  
+
   <.modal
     :if={@show_share_confirmation}
     id="share-confirmation-modal"
@@ -874,7 +934,7 @@
       </button>
     </div>
   </.modal>
-  
+
   <.modal
     :if={@show_share_modal}
     id="share-modal"
@@ -892,7 +952,7 @@
       </button>
     </div>
     
-    <!-- QR Code Section -->
+<!-- QR Code Section -->
     <div class="mb-6 flex flex-col items-center">
       <div class="bg-white p-4 rounded-xl shadow-lg mb-3">
         <div
@@ -908,7 +968,7 @@
       </p>
     </div>
     
-    <!-- URL Display and Copy -->
+<!-- URL Display and Copy -->
     <div class="mb-6">
       <label class="block text-sm font-medium text-base-content/70 mb-2">
         {gettext("Ticket link")}
@@ -933,7 +993,7 @@
       </div>
     </div>
     
-    <!-- Share Options -->
+<!-- Share Options -->
     <div class="mb-4">
       <h3 class="text-sm font-medium text-base-content/70 mb-3">{gettext("Share on")}</h3>
       <div class="grid grid-cols-2 gap-2">
@@ -949,7 +1009,7 @@
           <span class="text-sm font-bold">WhatsApp</span>
         </a>
         
-        <!-- Email -->
+<!-- Email -->
         <a
           href={"mailto:?subject=#{URI.encode(gettext("Shared Ticket"))}&body=#{URI.encode(gettext("Join my ticket!") <> "\n\n" <> url(~p"/#{@locale}/tickets/#{@ticket.id}"))}"}
           class="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-br from-slate-600/80 to-slate-700/70 hover:from-slate-600/90 hover:to-slate-700/80 text-white rounded-lg transition-all duration-200 active:scale-95 shadow-sm border border-slate-500/30"
@@ -958,7 +1018,7 @@
           <span class="text-sm font-bold">Email</span>
         </a>
         
-        <!-- Telegram -->
+<!-- Telegram -->
         <a
           href={"https://t.me/share/url?url=#{URI.encode(url(~p"/#{@locale}/tickets/#{@ticket.id}"))}&text=#{URI.encode(gettext("Join my ticket!"))}"}
           target="_blank"
@@ -970,7 +1030,7 @@
           <span class="text-sm font-bold">Telegram</span>
         </a>
         
-        <!-- Twitter/X -->
+<!-- Twitter/X -->
         <a
           href={"https://twitter.com/intent/tweet?text=#{URI.encode(gettext("Join my ticket!"))}&url=#{URI.encode(url(~p"/#{@locale}/tickets/#{@ticket.id}"))}"}
           target="_blank"
@@ -984,12 +1044,12 @@
       </div>
     </div>
   </.modal>
-
+  
 <!-- Image Viewer Modal -->
-  <.modal 
-    :if={@show_image_modal && @ticket.image_url} 
-    id="image-viewer-modal" 
-    show 
+  <.modal
+    :if={@show_image_modal && @ticket.image_url}
+    id="image-viewer-modal"
+    show
     on_cancel={JS.push("close_image_modal")}
     width="max-w-md"
   >
@@ -1001,21 +1061,21 @@
       <.icon name="hero-x-mark" class="w-6 h-6 text-base-content" />
     </button>
     
-    <!-- Image container with zoom support -->
-    <div 
+<!-- Image container with zoom support -->
+    <div
       class="w-full flex items-center justify-center overflow-hidden bg-base-300 rounded-lg min-h-[50vh]"
       id="image-zoom-container"
       phx-hook="ImageZoom"
     >
-      <img 
-        src={@ticket.image_url} 
+      <img
+        src={@ticket.image_url}
         alt={gettext("Ticket image")}
         class="max-w-full h-auto object-contain select-none"
         draggable="false"
       />
     </div>
     
-    <!-- Zoom hint -->
+<!-- Zoom hint -->
     <div class="mt-4 text-center">
       <div class="inline-flex items-center gap-2 bg-base-300 px-3 py-1.5 rounded-full text-xs text-base-content/70">
         <.icon name="hero-arrows-pointing-out" class="w-3 h-3" />

@@ -916,4 +916,65 @@ defmodule TicketSplitter.Tickets do
       new_common
     end
   end
+
+  @doc """
+  Updates the participant name across all their assignments in a ticket.
+  Also updates the participant config if it exists.
+  Returns {:ok, count} with the number of updated assignments, or {:error, reason}.
+  """
+  def update_participant_name(ticket_id, old_name, new_name) do
+    old_name = String.downcase(String.trim(old_name))
+    new_name = String.downcase(String.trim(new_name))
+
+    # Validate new name is not empty
+    if new_name == "" do
+      {:error, :empty_name}
+    else
+      Repo.transaction(fn ->
+        # Update all participant assignments
+        assignment_count =
+          from(pa in ParticipantAssignment,
+            join: p in Product,
+            on: pa.product_id == p.id,
+            where: p.ticket_id == ^ticket_id and pa.participant_name == ^old_name
+          )
+          |> Repo.update_all(set: [participant_name: new_name])
+          |> elem(0)
+
+        # Update participant config if it exists
+        from(pc in ParticipantConfig,
+          where: pc.ticket_id == ^ticket_id and pc.participant_name == ^old_name
+        )
+        |> Repo.update_all(set: [participant_name: new_name])
+
+        assignment_count
+      end)
+    end
+  end
+
+  @doc """
+  Checks if a participant name exists in a ticket (has assignments).
+  Returns true if the name exists, false otherwise.
+  """
+  def participant_name_exists?(ticket_id, participant_name) do
+    participant_name = String.downcase(String.trim(participant_name))
+
+    query =
+      from pa in ParticipantAssignment,
+        join: p in Product,
+        on: pa.product_id == p.id,
+        where: p.ticket_id == ^ticket_id and pa.participant_name == ^participant_name,
+        limit: 1
+
+    Repo.exists?(query)
+  end
+
+  @doc """
+  Checks if a participant has any assignments in a ticket.
+  Returns true if they have assignments, false otherwise.
+  """
+  def participant_has_assignments?(ticket_id, participant_name) do
+    participant_name = String.downcase(String.trim(participant_name))
+    participant_name_exists?(ticket_id, participant_name)
+  end
 end
