@@ -4,6 +4,7 @@ FROM hexpm/elixir:1.18.3-erlang-27.3.3-debian-bookworm-20250407-slim AS builder
 # Install build dependencies (including libvips for image processing)
 RUN apt-get update && apt-get install -y \
     build-essential \
+    pkg-config \
     npm \
     git \
     curl \
@@ -20,6 +21,7 @@ RUN mix local.hex --force && \
 
 # Set arguments for build
 ARG MIX_ENV=prod
+ENV VIX_COMPILATION_MODE=PLATFORM_PROVIDED_LIBVIPS
 
 # Install dependencies
 COPY mix.exs mix.lock ./
