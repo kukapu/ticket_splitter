@@ -40,77 +40,85 @@
         <% end %>
         
 <!-- Compact Actions Bar -->
-        <div class="flex items-center justify-between gap-2 sm:gap-3">
+        <div class="relative flex items-center justify-between">
           <!-- Mi Parte (simplified) -->
-          <div class="relative flex items-center gap-1.5 bg-base-200 rounded-md px-2 py-1.5 border border-base-300 max-w-[45%]">
+          <div class={[
+            "relative flex items-end gap-1.5 bg-base-200 rounded-md px-2 py-2 border min-w-0 transition-all duration-300",
+            @acting_as_participant && "border-warning bg-warning/5",
+            !@acting_as_participant && "border-base-300"
+          ]}>
             <div
-              class="w-2.5 h-2.5 rounded-full flex-shrink-0"
+              class="w-2 h-2 rounded-full flex-shrink-0 mb-1"
               style={"background-color: #{if @acting_as_participant, do: @acting_as_color, else: (if @participant_name, do: @participant_color, else: "#cbd5e1")}"}
             ></div>
             <div class="flex-1 min-w-0">
               <%= if @acting_as_participant do %>
-                <div class="text-[9px] text-warning font-medium truncate leading-tight">{gettext("Acting as")} {@acting_as_participant}</div>
-                <div class="text-base font-bold text-warning leading-tight">€{format_decimal(@acting_as_total)}</div>
+                <div class="text-[10px] text-base-content/90 font-bold truncate leading-none mb-0.5 uppercase tracking-wide">
+                  {@acting_as_participant}
+                </div>
+                <div class="text-sm font-bold text-warning leading-none truncate">
+                  €{format_decimal(@acting_as_total)}
+                </div>
               <% else %>
-                <div class="text-[10px] text-base-content/50 leading-tight">{gettext("My share")}</div>
-                <div class="text-base font-bold text-base-content flex items-center gap-1 leading-tight">
-                  €{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}
+                <div class="text-[8px] text-base-content/50 leading-tight truncate">{gettext("My share")}</div>
+                <div class="text-sm font-bold text-base-content flex items-center gap-0.5 leading-tight">
+                  <span class="truncate">€{format_decimal(if @participant_name, do: @my_total, else: Decimal.new(0))}</span>
                   <%= if @my_multiplier > 1 do %>
-                    <span class="text-xs font-normal text-primary">(×{@my_multiplier})</span>
+                    <span class="text-[9px] font-normal text-primary flex-shrink-0">(×{@my_multiplier})</span>
                   <% end %>
                 </div>
               <% end %>
             </div>
-            <!-- Clear acting_as button (absolute positioned, transparent) -->
+            
             <%= if @acting_as_participant do %>
               <button
                 phx-click="clear_acting_as"
-                class="absolute -top-4.5 -right-1 w-4 h-4 flex items-center justify-center text-warning hover:text-warning/70 transition-colors"
-                title={gettext("Clear")}
+                class="absolute -top-[14px] -left-[4px] w-6 h-6 flex items-center justify-center text-warning/40 hover:text-white hover:bg-warning rounded-br-lg transition-all z-20"
+                title={gettext("Return to my account")}
               >
-                <.icon name="hero-x-mark" class="w-4 h-4 stroke-[2.5]" />
+                <.icon name="hero-x-mark" class="w-6 h-6 stroke-[4]" />
               </button>
             <% end %>
           </div>
-          
-<!-- Participants Counter -->
-          <div class="flex items-center gap-1 bg-base-200 rounded-md px-2 py-1.5 border border-base-300 flex-shrink-0">
+
+<!-- Participants Counter (perfectly centered) -->
+          <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-base-200 rounded-md px-1.5 py-1 border border-base-300">
             <button
               phx-click="decrement_participants"
-              class="aspect-square w-6 bg-secondary/25 hover:bg-secondary/40 text-secondary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm border border-secondary/30"
+              class="aspect-square w-1.5 bg-secondary/20 hover:bg-secondary/35 text-secondary rounded flex items-center justify-center transition-all duration-200 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
               disabled={@ticket.total_participants <= @min_participants}
             >
-              <span class="text-sm font-extrabold">−</span>
+              <span class="text-xs font-extrabold leading-none">−</span>
             </button>
-            <div class="flex flex-col items-center min-w-[24px]">
-              <span class="text-sm font-bold text-base-content leading-none">
+            <div class="flex flex-col items-center min-w-[18px]">
+              <span class="text-base font-bold text-base-content leading-none">
                 {@ticket.total_participants}
               </span>
-              <span class="text-[8px] text-base-content/40 leading-none">{gettext("people")}</span>
+              <span class="text-[7px] text-base-content/40 leading-none">{gettext("people")}</span>
             </div>
             <button
               phx-click="increment_participants"
-              class="aspect-square w-6 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-1.5 bg-primary/20 hover:bg-primary/35 text-primary rounded flex items-center justify-center transition-all duration-200 active:scale-95"
             >
-              <span class="text-sm font-extrabold">+</span>
+              <span class="text-xs font-extrabold leading-none">+</span>
             </button>
           </div>
-          
+
 <!-- Action Buttons -->
           <div class="flex gap-1">
             <button
               phx-click="open_share_modal"
-              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Share")}
             >
-              <.icon name="hero-share" class="w-4 h-4 stroke-2" />
+              <.icon name="hero-share" class="w-3.5 h-3.5 stroke-2" />
             </button>
             <button
               phx-click="show_summary"
-              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-lg flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Summary")}
             >
-              <.icon name="hero-presentation-chart-bar" class="w-4 h-4 stroke-2" />
+              <.icon name="hero-presentation-chart-bar" class="w-3.5 h-3.5 stroke-2" />
             </button>
           </div>
         </div>

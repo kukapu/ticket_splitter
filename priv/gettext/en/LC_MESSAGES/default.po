@@ -453,6 +453,16 @@ msgid "(me)"
 msgstr ""
 
 #: lib/ticket_splitter_web/live/ticket_live.html.heex:52
+#, elixir-autogen, elixir-format
+msgid "as"
+msgstr "as"
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:45
+#, elixir-autogen, elixir-format
+msgid "Return to my account"
+msgstr "Return to my account"
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:52
 #, elixir-autogen, elixir-format, fuzzy
 msgid "Acting as"
 msgstr ""

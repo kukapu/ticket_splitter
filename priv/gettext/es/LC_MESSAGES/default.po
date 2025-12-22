@@ -454,6 +454,16 @@ msgstr "(yo)"
 
 #: lib/ticket_splitter_web/live/ticket_live.html.heex:52
 #, elixir-autogen, elixir-format
+msgid "as"
+msgstr "como"
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:45
+#, elixir-autogen, elixir-format
+msgid "Return to my account"
+msgstr "Volver a mi cuenta"
+
+#: lib/ticket_splitter_web/live/ticket_live.html.heex:52
+#, elixir-autogen, elixir-format
 msgid "Acting as"
 msgstr "Actuando como"
 
