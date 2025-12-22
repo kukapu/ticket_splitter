@@ -1,0 +1,8 @@
+{
+  "name": "ticket_splitter_assets",
+  "version": "1.0.0",
+  "dependencies": {
+    "cropperjs": "^1.6.2",
+    "qrcode": "^1.5.4"
+  }
+}

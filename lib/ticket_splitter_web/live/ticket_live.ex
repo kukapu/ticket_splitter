@@ -86,15 +86,24 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:products, ticket.products)
       |> assign(:participant_name, nil)
       |> assign(:participant_color, nil)
-      |> assign(:show_name_modal, false)
       |> assign(:show_summary_modal, false)
       |> assign(:show_share_modal, false)
+      |> assign(:show_image_modal, false)
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
       |> assign(:show_instructions, false)
       |> assign(:show_share_confirmation, false)
       |> assign(:show_unshare_confirmation, false)
       |> assign(:pending_share_action, nil)
       |> assign(:editing_percentages_product_id, nil)
       |> assign(:my_total, Decimal.new("0"))
+      |> assign(:my_multiplier, 1)
+      |> assign(:acting_as_participant, nil)
+      |> assign(:acting_as_color, nil)
+      |> assign(:acting_as_total, Decimal.new("0"))
+      |> assign(:acting_as_multiplier, 1)
+      # "summary" or "assign"
+      |> assign(:summary_tab, "summary")
       |> assign(:total_ticket_main, total_ticket)
       |> assign(:total_assigned_main, total_assigned)
       |> assign(:pending_main, pending)
@@ -103,6 +112,20 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:page_title, page_title)
       |> assign(:page_description, page_description)
       |> assign(:page_url, page_url)
+
+    # Save ticket to history when visiting (only when connected to prevent double-save)
+    socket =
+      if connected?(socket) do
+        push_event(socket, "save_ticket_to_history", %{
+          ticket: %{
+            id: ticket.id,
+            merchant_name: ticket.merchant_name,
+            date: ticket.date
+          }
+        })
+      else
+        socket
+      end
 
     {:ok, socket}
   end
@@ -159,7 +182,6 @@ defmodule TicketSplitterWeb.TicketLive do
       |> assign(:ticket, ticket)
       |> assign(:participant_name, name)
       |> assign(:participant_color, color)
-      |> assign(:show_name_modal, false)
       |> push_event("save_participant_name", %{name: name})
       |> push_event("save_ticket_to_history", %{
         ticket: %{
@@ -176,6 +198,115 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event(
+        "change_participant_name",
+        %{"old_name" => old_name, "new_name" => new_name},
+        socket
+      ) do
+    old_name = String.downcase(String.trim(old_name))
+    new_name = String.downcase(String.trim(new_name))
+
+    ticket_id = socket.assigns.ticket.id
+
+    # Caso 1: Mismo nombre - no hacer nada
+    if old_name == new_name do
+      {:noreply, socket}
+    else
+      # Verificar si tengo asignaciones con el nombre antiguo
+      has_assignments = Tickets.participant_has_assignments?(ticket_id, old_name)
+
+      # Verificar si el nuevo nombre ya existe
+      name_exists = Tickets.participant_name_exists?(ticket_id, new_name)
+
+      cond do
+        # Caso 2: Tengo asignaciones Y el nuevo nombre ya existe -> ERROR
+        has_assignments && name_exists ->
+          socket =
+            socket
+            |> put_flash(
+              :error,
+              gettext(
+                "This name is already being used by another participant with assigned items"
+              )
+            )
+            |> push_event("name_change_error", %{})
+
+          {:noreply, socket}
+
+        # Caso 3: Tengo asignaciones Y el nuevo nombre NO existe -> ACTUALIZAR
+        has_assignments && !name_exists ->
+          case Tickets.update_participant_name(ticket_id, old_name, new_name) do
+            {:ok, _count} ->
+              # Broadcast para actualizar a todos los usuarios
+              broadcast_ticket_update(ticket_id)
+
+              # Recargar ticket
+              ticket = Tickets.get_ticket_with_products!(ticket_id)
+
+              socket =
+                socket
+                |> assign(:ticket, ticket)
+                |> assign(:participant_name, new_name)
+                |> push_event("save_participant_name", %{name: new_name})
+                |> push_event("name_change_success", %{})
+                |> calculate_my_total()
+                |> update_main_saldos()
+
+              {:noreply, socket}
+
+            {:error, _} ->
+              socket =
+                socket
+                |> put_flash(:error, gettext("Failed to update name"))
+                |> push_event("name_change_error", %{})
+
+              {:noreply, socket}
+          end
+
+        # Caso 4: NO tengo asignaciones Y el nuevo nombre ya existe -> ADOPTAR
+        !has_assignments && name_exists ->
+          # Simplemente cambiar al nuevo nombre (adoptarlo)
+          existing_user_color = get_existing_user_color(ticket_id, new_name)
+          existing_participants = Tickets.get_ticket_participants(ticket_id)
+
+          color =
+            if existing_user_color do
+              existing_user_color
+            else
+              get_deterministic_color(new_name, existing_participants)
+            end
+
+          socket =
+            socket
+            |> assign(:participant_name, new_name)
+            |> assign(:participant_color, color)
+            |> push_event("save_participant_name", %{name: new_name})
+            |> push_event("name_change_success", %{})
+            |> calculate_my_total()
+            |> update_main_saldos()
+
+          {:noreply, socket}
+
+        # Caso 5: NO tengo asignaciones Y el nuevo nombre NO existe -> CAMBIAR
+        !has_assignments && !name_exists ->
+          existing_participants = Tickets.get_ticket_participants(ticket_id)
+          color = get_deterministic_color(new_name, existing_participants)
+
+          socket =
+            socket
+            |> assign(:participant_name, new_name)
+            |> assign(:participant_color, color)
+            |> push_event("save_participant_name", %{name: new_name})
+            |> push_event("name_change_success", %{})
+            |> calculate_my_total()
+            |> update_main_saldos()
+
+          {:noreply, socket}
+      end
+    end
+  end
+
+  @impl true
+  def handle_event(
         "toggle_product",
         %{"product_id" => _product_id, "action" => action} = params,
         socket
@@ -184,7 +315,8 @@ defmodule TicketSplitterWeb.TicketLive do
     _color = socket.assigns.participant_color
 
     unless participant_name do
-      {:noreply, assign(socket, :show_name_modal, true)}
+      # Usar la misma lógica que cuando no hay nombre en localStorage
+      handle_event("participant_name_from_storage", %{"name" => ""}, socket)
     else
       cond do
         action == "join_group" ->
@@ -406,10 +538,22 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_event("show_summary", _params, socket) do
     # Pre-calcular todos los datos que necesita el modal
     participants = get_all_participants(socket.assigns)
+    current_participant_name = socket.assigns.participant_name
 
     participant_summaries =
       Enum.map(participants, fn participant ->
         calculate_participant_summary(socket.assigns.ticket.id, participant)
+      end)
+
+    # Sort: current user first, then alphabetically
+    sorted_summaries =
+      Enum.sort_by(participant_summaries, fn summary ->
+        if summary.name == current_participant_name do
+          # Current user comes first
+          {0, summary.name}
+        else
+          {1, summary.name}
+        end
       end)
 
     total_ticket = calculate_ticket_total(socket.assigns.products)
@@ -420,12 +564,19 @@ defmodule TicketSplitterWeb.TicketLive do
     pending = Decimal.sub(total_ticket, total_assigned)
 
     # Calculate "Rest of participants" if applicable
-    active_count = length(participants)
+    # IMPORTANT: active_count now considers multipliers
+    # (if someone has multiplier 4, they count as 4 active participants)
+    active_multipliers_sum =
+      Enum.reduce(sorted_summaries, 0, fn summary, acc ->
+        acc + (summary.multiplier || 1)
+      end)
+
     total_participants = socket.assigns.ticket.total_participants
 
-    participant_summaries =
-      if total_participants > active_count do
-        rest_count = total_participants - active_count
+    # Add "Rest of participants" summary if there are more total participants than effective active ones
+    final_summaries =
+      if total_participants > active_multipliers_sum do
+        rest_count = total_participants - active_multipliers_sum
 
         # Calculate total common cost
         total_common = calculate_total_common(socket.assigns.products)
@@ -455,26 +606,25 @@ defmodule TicketSplitterWeb.TicketLive do
           # Slate-400
           color: "#94a3b8",
           total: rest_individual_total,
+          multiplier: 1,
           is_rest: true
         }
 
-        # Return updated list and updated totals (Pending is fully absorbed by Rest)
-        # Note: We still add the FULL rest_total to total_assigned calculation to balance the ticket 0 sum
-        {participant_summaries ++ [rest_summary], Decimal.add(total_assigned, pending),
-         Decimal.new("0")}
+        # Add rest summary to the list, but keep original total_assigned and pending
+        sorted_summaries ++ [rest_summary]
       else
-        {participant_summaries, total_assigned, pending}
+        sorted_summaries
       end
-
-    {final_summaries, final_total_assigned, final_pending} = participant_summaries
 
     {:noreply,
      socket
      |> assign(:show_summary_modal, true)
+     # Reset to summary tab when opening
+     |> assign(:summary_tab, "summary")
      |> assign(:participants_for_summary, final_summaries)
      |> assign(:total_ticket_for_summary, total_ticket)
-     |> assign(:total_assigned_for_summary, final_total_assigned)
-     |> assign(:pending_for_summary, final_pending)}
+     |> assign(:total_assigned_for_summary, total_assigned)
+     |> assign(:pending_for_summary, pending)}
   end
 
   @impl true
@@ -498,6 +648,16 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
+  def handle_event("open_image_modal", _params, socket) do
+    {:noreply, assign(socket, :show_image_modal, true)}
+  end
+
+  @impl true
+  def handle_event("close_image_modal", _params, socket) do
+    {:noreply, assign(socket, :show_image_modal, false)}
+  end
+
+  @impl true
   def handle_event(
         "adjust_split_percentage",
         %{
@@ -508,10 +668,10 @@ defmodule TicketSplitterWeb.TicketLive do
         socket
       ) do
     # Verify that this user has the lock for this slider
-    participant_name = socket.assigns.participant_name
+    {active_participant, _color} = get_active_participant(socket)
     locked_by = Map.get(socket.assigns.locked_sliders, group_id)
 
-    if locked_by == participant_name do
+    if locked_by == active_participant do
       # Update participant percentages in the database
       case Tickets.update_split_percentages(group_id, p1_percentage, p2_percentage) do
         :ok ->
@@ -528,6 +688,20 @@ defmodule TicketSplitterWeb.TicketLive do
             |> calculate_my_total()
             |> update_main_saldos()
 
+          # Also recalculate acting_as_total if in acting_as mode
+          socket =
+            if socket.assigns.acting_as_participant do
+              acting_as_total =
+                Tickets.calculate_participant_total_with_multiplier(
+                  socket.assigns.ticket.id,
+                  socket.assigns.acting_as_participant
+                )
+
+              assign(socket, :acting_as_total, acting_as_total)
+            else
+              socket
+            end
+
           {:noreply, socket}
 
         {:error, _} ->
@@ -541,20 +715,20 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("lock_slider", %{"group_id" => group_id}, socket) do
-    participant_name = socket.assigns.participant_name
+    {active_participant, _color} = get_active_participant(socket)
 
     # Check if slider is already locked
     case Map.get(socket.assigns.locked_sliders, group_id) do
       nil ->
         # Not locked, acquire lock
-        locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, participant_name)
+        locked_sliders = Map.put(socket.assigns.locked_sliders, group_id, active_participant)
 
         # Broadcast lock to all users
-        broadcast_slider_lock(socket.assigns.ticket.id, group_id, participant_name)
+        broadcast_slider_lock(socket.assigns.ticket.id, group_id, active_participant)
 
         {:noreply, assign(socket, :locked_sliders, locked_sliders)}
 
-      ^participant_name ->
+      ^active_participant ->
         # Already locked by this user, nothing to do
         {:noreply, socket}
 
@@ -566,11 +740,11 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("unlock_slider", %{"group_id" => group_id}, socket) do
-    participant_name = socket.assigns.participant_name
+    {active_participant, _color} = get_active_participant(socket)
     locked_by = Map.get(socket.assigns.locked_sliders, group_id)
 
     # Only unlock if this user has the lock
-    if locked_by == participant_name do
+    if locked_by == active_participant do
       locked_sliders = Map.delete(socket.assigns.locked_sliders, group_id)
 
       # Broadcast unlock to all users
@@ -625,14 +799,72 @@ defmodule TicketSplitterWeb.TicketLive do
       # El usuario ya tiene nombre guardado
       handle_event("set_participant_name", %{"name" => name}, socket)
     else
-      # Mostrar modal para pedir nombre
-      {:noreply, assign(socket, :show_name_modal, true)}
+      # Sin nombre - decidir qué hacer según los participantes existentes
+      existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
+
+      if Enum.empty?(existing_participants) do
+        # No hay participantes - abrir directamente el modal del header
+        socket =
+          socket
+          |> push_event("open_user_settings_modal", %{})
+
+        {:noreply, socket}
+      else
+        # Hay participantes - mostrar modal de selección con colores
+        participants_with_colors =
+          Enum.map(existing_participants, fn p ->
+            %{
+              name: p.name,
+              color:
+                get_existing_user_color(socket.assigns.ticket.id, p.name) ||
+                  get_deterministic_color(p.name, existing_participants)
+            }
+          end)
+
+        socket =
+          socket
+          |> assign(:show_participant_selector, true)
+          |> assign(:existing_participants_for_selector, participants_with_colors)
+
+        {:noreply, socket}
+      end
     end
   end
 
+  @impl true
+  def handle_event("select_existing_participant", %{"name" => name}, socket) do
+    # Usuario selecciona un participante existente
+    socket =
+      socket
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
+
+    handle_event("set_participant_name", %{"name" => name}, socket)
+  end
+
+  @impl true
+  def handle_event("create_new_participant", _params, socket) do
+    # Usuario quiere crear nuevo - abrir el modal del header
+    socket =
+      socket
+      |> assign(:show_participant_selector, false)
+      |> assign(:existing_participants_for_selector, [])
+      |> push_event("open_user_settings_modal", %{})
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("close_participant_selector", _params, socket) do
+    {:noreply,
+     socket
+     |> assign(:show_participant_selector, false)
+     |> assign(:existing_participants_for_selector, [])}
+  end
+
   defp execute_toggle_action(action, params, socket) do
-    participant_name = socket.assigns.participant_name
-    color = socket.assigns.participant_color
+    # Use acting_as_participant if in admin mode, otherwise use own participant
+    {participant_name, color} = get_active_participant(socket)
     product_id = Map.get(params, "product_id")
 
     result =
@@ -676,6 +908,20 @@ defmodule TicketSplitterWeb.TicketLive do
           |> assign(:min_participants, min_participants)
           |> calculate_my_total()
           |> update_main_saldos()
+
+        # Also recalculate acting_as_total if in acting_as mode
+        socket =
+          if socket.assigns.acting_as_participant do
+            acting_as_total =
+              Tickets.calculate_participant_total_with_multiplier(
+                socket.assigns.ticket.id,
+                socket.assigns.acting_as_participant
+              )
+
+            assign(socket, :acting_as_total, acting_as_total)
+          else
+            socket
+          end
 
         {:noreply, socket}
 
@@ -817,6 +1063,189 @@ defmodule TicketSplitterWeb.TicketLive do
     :ok
   end
 
+  # Multiplier events - now applies to the active user (acting_as or self)
+  @impl true
+  def handle_event("update_my_multiplier", %{"multiplier" => multiplier_str}, socket) do
+    # Determine which participant to update: acting_as if set, otherwise self
+    target_participant = socket.assigns.acting_as_participant || socket.assigns.participant_name
+
+    if target_participant do
+      case Integer.parse(multiplier_str) do
+        {new_multiplier, _} when new_multiplier > 0 and new_multiplier <= 10 ->
+          old_multiplier =
+            if socket.assigns.acting_as_participant do
+              Tickets.get_participant_multiplier(
+                socket.assigns.ticket.id,
+                socket.assigns.acting_as_participant
+              )
+            else
+              socket.assigns.my_multiplier
+            end
+
+          multiplier_diff = new_multiplier - old_multiplier
+
+          case Tickets.update_participant_multiplier(
+                 socket.assigns.ticket.id,
+                 target_participant,
+                 new_multiplier
+               ) do
+            {:ok, _} ->
+              # Also update total_participants to reflect the multiplier change
+              ticket = socket.assigns.ticket
+
+              new_total_participants =
+                max(ticket.total_participants + multiplier_diff, socket.assigns.min_participants)
+
+              {:ok, updated_ticket} =
+                Tickets.update_ticket(ticket, %{total_participants: new_total_participants})
+
+              # Broadcast update to all users
+              broadcast_ticket_update(socket.assigns.ticket.id)
+
+              # Recalculate totals - different based on who we updated
+              socket = assign(socket, :ticket, updated_ticket)
+
+              socket =
+                if socket.assigns.acting_as_participant do
+                  # Updated the acting_as user, recalculate their total
+                  acting_as_total =
+                    Tickets.calculate_participant_total_with_multiplier(
+                      socket.assigns.ticket.id,
+                      socket.assigns.acting_as_participant
+                    )
+
+                  socket
+                  |> assign(:acting_as_total, acting_as_total)
+                  |> assign(:acting_as_multiplier, new_multiplier)
+                  |> calculate_my_total()
+                  |> update_main_saldos()
+                else
+                  # Updated self
+                  socket
+                  |> assign(:my_multiplier, new_multiplier)
+                  |> calculate_my_total()
+                  |> update_main_saldos()
+                end
+
+              {:noreply, socket}
+
+            {:error, _} ->
+              {:noreply, socket}
+          end
+
+        _ ->
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("increment_multiplier", _params, socket) do
+    # Get current multiplier of active user
+    current_multiplier =
+      if socket.assigns.acting_as_participant do
+        Tickets.get_participant_multiplier(
+          socket.assigns.ticket.id,
+          socket.assigns.acting_as_participant
+        )
+      else
+        socket.assigns.my_multiplier
+      end
+
+    new_multiplier = min(current_multiplier + 1, 10)
+    handle_event("update_my_multiplier", %{"multiplier" => to_string(new_multiplier)}, socket)
+  end
+
+  @impl true
+  def handle_event("decrement_multiplier", _params, socket) do
+    # Get current multiplier of active user
+    current_multiplier =
+      if socket.assigns.acting_as_participant do
+        Tickets.get_participant_multiplier(
+          socket.assigns.ticket.id,
+          socket.assigns.acting_as_participant
+        )
+      else
+        socket.assigns.my_multiplier
+      end
+
+    new_multiplier = max(current_multiplier - 1, 1)
+    handle_event("update_my_multiplier", %{"multiplier" => to_string(new_multiplier)}, socket)
+  end
+
+  # Tab events for summary modal
+  @impl true
+  def handle_event("switch_summary_tab", %{"tab" => tab}, socket)
+      when tab in ["summary", "assign"] do
+    {:noreply, assign(socket, :summary_tab, tab)}
+  end
+
+  @impl true
+  def handle_event("set_acting_as", %{"name" => name}, socket) do
+    # Set to act as another participant
+    name = String.downcase(String.trim(name))
+    existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
+
+    participant = Enum.find(existing_participants, fn p -> p.name == name end)
+
+    if participant do
+      # Calculate the total for the acting_as participant
+      acting_as_total =
+        Tickets.calculate_participant_total_with_multiplier(socket.assigns.ticket.id, name)
+
+      acting_as_multiplier =
+        Tickets.get_participant_multiplier(socket.assigns.ticket.id, name)
+
+      {:noreply,
+       socket
+       |> assign(:acting_as_participant, name)
+       |> assign(:acting_as_color, participant.color)
+       |> assign(:acting_as_total, acting_as_total)
+       |> assign(:acting_as_multiplier, acting_as_multiplier)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("clear_acting_as", _params, socket) do
+    # Return to acting as self
+    {:noreply,
+     socket
+     |> assign(:acting_as_participant, nil)
+     |> assign(:acting_as_color, nil)
+     |> assign(:acting_as_total, Decimal.new("0"))
+     |> assign(:acting_as_multiplier, 1)}
+  end
+
+  @impl true
+  def handle_event("create_ghost_participant", %{"name" => name}, socket) do
+    # Create a new "ghost" participant and set acting as them
+    name = String.downcase(String.trim(name))
+
+    if name != "" do
+      existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
+
+      # Check if already exists
+      if Enum.any?(existing_participants, fn p -> p.name == name end) do
+        {:noreply, socket}
+      else
+        # Generate a color for the ghost
+        color = get_deterministic_color(name, existing_participants)
+
+        {:noreply,
+         socket
+         |> assign(:acting_as_participant, name)
+         |> assign(:acting_as_color, color)
+         |> assign(:show_avatar_switcher, false)}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
   # Private functions
 
   defp broadcast_ticket_update(ticket_id) do
@@ -825,6 +1254,15 @@ defmodule TicketSplitterWeb.TicketLive do
       "ticket:#{ticket_id}",
       {:ticket_updated, ticket_id}
     )
+  end
+
+  defp get_active_participant(socket) do
+    # Returns {participant_name, color} - either acting_as or the user's own
+    if socket.assigns.acting_as_participant do
+      {socket.assigns.acting_as_participant, socket.assigns.acting_as_color}
+    else
+      {socket.assigns.participant_name, socket.assigns.participant_color}
+    end
   end
 
   defp broadcast_slider_lock(ticket_id, group_id, locked_by) do
@@ -873,14 +1311,23 @@ defmodule TicketSplitterWeb.TicketLive do
   defp calculate_my_total(socket) do
     participant_name = socket.assigns.participant_name
 
-    total =
-      if participant_name do
-        Tickets.calculate_participant_total(socket.assigns.ticket.id, participant_name)
-      else
-        Decimal.new("0")
-      end
+    if participant_name do
+      total =
+        Tickets.calculate_participant_total_with_multiplier(
+          socket.assigns.ticket.id,
+          participant_name
+        )
 
-    assign(socket, :my_total, total)
+      multiplier = Tickets.get_participant_multiplier(socket.assigns.ticket.id, participant_name)
+
+      socket
+      |> assign(:my_total, total)
+      |> assign(:my_multiplier, multiplier)
+    else
+      socket
+      |> assign(:my_total, Decimal.new("0"))
+      |> assign(:my_multiplier, 1)
+    end
   end
 
   defp update_main_saldos(socket) do
@@ -912,8 +1359,9 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   defp calculate_participant_summary(ticket_id, participant) do
-    total = Tickets.calculate_participant_total(ticket_id, participant.name)
-    %{name: participant.name, color: participant.color, total: total}
+    total = Tickets.calculate_participant_total_with_multiplier(ticket_id, participant.name)
+    multiplier = Tickets.get_participant_multiplier(ticket_id, participant.name)
+    %{name: participant.name, color: participant.color, total: total, multiplier: multiplier}
   end
 
   defp calculate_total_assigned(products, _total_participants) do
@@ -998,7 +1446,7 @@ defmodule TicketSplitterWeb.TicketLive do
          products,
          product_id,
          participant_name,
-         target_group_id \\ nil
+         target_group_id
        ) do
     product = Enum.find(products, fn p -> to_string(p.id) == to_string(product_id) end)
 

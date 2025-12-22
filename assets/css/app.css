@@ -100,9 +100,45 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Make LiveView wrapper divs transparent for layout */
-[data-phx-session], [data-phx-teleported-src] { display: contents }
+[data-phx-session],
+[data-phx-teleported-src] {
+  display: contents
+}
 
 /* This file is for your main application CSS */
+
+/* Import Cropper.js CSS */
+@import "cropperjs/dist/cropper.css";
+
+/* Cropper.js resize points customization - make all points equal size */
+.cropper-point {
+  width: 14px !important;
+  height: 14px !important;
+  background-color: #fff !important;
+  border: 3px solid #7B61FF !important;
+  border-radius: 0 !important;
+  opacity: 1 !important;
+}
+
+/* Specific overrides for all corner and edge points */
+.cropper-point.point-e,
+.cropper-point.point-w,
+.cropper-point.point-n,
+.cropper-point.point-s,
+.cropper-point.point-ne,
+.cropper-point.point-nw,
+.cropper-point.point-se,
+.cropper-point.point-sw {
+  width: 14px !important;
+  height: 14px !important;
+  background-color: #fff !important;
+}
+
+/* Make crop box lines more visible */
+.cropper-view-box {
+  outline: 2px solid #7B61FF !important;
+  outline-offset: -2px;
+}
 
 /* Global fix for aspect-square buttons - maintain 1:1 ratio everywhere */
 .aspect-square {
@@ -110,22 +146,43 @@
 }
 
 /* Ensure aspect-square buttons maintain their defined width but become square */
-button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+button.aspect-square,
+a.aspect-square,
+input[type="button"].aspect-square,
+input[type="submit"].aspect-square {
   height: auto !important;
   min-height: auto !important;
 }
 
 /* Make sure buttons use their width as height */
-button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
+button.aspect-square[class*="w-"],
+a.aspect-square[class*="w-"],
+input[type="button"].aspect-square[class*="w-"],
+input[type="submit"].aspect-square[class*="w-"] {
   height: unset !important;
   min-height: unset !important;
 }
 
 /* Ensure minimum sizes for different button categories */
-.aspect-square.w-6 { min-width: 28px !important; min-height: 28px !important; }
-.aspect-square.w-7 { min-width: 32px !important; min-height: 32px !important; }
-.aspect-square.w-8 { min-width: 36px !important; min-height: 36px !important; }
-.aspect-square.w-9 { min-width: 40px !important; min-height: 40px !important; }
+.aspect-square.w-6 {
+  min-width: 28px !important;
+  min-height: 28px !important;
+}
+
+.aspect-square.w-7 {
+  min-width: 32px !important;
+  min-height: 32px !important;
+}
+
+.aspect-square.w-8 {
+  min-width: 36px !important;
+  min-height: 36px !important;
+}
+
+.aspect-square.w-9 {
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
 
 /* Ensure buttons don't become too small while maintaining aspect ratio */
 .aspect-square {
@@ -135,7 +192,8 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 
 /* Dynamic Viewport Height - Mobile friendly */
 @utility min-h-screen-dynamic {
-  min-height: 100dvh; /* Dynamic viewport height - adapta a barra navegador */
+  min-height: 100dvh;
+  /* Dynamic viewport height - adapta a barra navegador */
 }
 
 @utility h-screen-dynamic {
@@ -147,6 +205,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   .min-h-screen-dynamic {
     min-height: 100vh;
   }
+
   .h-screen-dynamic {
     height: 100vh;
   }
@@ -173,7 +232,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
     gap: 0.5rem;
     margin-top: 1rem;
   }
-  
+
   .upload-area .mobile-buttons button {
     width: 100%;
   }
@@ -184,6 +243,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -196,7 +256,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   left: 0;
   height: 100%;
   width: 30%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   animation: progress-indeterminate 1.5s infinite ease-in-out;
 }
 
@@ -215,6 +275,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -234,7 +295,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
   opacity: 0;
   transition: opacity 0.3s ease;
   pointer-events: none;
@@ -323,8 +384,17 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 .available-units-card:hover {
@@ -376,11 +446,25 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   z-index: 1;
 }
 
-.cards-stack .colored-card:nth-child(1) { z-index: 5; }
-.cards-stack .colored-card:nth-child(2) { z-index: 4; }
-.cards-stack .colored-card:nth-child(3) { z-index: 3; }
-.cards-stack .colored-card:nth-child(4) { z-index: 2; }
-.cards-stack .colored-card:nth-child(5) { z-index: 1; }
+.cards-stack .colored-card:nth-child(1) {
+  z-index: 5;
+}
+
+.cards-stack .colored-card:nth-child(2) {
+  z-index: 4;
+}
+
+.cards-stack .colored-card:nth-child(3) {
+  z-index: 3;
+}
+
+.cards-stack .colored-card:nth-child(4) {
+  z-index: 2;
+}
+
+.cards-stack .colored-card:nth-child(5) {
+  z-index: 1;
+}
 
 /* Subtle overlay effect for stacked appearance */
 .cards-stack .colored-card::after {
@@ -390,7 +474,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.1) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.1) 100%);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s ease;
@@ -413,7 +497,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   right: 0;
   bottom: 0;
   width: 1px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.1) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.1) 100%);
 }
 
 .split-card-row .split-card-participant:last-child::before {
@@ -436,6 +520,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
     opacity: 0;
     transform: translateY(20px) scale(0.9);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -465,7 +550,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
 }
 
-.interactive-divider.dragging > div:first-child {
+.interactive-divider.dragging>div:first-child {
   background-color: #fbbf24;
   transform: translateX(-50%) translateY(-50%) scale(1.2);
 }
@@ -594,14 +679,21 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   }
 
   /* Ensure aspect-square buttons remain square on very small screens */
-  button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+  button.aspect-square,
+  a.aspect-square,
+  input[type="button"].aspect-square,
+  input[type="submit"].aspect-square {
     min-height: unset !important;
     height: unset !important;
   }
 
   /* Ensure very small screen aspect-square buttons remain touchable */
-  button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
-    min-width: 36px !important; /* Slightly larger for very small screens */
+  button.aspect-square[class*="w-"],
+  a.aspect-square[class*="w-"],
+  input[type="button"].aspect-square[class*="w-"],
+  input[type="submit"].aspect-square[class*="w-"] {
+    min-width: 36px !important;
+    /* Slightly larger for very small screens */
   }
 
   /* Override specific button sizes for very small screens */
@@ -611,18 +703,21 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
     min-width: 30px !important;
     min-height: 30px !important;
   }
+
   .aspect-square.w-7 {
     width: 34px !important;
     height: 34px !important;
     min-width: 34px !important;
     min-height: 34px !important;
   }
+
   .aspect-square.w-8 {
     width: 38px !important;
     height: 38px !important;
     min-width: 38px !important;
     min-height: 38px !important;
   }
+
   .aspect-square.w-9 {
     width: 42px !important;
     height: 42px !important;
@@ -713,10 +808,12 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
     transform: scale(1);
     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
   }
+
   50% {
     transform: scale(1.02);
     box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
   }
+
   100% {
     transform: scale(1.02);
     box-shadow: 0 0 30px rgba(139, 92, 246, 0.6);
@@ -749,9 +846,12 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 }
 
 @keyframes purpleGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 5px rgba(139, 92, 246, 0.5);
   }
+
   50% {
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.8);
   }
@@ -759,6 +859,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 
 /* Mobile-specific improvements for better UX */
 @media (max-width: 640px) {
+
   /* Optimize user info header for mobile */
   .bg-base-200.border.border-base-300.rounded-xl.shadow-lg {
     padding: 0.75rem;
@@ -771,19 +872,29 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
   }
 
   /* Better tap targets for mobile */
-  button, a, input[type="button"], input[type="submit"] {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"] {
     min-height: 44px;
   }
 
   /* Fix: Ensure aspect-square buttons remain square on mobile */
-  button.aspect-square, a.aspect-square, input[type="button"].aspect-square, input[type="submit"].aspect-square {
+  button.aspect-square,
+  a.aspect-square,
+  input[type="button"].aspect-square,
+  input[type="submit"].aspect-square {
     min-height: unset !important;
     height: unset !important;
   }
 
   /* Ensure mobile aspect-square buttons respect their width classes and sizes */
-  button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="button"].aspect-square[class*="w-"], input[type="submit"].aspect-square[class*="w-"] {
-    min-width: 32px !important; /* Minimum touch target size */
+  button.aspect-square[class*="w-"],
+  a.aspect-square[class*="w-"],
+  input[type="button"].aspect-square[class*="w-"],
+  input[type="submit"].aspect-square[class*="w-"] {
+    min-width: 32px !important;
+    /* Minimum touch target size */
   }
 
   /* Override specific button sizes for mobile */
@@ -793,18 +904,21 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
     min-width: 28px !important;
     min-height: 28px !important;
   }
+
   .aspect-square.w-7 {
     width: 32px !important;
     height: 32px !important;
     min-width: 32px !important;
     min-height: 32px !important;
   }
+
   .aspect-square.w-8 {
     width: 36px !important;
     height: 36px !important;
     min-width: 36px !important;
     min-height: 36px !important;
   }
+
   .aspect-square.w-9 {
     width: 40px !important;
     height: 40px !important;
@@ -826,6 +940,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 
 /* Extra small devices optimization */
 @media (max-width: 375px) {
+
   /* Further reduce padding on very small screens */
   .max-w-4xl.mx-auto {
     padding-left: 0.5rem;
@@ -840,6 +955,7 @@ button.aspect-square[class*="w-"], a.aspect-square[class*="w-"], input[type="but
 
 /* Landscape mobile optimization */
 @media (max-width: 768px) and (orientation: landscape) {
+
   /* Reduce vertical padding in landscape */
   .py-4 {
     padding-top: 0.5rem;
@@ -871,6 +987,7 @@ body {
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -879,7 +996,7 @@ body {
 
 /* Mejores sombras para las tarjetas del home - uniformes y elegantes */
 .home-card-shadow {
-  box-shadow: 
+  box-shadow:
     0 1px 3px 0 rgba(0, 0, 0, 0.05),
     0 4px 6px -1px rgba(0, 0, 0, 0.06),
     0 10px 15px -3px rgba(0, 0, 0, 0.08),
@@ -889,7 +1006,7 @@ body {
 
 /* En tema claro, sombras más visibles y uniformes */
 [data-theme="light"] .home-card-shadow {
-  box-shadow: 
+  box-shadow:
     0 2px 4px 0 rgba(0, 0, 0, 0.06),
     0 4px 8px -1px rgba(0, 0, 0, 0.08),
     0 12px 20px -4px rgba(0, 0, 0, 0.1),
@@ -898,7 +1015,7 @@ body {
 
 /* En tema oscuro, sombras más sutiles */
 [data-theme="dark"] .home-card-shadow {
-  box-shadow: 
+  box-shadow:
     0 1px 2px 0 rgba(0, 0, 0, 0.3),
     0 4px 6px -1px rgba(0, 0, 0, 0.4),
     0 10px 15px -3px rgba(0, 0, 0, 0.5),
@@ -907,7 +1024,7 @@ body {
 
 /* Hover effect para las tarjetas del home */
 .home-card-shadow:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.08),
     0 8px 12px -2px rgba(0, 0, 0, 0.1),
     0 16px 24px -4px rgba(0, 0, 0, 0.12),
@@ -915,7 +1032,7 @@ body {
 }
 
 [data-theme="light"] .home-card-shadow:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 8px -1px rgba(0, 0, 0, 0.1),
     0 8px 16px -2px rgba(0, 0, 0, 0.12),
     0 20px 32px -6px rgba(0, 0, 0, 0.14),
@@ -923,9 +1040,49 @@ body {
 }
 
 [data-theme="dark"] .home-card-shadow:hover {
-  box-shadow: 
+  box-shadow:
     0 4px 6px -1px rgba(0, 0, 0, 0.4),
     0 8px 12px -2px rgba(0, 0, 0, 0.5),
     0 16px 24px -4px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Scrollbar always visible for participant selector */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-base-content\/20::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-base-content\/20::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-base-content\/20::-webkit-scrollbar-thumb {
+  background: oklch(var(--color-base-content) / 0.25);
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-base-content\/20::-webkit-scrollbar-thumb:hover {
+  background: oklch(var(--color-base-content) / 0.4);
+}
+
+/* Firefox scrollbar colors */
+.scrollbar-thumb-base-content\/20 {
+  scrollbar-color: oklch(var(--color-base-content) / 0.25) transparent;
+}
+
+/* Lock body scroll when modal is open */
+body.overflow-hidden {
+  overflow: hidden !important;
+  touch-action: none;
+  -webkit-overflow-scrolling: none;
+}
+
+/* Smooth transition for modal content when keyboard opens/closes */
+/* The transform is applied via JavaScript for precise control */
+#user-settings-modal>div {
+  transition: transform 0.25s ease-out;
 }

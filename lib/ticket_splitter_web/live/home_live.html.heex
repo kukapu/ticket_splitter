@@ -1,18 +1,30 @@
 <Layouts.app flash={@flash} locale={@locale} current_path={@current_path}>
-  <div class="flex-1 flex items-center justify-center px-4 w-full">
+  <div
+    class="flex-1 flex items-center justify-center px-4 w-full"
+    id="home-container"
+    phx-hook="TicketHistory"
+  >
     <div class="max-w-md w-full">
-      <!-- Hidden upload input (always present for auto_upload to work) -->
-      <form id="upload-form" phx-submit="validate" phx-change="validate" class="hidden">
-        <div phx-drop-target={@uploads.image.ref}>
-          <.live_file_input upload={@uploads.image} />
-        </div>
-      </form>
+      <!-- Hidden upload input (manual handling with ImageCropper hook) -->
+      <div
+        id="image-cropper-container"
+        phx-hook="ImageCropper"
+        data-i18n-crop-title={gettext("Crop your ticket")}
+        data-i18n-confirm={gettext("Confirm")}
+        class="hidden"
+      >
+        <input
+          type="file"
+          id="image-file-input"
+          accept=".jpg,.jpeg,.png,.webp"
+          class="hidden"
+        />
+      </div>
       
 <!-- Ticket History Section (only visible when NOT processing) -->
       <%= if !@processing do %>
         <div
           id="ticket-history-container"
-          phx-hook="TicketHistory"
           class="mb-3 relative"
         >
           <div class="bg-base-200 rounded-3xl home-card-shadow border border-base-300 relative z-10">
@@ -32,7 +44,12 @@
                     </h3>
                     <%= if @ticket_history != [] do %>
                       <p class="text-xs text-base-content/50">
-                        {ngettext("%{count} saved ticket", "%{count} saved tickets", length(@ticket_history), count: length(@ticket_history))}
+                        {ngettext(
+                          "%{count} saved ticket",
+                          "%{count} saved tickets",
+                          length(@ticket_history),
+                          count: length(@ticket_history)
+                        )}
                       </p>
                     <% else %>
                       <p class="text-xs text-base-content/50">
@@ -78,7 +95,7 @@
                         >
                           <.icon name="hero-trash" class="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
-                        
+
                         <a
                           href={ticket["url"]}
                           class="flex-1 block p-3 min-w-0 hover:bg-base-200/50 transition-colors"
@@ -156,7 +173,7 @@
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-primary text-primary-content font-semibold rounded-xl hover:bg-primary/90 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                  onclick="document.querySelector('#upload-form input[type=file]').click()"
+                  onclick="document.getElementById('image-file-input').removeAttribute('capture'); document.getElementById('image-file-input').click();"
                 >
                   <.icon name="hero-photo" class="w-5 h-5 inline mr-2" /> {gettext("Select image")}
                 </button>
@@ -165,18 +182,11 @@
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-base-300 text-base-content font-semibold rounded-xl hover:bg-base-300/80 transition-all duration-200 shadow-lg sm:hidden"
-                  onclick="document.querySelector('#upload-form input[type=file]').setAttribute('capture', 'environment'); document.querySelector('#upload-form input[type=file]').click();"
+                  onclick="document.getElementById('image-file-input').setAttribute('capture', 'environment'); document.getElementById('image-file-input').click();"
                 >
                   <.icon name="hero-camera" class="w-5 h-5 inline mr-2" /> {gettext("Take photo")}
                 </button>
               </div>
-              
-<!-- Upload Errors -->
-              <%= for err <- upload_errors(@uploads.image) do %>
-                <div class="mt-4 p-3 bg-error/20 border border-error rounded-lg text-sm text-error-content">
-                  {error_to_string(err)}
-                </div>
-              <% end %>
             </div>
           </div>
         </div>
@@ -198,35 +208,37 @@
           </button>
         </div>
       <% end %>
-      
-<!-- Delete Confirmation Modal -->
-      <%= if @ticket_to_delete do %>
-        <div class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
-          <div class="bg-base-100 rounded-xl shadow-2xl max-w-md w-full p-4 sm:p-6 border-2 border-primary/50">
-            <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
-              {gettext("Delete ticket")}
-            </h2>
-            <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
-              {gettext("Are you sure you want to delete this ticket from history? This action cannot be undone.")}
-            </p>
-            <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
-              <button
-                phx-click="cancel_delete"
-                class="px-6 py-3 bg-base-300 text-base-content rounded-lg hover:bg-base-300/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
-              >
-                {gettext("Cancel")}
-              </button>
-              <button
-                phx-click="delete_ticket"
-                phx-value-id={@ticket_to_delete}
-                class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
-              >
-                {gettext("Confirm")}
-              </button>
-            </div>
-          </div>
+
+      <.modal
+        :if={@ticket_to_delete}
+        id="delete-ticket-modal"
+        show
+        on_cancel={JS.push("cancel_delete")}
+      >
+        <h2 class="text-lg sm:text-xl font-bold text-base-content mb-3 sm:mb-4">
+          {gettext("Delete ticket")}
+        </h2>
+        <p class="text-sm sm:text-base text-base-content mb-4 sm:mb-6">
+          {gettext(
+            "Are you sure you want to delete this ticket from history? This action cannot be undone."
+          )}
+        </p>
+        <div class="flex flex-col xs:flex-row gap-2.5 sm:gap-3 justify-end">
+          <button
+            phx-click="cancel_delete"
+            class="px-6 py-3 bg-base-200 text-base-content rounded-lg hover:bg-base-200/80 transition-colors font-medium min-h-[44px] order-2 xs:order-1"
+          >
+            {gettext("Cancel")}
+          </button>
+          <button
+            phx-click="delete_ticket"
+            phx-value-id={@ticket_to_delete}
+            class="px-6 py-3 bg-primary text-primary-content rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-lg min-h-[44px] order-1 xs:order-2"
+          >
+            {gettext("Confirm")}
+          </button>
         </div>
-      <% end %>
+      </.modal>
     </div>
   </div>
 </Layouts.app>

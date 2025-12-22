@@ -58,3 +58,17 @@ config :swoosh, :api_client, false
 # OpenRouter configuration
 config :ticket_splitter,
   openrouter_api_key: System.get_env("OPENROUTER_API_KEY")
+
+# Local MinIO for development (Docker)
+config :ex_aws, :s3,
+  scheme: "http://",
+  host: "minio",
+  port: 9000
+
+config :ex_aws,
+  access_key_id: "minioadmin",
+  secret_access_key: "minioadmin"
+
+config :ticket_splitter, :storage,
+  bucket: "ticket-splitter",
+  public_url: "http://localhost:9000/ticket-splitter"

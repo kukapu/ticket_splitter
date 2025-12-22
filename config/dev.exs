@@ -5,10 +5,7 @@ config :ticket_splitter, TicketSplitter.Repo,
   username: "postgres",
   password: "postgres",
   hostname: "localhost",
-  database: "ticket_splitter_dev",
-  stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  database: "ticket_splitter_dev"
 
 # For development, we disable any cache and enable
 # debugging and code reloading.

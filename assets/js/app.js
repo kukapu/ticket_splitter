@@ -25,9 +25,60 @@ import { LiveSocket } from "phoenix_live_view"
 import { hooks as colocatedHooks } from "phoenix-colocated/ticket_splitter"
 import topbar from "../vendor/topbar"
 import QRCode from "qrcode"
+// Cropper.js for image cropping
+import Cropper from "cropperjs"
+import "cropperjs/dist/cropper.css"
 
 // Custom Hooks
 const Hooks = {}
+
+// Keyboard detection using VisualViewport API
+// Uses inline transform to smoothly reposition the modal when keyboard opens
+if (window.visualViewport) {
+  let isKeyboardVisible = false;
+
+  const handleViewportChange = () => {
+    const viewport = window.visualViewport;
+    const modal = document.getElementById('user-settings-modal');
+    const modalContent = modal?.querySelector(':scope > div');
+
+    if (!modal || !modalContent) return;
+
+    // Check if modal is visible - if not, reset state and exit early
+    if (!modal.classList.contains('flex')) {
+      if (isKeyboardVisible) {
+        isKeyboardVisible = false;
+        document.body.classList.remove('keyboard-is-open');
+        modalContent.style.transform = '';
+      }
+      return;
+    }
+
+    // Calculate the offset needed to keep modal visible
+    const keyboardHeight = window.innerHeight - viewport.height;
+    const isKeyboardOpen = keyboardHeight > window.innerHeight * 0.15; // More than 15% of screen is keyboard
+
+    if (isKeyboardOpen && !isKeyboardVisible) {
+      isKeyboardVisible = true;
+      document.body.classList.add('keyboard-is-open');
+      // Apply transform to move modal up smoothly
+      // We want to move it up by about 15% of viewport height when keyboard is open, plus 50px extra
+      const translateY = Math.min(viewport.height * 0.15, keyboardHeight * 0.3) + 50;
+      modalContent.style.transform = `translateY(-${translateY}px)`;
+    } else if (!isKeyboardOpen && isKeyboardVisible) {
+      isKeyboardVisible = false;
+      document.body.classList.remove('keyboard-is-open');
+      modalContent.style.transform = '';
+    }
+  };
+
+  // Use both resize and scroll events for better coverage
+  window.visualViewport.addEventListener('resize', handleViewportChange);
+  window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+  // Also check on orientation change
+  window.addEventListener('orientationchange', () => setTimeout(handleViewportChange, 300));
+}
 
 // ParticipantStorage Hook - Manages participant name in localStorage
 Hooks.ParticipantStorage = {
@@ -43,10 +94,59 @@ Hooks.ParticipantStorage = {
       localStorage.setItem('participant_name', normalizedName)
     })
 
+    // Handle opening the user settings modal from the header
+    this.handleEvent("open_user_settings_modal", (payload) => {
+      if (window.openUserSettingsModal) {
+        // Pass editMode=true to open directly in edit mode (for new users)
+        window.openUserSettingsModal(payload?.editMode ?? true)
+      }
+    })
+
     // Handle ticket history saving
     this.handleEvent("save_ticket_to_history", ({ ticket }) => {
       this.saveTicketToHistory(ticket)
     })
+
+    // Listen for user name change requests from the modal
+    this.handleUserNameChange = (event) => {
+      const { old_name, new_name } = event.detail
+      console.log('🔄 User name change requested:', { old_name, new_name })
+      
+      // Push event to LiveView for validation
+      this.pushEvent("change_participant_name", {
+        old_name: old_name,
+        new_name: new_name
+      })
+    }
+    
+    document.addEventListener('user-name-change-request', this.handleUserNameChange)
+
+    // Handle successful name change from server
+    this.handleEvent("name_change_success", () => {
+      console.log('✅ Name changed successfully')
+      // Name was already saved to localStorage by the server
+      // Flash message will be shown automatically by Phoenix
+    })
+
+    // Handle name change errors from server
+    this.handleEvent("name_change_error", () => {
+      console.error('❌ Name change error')
+      
+      // Reopen modal in edit mode to allow user to try again
+      // Flash error message will be shown automatically by Phoenix
+      if (window.openUserSettingsModal) {
+        setTimeout(() => {
+          window.openUserSettingsModal(true)
+        }, 100)
+      }
+    })
+  },
+
+  destroyed() {
+    // Clean up event listener
+    if (this.handleUserNameChange) {
+      document.removeEventListener('user-name-change-request', this.handleUserNameChange)
+    }
   },
 
   saveTicketToHistory(ticket) {
@@ -96,6 +196,50 @@ Hooks.TicketHistory = {
     this.handleEvent("delete_ticket_from_history", ({ id }) => {
       this.deleteTicketFromHistory(id)
     })
+
+    // Handle saving ticket to history (when ticket is created from home page)
+    this.handleEvent("save_ticket_to_history", ({ ticket }) => {
+      this.saveTicketToHistory(ticket)
+      // Reload history to update the UI immediately
+      this.loadHistory()
+    })
+  },
+
+  saveTicketToHistory(ticket) {
+    try {
+      // Get existing history from localStorage
+      const history = JSON.parse(localStorage.getItem('ticket_history') || '[]')
+
+      // Check if ticket already exists
+      const existingIndex = history.findIndex(t => t.id === ticket.id)
+
+      // Create new entry with timestamp
+      const newEntry = {
+        id: ticket.id,
+        merchant_name: ticket.merchant_name,
+        date: ticket.date,
+        url: `/tickets/${ticket.id}`,
+        visited_at: Date.now()
+      }
+
+      // Remove existing entry if duplicate
+      if (existingIndex >= 0) {
+        history.splice(existingIndex, 1)
+      }
+
+      // Add to beginning (most recent first)
+      history.unshift(newEntry)
+
+      // Keep only last 100 entries
+      if (history.length > 100) {
+        history.pop()
+      }
+
+      // Save back to localStorage
+      localStorage.setItem('ticket_history', JSON.stringify(history))
+    } catch (error) {
+      console.warn('Could not save ticket to history:', error)
+    }
   },
 
   loadHistory() {
@@ -125,6 +269,32 @@ Hooks.TicketHistory = {
     } catch (error) {
       console.warn('Could not delete ticket from history:', error)
     }
+  }
+}
+
+// UserSettings Hook - Manages user settings in localStorage (for header user modal)
+Hooks.UserSettings = {
+  mounted() {
+    // Load the current user name and send to LiveView
+    this.loadUserName()
+
+    // Handle save event from LiveView
+    this.handleEvent("save_user_name", ({ name }) => {
+      const normalizedName = name ? name.toLowerCase().trim() : ""
+      localStorage.setItem('participant_name', normalizedName)
+      // Confirm save back to LiveView
+      this.pushEvent("user_name_saved", { name: normalizedName })
+    })
+
+    // Handle request to load username
+    this.handleEvent("request_user_name", () => {
+      this.loadUserName()
+    })
+  },
+
+  loadUserName() {
+    const name = localStorage.getItem('participant_name') || ""
+    this.pushEvent("user_name_loaded", { name: name })
   }
 }
 
@@ -752,11 +922,404 @@ Hooks.CopyToClipboard = {
   }
 }
 
+// ImageZoom Hook - Enables pinch-to-zoom and scroll-to-zoom for images
+Hooks.ImageZoom = {
+  mounted() {
+    const container = this.el
+    const img = container.querySelector('img')
+    if (!img) return
+
+    let scale = 1
+    let translateX = 0
+    let translateY = 0
+    let lastScale = 1
+    let lastTranslateX = 0
+    let lastTranslateY = 0
+    let initialDistance = 0
+    let isPinching = false
+    let isDragging = false
+    let startX = 0
+    let startY = 0
+
+    const minScale = 1
+    const maxScale = 4
+
+    const updateTransform = () => {
+      img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`
+    }
+
+    // Wheel zoom (desktop)
+    const handleWheel = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const delta = e.deltaY > 0 ? -0.2 : 0.2
+      const newScale = Math.max(minScale, Math.min(maxScale, scale + delta))
+
+      // Zoom towards cursor position
+      const rect = container.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const centerX = rect.width / 2
+      const centerY = rect.height / 2
+
+      if (newScale > scale) {
+        // Zooming in: move towards cursor
+        translateX += (centerX - x) * 0.1
+        translateY += (centerY - y) * 0.1
+      } else if (newScale === minScale) {
+        // Reset position when fully zoomed out
+        translateX = 0
+        translateY = 0
+      }
+
+      scale = newScale
+      updateTransform()
+    }
+
+    // Touch handlers for pinch-to-zoom
+    const getDistance = (touch1, touch2) => {
+      const dx = touch1.clientX - touch2.clientX
+      const dy = touch1.clientY - touch2.clientY
+      return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    const handleTouchStart = (e) => {
+      if (e.touches.length === 2) {
+        // Pinch start
+        isPinching = true
+        isDragging = false
+        initialDistance = getDistance(e.touches[0], e.touches[1])
+        lastScale = scale
+      } else if (e.touches.length === 1 && scale > 1) {
+        // Pan start (only when zoomed in)
+        isDragging = true
+        startX = e.touches[0].clientX - translateX
+        startY = e.touches[0].clientY - translateY
+        lastTranslateX = translateX
+        lastTranslateY = translateY
+      }
+    }
+
+    const handleTouchMove = (e) => {
+      if (isPinching && e.touches.length === 2) {
+        e.preventDefault()
+        const currentDistance = getDistance(e.touches[0], e.touches[1])
+        const delta = currentDistance / initialDistance
+        scale = Math.max(minScale, Math.min(maxScale, lastScale * delta))
+        updateTransform()
+      } else if (isDragging && e.touches.length === 1 && scale > 1) {
+        e.preventDefault()
+        translateX = e.touches[0].clientX - startX
+        translateY = e.touches[0].clientY - startY
+        updateTransform()
+      }
+    }
+
+    const handleTouchEnd = (e) => {
+      if (e.touches.length < 2) {
+        isPinching = false
+        lastScale = scale
+      }
+      if (e.touches.length === 0) {
+        isDragging = false
+
+        // Reset if scale is 1
+        if (scale === 1) {
+          translateX = 0
+          translateY = 0
+          updateTransform()
+        }
+      }
+    }
+
+    // Double-tap to zoom
+    let lastTap = 0
+    const handleDoubleTap = (e) => {
+      const now = Date.now()
+      if (now - lastTap < 300) {
+        e.preventDefault()
+        if (scale > 1) {
+          // Reset zoom
+          scale = 1
+          translateX = 0
+          translateY = 0
+        } else {
+          // Zoom in to 2x
+          scale = 2
+        }
+        updateTransform()
+      }
+      lastTap = now
+    }
+
+    // Prevent click propagation to close modal when interacting with image
+    const handleClick = (e) => {
+      e.stopPropagation()
+    }
+
+    // Add event listeners
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    container.addEventListener('touchstart', handleTouchStart, { passive: false })
+    container.addEventListener('touchmove', handleTouchMove, { passive: false })
+    container.addEventListener('touchend', handleTouchEnd)
+    container.addEventListener('click', handleClick)
+    img.addEventListener('touchend', handleDoubleTap)
+
+    // Cleanup
+    this.handleDestroy = () => {
+      container.removeEventListener('wheel', handleWheel)
+      container.removeEventListener('touchstart', handleTouchStart)
+      container.removeEventListener('touchmove', handleTouchMove)
+      container.removeEventListener('touchend', handleTouchEnd)
+      container.removeEventListener('click', handleClick)
+      img.removeEventListener('touchend', handleDoubleTap)
+    }
+  },
+
+  destroyed() {
+    if (this.handleDestroy) {
+      this.handleDestroy()
+    }
+  }
+}
+
+// ImageCropper Hook - Enables image cropping before upload
+Hooks.ImageCropper = {
+  mounted() {
+    console.log('🎨 ImageCropper hook mounted')
+    const fileInput = document.getElementById('image-file-input')
+
+    if (!fileInput) {
+      console.error('❌ File input not found')
+      return
+    }
+
+    const handleFileSelect = (e) => {
+      console.log('📁 File selected:', e.target.files)
+      const file = e.target.files[0]
+      if (!file) return
+
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!validTypes.includes(file.type)) {
+        alert('Por favor selecciona una imagen válida (JPG, PNG o WEBP)')
+        fileInput.value = ''
+        return
+      }
+
+      // Validate file size (10MB)
+      const maxSize = 10 * 1024 * 1024
+      if (file.size > maxSize) {
+        alert('La imagen es demasiado grande. El tamaño máximo es 10MB.')
+        fileInput.value = ''
+        return
+      }
+
+      console.log('✅ File valid, reading...')
+
+      // Read file as data URL
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        console.log('📷 File loaded, showing cropper modal')
+        // Create and show modal
+        this.showCropperModal(event.target.result, file.name, file.type)
+      }
+      reader.readAsDataURL(file)
+    }
+
+    fileInput.addEventListener('change', handleFileSelect)
+
+    // Store reference for cleanup
+    this.fileInput = fileInput
+    this.handleFileSelect = handleFileSelect
+  },
+
+  showCropperModal(imageSrc, fileName, fileType) {
+    const fileInput = this.fileInput
+    let cropper = null
+    let modal = null
+    let imageElement = null
+
+    console.log('🖼️ Creating cropper modal...')
+
+    // Get translations from data attributes (set by Gettext on the server)
+    const cropTitle = this.el.dataset.i18nCropTitle || 'Recorta tu ticket'
+    const confirmText = this.el.dataset.i18nConfirm || 'Confirmar'
+
+    // Create modal
+    modal = document.createElement('div')
+    modal.id = 'cropper-modal'
+    modal.className = 'fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-3 sm:p-4 transition-opacity'
+
+    modal.innerHTML = `
+      <div class="bg-base-300 border border-base-300 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden transform transition-all animate-fade-in">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-base-100/10 flex-shrink-0 text-left">
+          <h2 class="text-lg font-bold text-base-content">${cropTitle}</h2>
+          <button id="close-cropper" class="btn btn-ghost btn-sm btn-circle">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Image Container -->
+        <div id="cropper-container" style="max-height: 50vh; background: #000;">
+          <img id="cropper-image" src="${imageSrc}" style="max-width: 100%; display: block;" />
+        </div>
+
+        <!-- Footer -->
+        <div class="p-4 border-t border-base-100/10 flex-shrink-0">
+          <button id="confirm-crop" class="btn btn-primary w-full shadow-lg">
+            ${confirmText}
+          </button>
+        </div>
+      </div>
+    `
+
+    document.body.appendChild(modal)
+    document.body.classList.add('overflow-hidden')
+
+    // Wait for image to load before initializing Cropper
+    imageElement = document.getElementById('cropper-image')
+
+    const initCropper = () => {
+      console.log('🎨 Initializing Cropper.js...')
+      cropper = new Cropper(imageElement, {
+        viewMode: 1,
+        dragMode: 'move',
+        aspectRatio: NaN,
+        autoCropArea: 0.65,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: true,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
+        background: true,
+        modal: true,
+        responsive: true,
+        checkOrientation: true,
+        minContainerWidth: 200,
+        minContainerHeight: 200,
+        ready() {
+          console.log('✅ Cropper is ready!')
+        }
+      })
+    }
+
+    // Check if image is already loaded
+    if (imageElement.complete) {
+      initCropper()
+    } else {
+      imageElement.addEventListener('load', initCropper)
+    }
+
+    // Close button handler
+    const closeButton = document.getElementById('close-cropper')
+
+    const closeModal = () => {
+      console.log('🚫 Closing cropper modal')
+      if (cropper) {
+        cropper.destroy()
+        cropper = null
+      }
+      if (modal) {
+        modal.remove()
+        modal = null
+        document.body.classList.remove('overflow-hidden')
+      }
+      if (fileInput) {
+        fileInput.value = '' // Reset file input
+      }
+    }
+
+    closeButton.addEventListener('click', closeModal)
+
+    // Confirm button handler
+    const confirmButton = document.getElementById('confirm-crop')
+    confirmButton.addEventListener('click', () => {
+      if (!cropper) return
+
+      // Fixed quality at 80%
+      const quality = 0.75
+
+      console.log('✂️ Getting cropped canvas...')
+
+      // Get cropped canvas
+      const canvas = cropper.getCroppedCanvas({
+        maxWidth: 2000,
+        maxHeight: 2000,
+        fillColor: '#fff',
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+      })
+
+      // Convert to blob with compression
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          alert('Error al procesar la imagen. Por favor intenta de nuevo.')
+          return
+        }
+
+        console.log('📦 Converting to base64...')
+
+        // Convert blob to base64
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64data = reader.result
+
+          // Calculate file size
+          const sizeInBytes = Math.round((base64data.length - 'data:image/webp;base64,'.length) * 3 / 4)
+          const sizeInKB = (sizeInBytes / 1024).toFixed(2)
+
+          console.log(`✅ Imagen recortada y comprimida: ${sizeInKB}KB (calidad: ${quality * 100}%)`)
+
+          // STEP 1: Tell backend to start processing (shows spinner)
+          console.log('🔄 Sending start_processing event to show spinner...')
+          this.pushEvent('start_processing', {})
+
+          // STEP 2: Wait for LiveView to re-render with spinner, then close modal
+          setTimeout(() => {
+            console.log('🚪 Closing modal...')
+            closeModal()
+
+            // STEP 3: Send the actual image data
+            setTimeout(() => {
+              console.log('📤 Sending cropped image to backend...')
+              this.pushEvent('cropped_image_ready', {
+                base64: base64data.split(',')[1], // Remove data:image/webp;base64, prefix
+                filename: fileName,
+                content_type: 'image/webp',
+                size: sizeInBytes
+              })
+            }, 100)
+          }, 300) // Wait 300ms for LiveView to re-render with spinner
+        }
+        reader.readAsDataURL(blob)
+      }, 'image/webp', quality)
+    })
+  },
+
+  destroyed() {
+    console.log('🧹 ImageCropper hook destroyed - cleaning up')
+    if (this.fileInput && this.handleFileSelect) {
+      this.fileInput.removeEventListener('change', this.handleFileSelect)
+    }
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+
+// Merge hooks with defensive handling (colocatedHooks may be undefined)
+const allHooks = { ...(colocatedHooks || {}), ...Hooks }
+
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: { _csrf_token: csrfToken },
-  hooks: { ...colocatedHooks, ...Hooks },
+  hooks: allHooks,
 })
 
 // Show progress bar on live navigation and form submits
@@ -868,11 +1431,11 @@ function notifyUserAboutUpdate() {
       }
     </style>
   `;
-  
+
   // Remover notificación existente si hay una
   const existing = document.getElementById('pwa-update-notification');
   if (existing) existing.remove();
-  
+
   document.body.appendChild(notification);
 }
 

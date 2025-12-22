@@ -116,6 +116,20 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Req
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+
+  # Production MinIO/S3 configuration
+  config :ex_aws,
+    access_key_id: System.get_env("MINIO_ACCESS_KEY"),
+    secret_access_key: System.get_env("MINIO_SECRET_KEY")
+
+  config :ex_aws, :s3,
+    scheme: System.get_env("MINIO_SCHEME") || "https://",
+    host: System.get_env("MINIO_HOST") || "YOUR_MINIO_HOST_PLACEHOLDER",
+    port: String.to_integer(System.get_env("MINIO_PORT") || "443")
+
+  config :ticket_splitter, :storage,
+    bucket: System.get_env("MINIO_BUCKET") || "ticket-splitter",
+    public_url: System.get_env("MINIO_PUBLIC_URL") || "https://YOUR_MINIO_URL_PLACEHOLDER"
 end
 
 # OpenRouter configuration for all environments
