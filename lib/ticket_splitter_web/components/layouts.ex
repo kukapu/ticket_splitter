@@ -480,6 +480,6 @@ defmodule TicketSplitterWeb.Layouts do
   end
 
   defp app_version do
-    Mix.Project.config()[:version] || "dev"
+    Application.spec(:ticket_splitter, :vsn) |> to_string()
   end
 end
