@@ -531,3 +531,28 @@ msgstr ""
 #, elixir-autogen, elixir-format
 msgid "This name is already being used by another participant with assigned items"
 msgstr ""
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error saving ticket"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error parsing the response"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Could not extract ticket information. Please try with a clearer image."
+msgstr ""
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error processing the image"
+msgstr ""
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "The uploaded image does not appear to be a valid receipt."
+msgstr ""

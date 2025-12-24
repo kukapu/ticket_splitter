@@ -117,14 +117,14 @@
           <div class="flex gap-1">
             <button
               phx-click="open_share_modal"
-              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Share")}
             >
               <.icon name="hero-share" class="w-3.5 h-3.5 stroke-2" />
             </button>
             <button
               phx-click="show_summary"
-              class="aspect-square w-7 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
+              class="aspect-square w-8 bg-primary/25 hover:bg-primary/40 text-primary rounded-md flex items-center justify-center transition-all duration-200 active:scale-95 shadow-sm border border-primary/30"
               title={gettext("Summary")}
             >
               <.icon name="hero-presentation-chart-bar" class="w-3.5 h-3.5 stroke-2" />
@@ -696,7 +696,7 @@
 
         active_multiplier =
           if @acting_as_participant, do: @acting_as_multiplier, else: @my_multiplier %>
-        <div class={"mb-4 p-2.5 rounded-lg flex items-center justify-between #{if @acting_as_participant, do: "bg-warning/10 border border-warning/30", else: "bg-base-200"}"}>
+        <div class={"mb-4 p-2 rounded-lg flex items-center justify-between #{if @acting_as_participant, do: "bg-warning/10 border border-warning/30", else: "bg-base-200"}"}>
           <div class="flex items-center gap-2 min-w-0">
             <.icon
               name="hero-user-group"
@@ -714,7 +714,7 @@
           <div class="flex items-center gap-1">
             <button
               phx-click="decrement_multiplier"
-              class={"w-7 h-7 rounded-md flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 #{if @acting_as_participant, do: "bg-warning/20 hover:bg-warning/30 text-warning", else: "bg-secondary/25 hover:bg-secondary/40 text-secondary"}"}
+              class={"aspect-square w-6 rounded flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 #{if @acting_as_participant, do: "bg-warning/20 hover:bg-warning/30 text-warning", else: "bg-secondary/25 hover:bg-secondary/40 text-secondary"}"}
               disabled={active_multiplier <= 1}
             >
               <span class="text-sm font-bold">−</span>
@@ -724,7 +724,7 @@
             </span>
             <button
               phx-click="increment_multiplier"
-              class={"w-7 h-7 rounded-md flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 #{if @acting_as_participant, do: "bg-warning/20 hover:bg-warning/30 text-warning", else: "bg-primary/25 hover:bg-primary/40 text-primary"}"}
+              class={"aspect-square w-6 rounded flex items-center justify-center transition-all active:scale-95 disabled:opacity-40 #{if @acting_as_participant, do: "bg-warning/20 hover:bg-warning/30 text-warning", else: "bg-primary/25 hover:bg-primary/40 text-primary"}"}
               disabled={active_multiplier >= 10}
             >
               <span class="text-sm font-bold">+</span>
@@ -787,7 +787,7 @@
       <div class="space-y-4">
         <!-- Current selection indicator -->
         <%= if @acting_as_participant do %>
-          <div class="p-3 bg-warning/10 border border-warning/30 rounded-lg flex items-center justify-between">
+          <div class="px-2 bg-warning/10 border border-warning/30 rounded-lg flex items-center justify-between">
             <div class="flex items-center gap-2">
               <div class="w-4 h-4 rounded-full" style={"background-color: #{@acting_as_color}"}>
               </div>
@@ -1053,33 +1053,27 @@
     on_cancel={JS.push("close_image_modal")}
     width="max-w-md"
   >
-    <!-- Close button -->
-    <button
-      phx-click="close_image_modal"
-      class="absolute top-4 right-4 z-[60] w-10 h-10 bg-base-300/80 hover:bg-base-300 rounded-full flex items-center justify-center transition-colors shadow-lg"
-    >
-      <.icon name="hero-x-mark" class="w-6 h-6 text-base-content" />
-    </button>
-    
-<!-- Image container with zoom support -->
-    <div
-      class="w-full flex items-center justify-center overflow-hidden bg-base-300 rounded-lg min-h-[50vh]"
-      id="image-zoom-container"
-      phx-hook="ImageZoom"
-    >
-      <img
-        src={@ticket.image_url}
-        alt={gettext("Ticket image")}
-        class="max-w-full h-auto object-contain select-none"
-        draggable="false"
-      />
-    </div>
-    
-<!-- Zoom hint -->
-    <div class="mt-4 text-center">
-      <div class="inline-flex items-center gap-2 bg-base-300 px-3 py-1.5 rounded-full text-xs text-base-content/70">
-        <.icon name="hero-arrows-pointing-out" class="w-3 h-3" />
-        {gettext("Pinch or scroll to zoom")}
+    <div class="relative">
+      <!-- Close button -->
+      <button
+        phx-click="close_image_modal"
+        class="absolute -top-2 -right-2 z-10 w-8 h-8 bg-base-100/90 hover:bg-base-100 rounded-full flex items-center justify-center transition-colors shadow-lg border border-base-300"
+      >
+        <.icon name="hero-x-mark" class="w-5 h-5 text-base-content" />
+      </button>
+      
+      <!-- Image container with zoom support -->
+      <div
+        class="w-full flex items-center justify-center overflow-hidden bg-base-300 rounded-lg min-h-[50vh]"
+        id="image-zoom-container"
+        phx-hook="ImageZoom"
+      >
+        <img
+          src={@ticket.image_url}
+          alt={gettext("Ticket image")}
+          class="max-w-full h-auto object-contain select-none"
+          draggable="false"
+        />
       </div>
     </div>
   </.modal>

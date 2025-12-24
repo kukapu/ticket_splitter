@@ -73,7 +73,7 @@ defmodule TicketSplitterWeb.Layouts do
       <footer class="flex-none bg-base-300 border-t border-base-content/20 py-2">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p class="text-center text-xs text-base-content/60">
-            © kukapu - beta versión {app_version()}
+            @kukapu - v{app_version()}
           </p>
         </div>
       </footer>
@@ -353,7 +353,7 @@ defmodule TicketSplitterWeb.Layouts do
 
         window.saveUserSettings = function() {
           const input = document.getElementById('user-name-input');
-          const newName = input.value.trim().toLowerCase();
+          const newName = input.value.trim();
           const originalName = window._originalUserName;
 
           // Don't save empty names
@@ -480,10 +480,6 @@ defmodule TicketSplitterWeb.Layouts do
   end
 
   defp app_version do
-    Application.spec(:ticket_splitter, :vsn)
-    |> case do
-      vsn when is_list(vsn) -> List.to_string(vsn)
-      _ -> "dev"
-    end
+    Mix.Project.config()[:version] || "dev"
   end
 end

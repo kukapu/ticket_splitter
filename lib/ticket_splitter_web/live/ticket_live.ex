@@ -133,7 +133,7 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("set_participant_name", %{"name" => name}, socket) do
     # Normalize name to lowercase for case-insensitive comparison
-    name = String.downcase(String.trim(name))
+    name = String.trim(name)
 
     # Asignar color consistente basado en el nombre del usuario
     existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
@@ -202,8 +202,8 @@ defmodule TicketSplitterWeb.TicketLive do
         %{"old_name" => old_name, "new_name" => new_name},
         socket
       ) do
-    old_name = String.downcase(String.trim(old_name))
-    new_name = String.downcase(String.trim(new_name))
+    old_name = String.trim(old_name)
+    new_name = String.trim(new_name)
 
     ticket_id = socket.assigns.ticket.id
 
@@ -984,7 +984,7 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("set_acting_as", %{"name" => name}, socket) do
     # Set to act as another participant
-    name = String.downcase(String.trim(name))
+    name = String.trim(name)
     existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
 
     participant = Enum.find(existing_participants, fn p -> p.name == name end)
@@ -1022,7 +1022,7 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("create_ghost_participant", %{"name" => name}, socket) do
     # Create a new "ghost" participant and set acting as them
-    name = String.downcase(String.trim(name))
+    name = String.trim(name)
 
     if name != "" do
       existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)

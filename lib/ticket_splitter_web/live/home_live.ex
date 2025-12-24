@@ -3,8 +3,6 @@ defmodule TicketSplitterWeb.HomeLive do
 
   alias TicketSplitter.Tickets
 
-  # Modelo único para análisis
-  @openrouter_model "google/gemini-2.5-flash-lite-preview-09-2025"
   # Intentos maximos de validación cruzada
   @max_retries 3
 
@@ -287,7 +285,7 @@ defmodule TicketSplitterWeb.HomeLive do
                 IO.puts("❌ Error guardando ticket: #{inspect(error)}")
 
                 socket
-                |> assign(:error, "Error guardando el ticket: #{inspect(error)}")
+                |> put_flash(:error, gettext("Error saving ticket"))
                 |> assign(:processing, false)
                 |> assign(:result, nil)
             end
@@ -295,8 +293,14 @@ defmodule TicketSplitterWeb.HomeLive do
           {:error, :not_a_receipt, error_message} ->
             IO.puts("⚠️ Imagen no es un ticket: #{error_message}")
 
+            # Guardar la imagen en tickets-error para análisis
+            save_error_image(uploaded_file)
+
             socket
-            |> put_flash(:error, error_message)
+            |> put_flash(
+              :error,
+              gettext("The uploaded image does not appear to be a valid receipt.")
+            )
             |> assign(:processing, false)
             |> assign(:result, nil)
 
@@ -304,19 +308,65 @@ defmodule TicketSplitterWeb.HomeLive do
             IO.puts("❌ Error parseando JSON: #{inspect(error)}")
 
             socket
-            |> assign(:error, "Error parseando la respuesta: #{error}")
+            |> put_flash(:error, gettext("Error parsing the response"))
             |> assign(:processing, false)
             |> assign(:result, nil)
         end
+
+      {:error, :not_a_receipt, error_message} ->
+        IO.puts("⚠️ Imagen no es un ticket (detectado en validación): #{error_message}")
+
+        # Guardar la imagen en tickets-error para análisis
+        save_error_image(uploaded_file)
+
+        socket
+        |> put_flash(:error, gettext("The uploaded image does not appear to be a valid receipt."))
+        |> assign(:processing, false)
+        |> assign(:result, nil)
+
+      {:error, :parsing_failed} ->
+        IO.puts("❌ Fallo en el parseo después de #{@max_retries} intentos")
+
+        # Guardar la imagen en tickets-error para análisis
+        save_error_image(uploaded_file)
+
+        socket
+        |> put_flash(
+          :error,
+          gettext("Could not extract ticket information. Please try with a clearer image.")
+        )
+        |> assign(:processing, false)
+        |> assign(:result, nil)
 
       {:error, error} ->
         IO.puts("❌ Error en OpenRouter: #{inspect(error)}")
 
         socket
-        |> assign(:error, "Error procesando la imagen: #{inspect(error)}")
+        |> put_flash(:error, gettext("Error processing the image"))
         |> assign(:processing, false)
         |> assign(:result, nil)
     end
+  end
+
+  # Guarda la imagen con error en la carpeta tickets-error para análisis posterior
+  defp save_error_image(uploaded_file) do
+    Task.start(fn ->
+      # Decodificar la imagen
+      binary_data = Base.decode64!(uploaded_file.base64)
+
+      # Subir a la carpeta tickets-error
+      case TicketSplitter.Storage.upload_error_image(
+             binary_data,
+             uploaded_file.filename,
+             uploaded_file.content_type
+           ) do
+        {:ok, url} ->
+          IO.puts("✅ Imagen con error guardada en: #{url}")
+
+        {:error, reason} ->
+          IO.puts("⚠️ No se pudo guardar la imagen con error: #{inspect(reason)}")
+      end
+    end)
   end
 
   defp parse_openrouter_response(response) do
@@ -353,7 +403,9 @@ defmodule TicketSplitterWeb.HomeLive do
 
             %{"is_receipt" => false} ->
               IO.puts("⚠️ La imagen no es un ticket válido")
-              {:error, :not_a_receipt, "La imagen no parece ser un ticket válido."}
+
+              {:error, :not_a_receipt,
+               gettext("The uploaded image does not appear to be a valid receipt.")}
 
             _ ->
               {:ok, json}
@@ -374,6 +426,7 @@ defmodule TicketSplitterWeb.HomeLive do
 
   defp make_openrouter_request(uploaded_file) do
     api_key = Application.get_env(:ticket_splitter, :openrouter_api_key)
+    model = Application.get_env(:ticket_splitter, :openrouter_model)
     main_prompt = read_prompt_from_file()
 
     # Prompt de validación para obtener solo el total
@@ -389,7 +442,7 @@ defmodule TicketSplitterWeb.HomeLive do
       "🔑 API Key configurada: #{if api_key, do: "Sí (***#{String.slice(api_key, -4..-1)})", else: "No"}"
     )
 
-    IO.puts("🤖 Usando modelo único: #{@openrouter_model}")
+    IO.puts("🤖 Usando modelo: #{model}")
     IO.puts("💬 Prompt: #{String.slice(main_prompt, 0, 50)}...")
 
     unless api_key do
@@ -399,7 +452,7 @@ defmodule TicketSplitterWeb.HomeLive do
       process_with_validation_loop(
         uploaded_file,
         api_key,
-        @openrouter_model,
+        model,
         main_prompt,
         validation_prompt,
         @max_retries
@@ -437,30 +490,38 @@ defmodule TicketSplitterWeb.HomeLive do
 
     case {result_main, result_val} do
       {{:ok, body_main}, {:ok, body_val}} ->
-        IO.puts("📥 Ambas peticiones respondieron. Verificando totales...")
+        IO.puts("📥 Ambas peticiones respondieron. Verificando validez y totales...")
 
-        # Extraer totales
-        total_main = extract_total_from_response(body_main)
-        total_val = extract_total_from_response(body_val)
+        # Primero verificar si la imagen es un ticket válido
+        case check_if_receipt(body_main) do
+          {:error, :not_a_receipt, error_message} ->
+            IO.puts("⚠️ Imagen no es un ticket válido, deteniendo procesamiento")
+            {:error, :not_a_receipt, error_message}
 
-        IO.puts("💰 Total Main: #{inspect(total_main)}")
-        IO.puts("💰 Total Validation: #{inspect(total_val)}")
+          :ok ->
+            # Extraer totales
+            total_main = extract_total_from_response(body_main)
+            total_val = extract_total_from_response(body_val)
 
-        if totals_match?(total_main, total_val) do
-          IO.puts("✅ ¡TOTALES COINCIDEN! Validación exitosa.")
-          {:ok, body_main}
-        else
-          IO.puts("⚠️ DISCREPANCIA EN TOTALES.")
+            IO.puts("💰 Total Main: #{inspect(total_main)}")
+            IO.puts("💰 Total Validation: #{inspect(total_val)}")
 
-          retry_or_fail(
-            "Totales no coinciden",
-            uploaded_file,
-            api_key,
-            model,
-            main_prompt,
-            val_prompt,
-            attempts_left
-          )
+            if totals_match?(total_main, total_val) do
+              IO.puts("✅ ¡TOTALES COINCIDEN! Validación exitosa.")
+              {:ok, body_main}
+            else
+              IO.puts("⚠️ DISCREPANCIA EN TOTALES.")
+
+              retry_or_fail(
+                "Totales no coinciden",
+                uploaded_file,
+                api_key,
+                model,
+                main_prompt,
+                val_prompt,
+                attempts_left
+              )
+            end
         end
 
       _ ->
@@ -475,6 +536,26 @@ defmodule TicketSplitterWeb.HomeLive do
           val_prompt,
           attempts_left
         )
+    end
+  end
+
+  # Verifica si la respuesta indica que la imagen es un ticket válido
+  defp check_if_receipt(response) do
+    with {:ok, content} <- extract_content(response),
+         {:ok, json} <- Jason.decode(sanitize_json_content(content)) do
+      case json do
+        %{"is_receipt" => false, "error_message" => error_message} ->
+          {:error, :not_a_receipt, error_message}
+
+        %{"is_receipt" => false} ->
+          {:error, :not_a_receipt,
+           gettext("The uploaded image does not appear to be a valid receipt.")}
+
+        _ ->
+          :ok
+      end
+    else
+      _ -> :ok
     end
   end
 
@@ -499,8 +580,8 @@ defmodule TicketSplitterWeb.HomeLive do
         attempts_left - 1
       )
     else
-      IO.puts("❌ Se agotaron los intentos. Fallo definitivo.")
-      {:error, reason}
+      IO.puts("❌ Se agotaron los #{@max_retries} intentos. Fallo definitivo.")
+      {:error, :parsing_failed}
     end
   end
 
@@ -601,11 +682,11 @@ defmodule TicketSplitterWeb.HomeLive do
         Req.post("https://openrouter.ai/api/v1/chat/completions",
           json: payload,
           headers: headers,
-          receive_timeout: 25_000
+          receive_timeout: 60_000
         )
       end)
 
-    case Task.yield(task, 25_000) || Task.shutdown(task, :brutal_kill) do
+    case Task.yield(task, 60_000) || Task.shutdown(task, :brutal_kill) do
       {:ok, {:ok, %{status: 200, body: body}}} ->
         IO.puts("✅ Respuesta HTTP 200 recibida")
         # IO.puts("📦 Body completo de OpenRouter:")
@@ -621,7 +702,7 @@ defmodule TicketSplitterWeb.HomeLive do
         {:error, error}
 
       nil ->
-        IO.puts("⏱️ Timeout después de 25 segundos para modelo #{model}")
+        IO.puts("⏱️ Timeout después de 60 segundos para modelo #{model}")
         {:error, :timeout}
     end
   end

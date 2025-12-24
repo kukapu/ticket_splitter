@@ -225,7 +225,7 @@ defmodule TicketSplitter.Tickets do
   """
   def get_participant_assignments_by_ticket(ticket_id, participant_name) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     query =
       from pa in ParticipantAssignment,
@@ -273,7 +273,7 @@ defmodule TicketSplitter.Tickets do
   """
   def add_participant_unit(product_id, participant_name, color) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     # Calculate available units (excluding assigned AND common units)
     available = get_available_units(product_id)
@@ -327,7 +327,7 @@ defmodule TicketSplitter.Tickets do
   """
   def join_assignment_group(assignment_group_id, participant_name, color) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     # Get existing assignments in this group
     group_assignments =
@@ -379,7 +379,7 @@ defmodule TicketSplitter.Tickets do
   """
   def remove_from_assignment_group(assignment_group_id, participant_name) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     # Get participant's assignment in this group
     assignment =
@@ -420,7 +420,7 @@ defmodule TicketSplitter.Tickets do
   """
   def remove_participant_unit(product_id, participant_name, target_group_id \\ nil) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     # Find participant's assignments for this product
     assignments =
@@ -678,7 +678,7 @@ defmodule TicketSplitter.Tickets do
   """
   def calculate_participant_total(ticket_id, participant_name) do
     # Normalize name to lowercase for case-insensitive comparison
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     ticket = get_ticket_with_products!(ticket_id)
     total_participants = ticket.total_participants
@@ -769,7 +769,7 @@ defmodule TicketSplitter.Tickets do
   Returns nil if no config exists.
   """
   def get_participant_config(ticket_id, participant_name) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     ParticipantConfig
     |> where([pc], pc.ticket_id == ^ticket_id and pc.participant_name == ^participant_name)
@@ -780,7 +780,7 @@ defmodule TicketSplitter.Tickets do
   Gets or creates a participant config for a ticket.
   """
   def get_or_create_participant_config(ticket_id, participant_name) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     case get_participant_config(ticket_id, participant_name) do
       nil ->
@@ -802,7 +802,7 @@ defmodule TicketSplitter.Tickets do
   Creates the config if it doesn't exist.
   """
   def update_participant_multiplier(ticket_id, participant_name, multiplier) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     case get_or_create_participant_config(ticket_id, participant_name) do
       {:ok, config} ->
@@ -867,7 +867,7 @@ defmodule TicketSplitter.Tickets do
   The multiplier affects how much of the common cost they pay.
   """
   def calculate_participant_total_with_multiplier(ticket_id, participant_name) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     ticket = get_ticket_with_products!(ticket_id)
     effective_participants = get_effective_participants_count(ticket_id)
@@ -923,8 +923,8 @@ defmodule TicketSplitter.Tickets do
   Returns {:ok, count} with the number of updated assignments, or {:error, reason}.
   """
   def update_participant_name(ticket_id, old_name, new_name) do
-    old_name = String.downcase(String.trim(old_name))
-    new_name = String.downcase(String.trim(new_name))
+    old_name = String.trim(old_name)
+    new_name = String.trim(new_name)
 
     # Validate new name is not empty
     if new_name == "" do
@@ -957,7 +957,7 @@ defmodule TicketSplitter.Tickets do
   Returns true if the name exists, false otherwise.
   """
   def participant_name_exists?(ticket_id, participant_name) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
 
     query =
       from pa in ParticipantAssignment,
@@ -974,7 +974,7 @@ defmodule TicketSplitter.Tickets do
   Returns true if they have assignments, false otherwise.
   """
   def participant_has_assignments?(ticket_id, participant_name) do
-    participant_name = String.downcase(String.trim(participant_name))
+    participant_name = String.trim(participant_name)
     participant_name_exists?(ticket_id, participant_name)
   end
 end

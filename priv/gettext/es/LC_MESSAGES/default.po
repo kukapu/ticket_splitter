@@ -531,3 +531,28 @@ msgstr "El nombre no puede estar vacío"
 #, elixir-autogen, elixir-format
 msgid "This name is already being used by another participant with assigned items"
 msgstr "Este nombre ya está siendo usado por otro participante con productos asignados"
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error saving ticket"
+msgstr "Error al guardar el ticket"
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error parsing the response"
+msgstr "Error al procesar la respuesta"
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Could not extract ticket information. Please try with a clearer image."
+msgstr "No se pudo extraer la información del ticket. Por favor, intenta con una imagen más clara."
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "Error processing the image"
+msgstr "Error al procesar la imagen"
+
+#: lib/ticket_splitter_web/live/home_live.ex
+#, elixir-autogen, elixir-format
+msgid "The uploaded image does not appear to be a valid receipt."
+msgstr "La imagen subida no parece ser un ticket válido."

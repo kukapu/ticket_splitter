@@ -61,12 +61,19 @@ config :phoenix, :json_library, Jason
 
 # S3/MinIO Configuration (base settings, overridden per environment)
 config :ex_aws,
-  json_codec: Jason
+  json_codec: Jason,
+  access_key_id: System.get_env("MINIO_ACCESS_KEY") || "minioadmin",
+  secret_access_key: System.get_env("MINIO_SECRET_KEY") || "minioadmin"
 
 config :ex_aws, :s3,
-  scheme: "http://",
-  host: "localhost",
-  port: 9000
+  scheme: System.get_env("MINIO_SCHEME") || "http",
+  host: System.get_env("MINIO_HOST") || "localhost",
+  port: String.to_integer(System.get_env("MINIO_PORT") || "9000"),
+  region: System.get_env("MINIO_REGION") || "us-east-1"
+
+config :ticket_splitter, :storage,
+  bucket: System.get_env("MINIO_BUCKET") || "ticket-splitter",
+  public_url: System.get_env("MINIO_PUBLIC_URL") || "http://localhost:9000/ticket-splitter"
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

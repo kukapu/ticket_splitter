@@ -84,14 +84,10 @@ if (window.visualViewport) {
 Hooks.ParticipantStorage = {
   mounted() {
     const name = localStorage.getItem('participant_name')
-    // Normalize name to lowercase for case-insensitive comparison
-    const normalizedName = name ? name.toLowerCase() : ""
-    this.pushEvent("participant_name_from_storage", { name: normalizedName })
+    this.pushEvent("participant_name_from_storage", { name: name || "" })
 
     this.handleEvent("save_participant_name", ({ name }) => {
-      // Normalize name to lowercase before saving
-      const normalizedName = name ? name.toLowerCase() : ""
-      localStorage.setItem('participant_name', normalizedName)
+      localStorage.setItem('participant_name', name || "")
     })
 
     // Handle opening the user settings modal from the header
@@ -111,14 +107,14 @@ Hooks.ParticipantStorage = {
     this.handleUserNameChange = (event) => {
       const { old_name, new_name } = event.detail
       console.log('🔄 User name change requested:', { old_name, new_name })
-      
+
       // Push event to LiveView for validation
       this.pushEvent("change_participant_name", {
         old_name: old_name,
         new_name: new_name
       })
     }
-    
+
     document.addEventListener('user-name-change-request', this.handleUserNameChange)
 
     // Handle successful name change from server
@@ -131,7 +127,7 @@ Hooks.ParticipantStorage = {
     // Handle name change errors from server
     this.handleEvent("name_change_error", () => {
       console.error('❌ Name change error')
-      
+
       // Reopen modal in edit mode to allow user to try again
       // Flash error message will be shown automatically by Phoenix
       if (window.openUserSettingsModal) {
@@ -280,7 +276,7 @@ Hooks.UserSettings = {
 
     // Handle save event from LiveView
     this.handleEvent("save_user_name", ({ name }) => {
-      const normalizedName = name ? name.toLowerCase().trim() : ""
+      const normalizedName = name ? name.trim() : ""
       localStorage.setItem('participant_name', normalizedName)
       // Confirm save back to LiveView
       this.pushEvent("user_name_saved", { name: normalizedName })
@@ -603,8 +599,8 @@ Hooks.SplitDivider = {
       if (!currentUserName) return true // Default to true if no name
 
       // Get current participant names
-      const participant1Name = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
-      const participant2Name = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+      const participant1Name = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim() || ''
+      const participant2Name = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim() || ''
 
       // Check if current user matches the first participant
       return participant1Name === currentUserName
@@ -718,12 +714,12 @@ Hooks.SplitDivider = {
 
       // Get original alphabetical order from data attributes (same as database)
       // participant1 is alphabetically first, participant2 is alphabetically second
-      const participant1NameOriginal = (divider.dataset.participant1Name || '').toLowerCase()
-      const participant2NameOriginal = (divider.dataset.participant2Name || '').toLowerCase()
+      const participant1NameOriginal = divider.dataset.participant1Name || ''
+      const participant2NameOriginal = divider.dataset.participant2Name || ''
 
       // Get participant names from visual position (reordered for UI)
-      const participant1NameVisual = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
-      const participant2NameVisual = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim()?.toLowerCase() || ''
+      const participant1NameVisual = participant1?.querySelector('.text-base-content.truncate')?.textContent?.trim() || ''
+      const participant2NameVisual = participant2?.querySelector('.text-base-content.truncate')?.textContent?.trim() || ''
 
       // Map visual percentages to original alphabetical order
       // p1Percentage goes to participant1 (alphabetically first)

@@ -123,9 +123,12 @@ if config_env() == :prod do
     secret_access_key: System.get_env("MINIO_SECRET_KEY")
 
   config :ex_aws, :s3,
-    scheme: System.get_env("MINIO_SCHEME") || "https://",
+    # ExAws expects scheme without "://", just "https" or "http"
+    scheme: System.get_env("MINIO_SCHEME") |> String.trim_trailing("://") || "https",
     host: System.get_env("MINIO_HOST") || "YOUR_MINIO_HOST_PLACEHOLDER",
-    port: String.to_integer(System.get_env("MINIO_PORT") || "443")
+    port: String.to_integer(System.get_env("MINIO_PORT") || "443"),
+    # MinIO requires a region for AWS signature v4
+    region: System.get_env("MINIO_REGION") || "us-east-1"
 
   config :ticket_splitter, :storage,
     bucket: System.get_env("MINIO_BUCKET") || "ticket-splitter",
@@ -134,4 +137,5 @@ end
 
 # OpenRouter configuration for all environments
 config :ticket_splitter,
-  openrouter_api_key: System.get_env("OPENROUTER_API_KEY")
+  openrouter_api_key: System.get_env("OPENROUTER_API_KEY"),
+  openrouter_model: System.get_env("OPENROUTER_MODEL") || "google/gemini-3-flash-preview"

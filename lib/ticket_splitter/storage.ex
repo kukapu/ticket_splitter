@@ -31,6 +31,31 @@ defmodule TicketSplitter.Storage do
   end
 
   @doc """
+  Uploads an error image (failed parsing) to S3 in the tickets-error folder.
+  """
+  def upload_error_image(binary_data, filename, content_type) do
+    bucket = get_bucket()
+    key = generate_error_key(filename)
+
+    Logger.info("📤 Uploading error image to S3: #{key}")
+
+    case ExAws.S3.put_object(bucket, key, binary_data, [
+           {:content_type, content_type},
+           {:acl, :public_read}
+         ])
+         |> ExAws.request() do
+      {:ok, _} ->
+        url = get_public_url(key)
+        Logger.info("✅ Error image uploaded successfully: #{url}")
+        {:ok, url}
+
+      {:error, error} ->
+        Logger.error("❌ Failed to upload error image: #{inspect(error)}")
+        {:error, error}
+    end
+  end
+
+  @doc """
   Deletes an image from S3.
   """
   def delete_image(url) when is_binary(url) do
@@ -72,6 +97,14 @@ defmodule TicketSplitter.Storage do
     # Normalize extension for webp output
     ext = if ext == "", do: ".webp", else: ext
     "tickets/#{uuid}#{ext}"
+  end
+
+  defp generate_error_key(filename) do
+    uuid = Ecto.UUID.generate()
+    ext = Path.extname(filename) |> String.downcase()
+    # Normalize extension for webp output
+    ext = if ext == "", do: ".webp", else: ext
+    "tickets-error/#{uuid}#{ext}"
   end
 
   defp extract_key_from_url(url) do
