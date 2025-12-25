@@ -2,6 +2,7 @@ defmodule TicketSplitterWeb.HomeLive do
   use TicketSplitterWeb, :live_view
 
   alias TicketSplitter.Tickets
+  alias TicketSplitter.OpenRouter.{Parser, Validator, Prompt}
 
   # Intentos maximos de validación cruzada
   @max_retries 3
@@ -263,7 +264,7 @@ defmodule TicketSplitterWeb.HomeLive do
         IO.puts("✅ Respuesta exitosa de OpenRouter")
 
         # Parsear el JSON de la respuesta
-        case parse_openrouter_response(response) do
+        case Parser.parse_response(response) do
           {:ok, products_json} ->
             # Guardar el ticket en la base de datos (with S3 image URL)
             case Tickets.create_ticket_from_json(products_json, uploaded_file.image_url) do
@@ -369,74 +370,11 @@ defmodule TicketSplitterWeb.HomeLive do
     end)
   end
 
-  defp parse_openrouter_response(response) do
-    IO.puts("\n🔍 Parseando respuesta de OpenRouter...")
-
-    with {:ok, choices} <- Map.fetch(response, "choices"),
-         [first_choice | _] <- choices,
-         {:ok, message} <- Map.fetch(first_choice, "message"),
-         {:ok, content} <- Map.fetch(message, "content") do
-      IO.puts("📝 Content recibido (primeros 500 chars):")
-      IO.puts(String.slice(content, 0, 500))
-
-      # Limpiar markdown code blocks (```json ... ```)
-      cleaned_content =
-        content
-        |> String.replace(~r/^```json\s*/m, "")
-        |> String.replace(~r/```\s*$/m, "")
-        |> String.trim()
-
-      IO.puts("\n🧹 Content limpiado (primeros 500 chars):")
-      IO.puts(String.slice(cleaned_content, 0, 500))
-
-      # El content debería ser un JSON string
-      case Jason.decode(cleaned_content) do
-        {:ok, json} ->
-          IO.puts("✅ JSON parseado exitosamente:")
-          IO.inspect(json, pretty: true, limit: :infinity)
-
-          # Verificar si el LLM detectó que la imagen no es un ticket
-          case json do
-            %{"is_receipt" => false, "error_message" => error_message} ->
-              IO.puts("⚠️ La imagen no es un ticket válido: #{error_message}")
-              {:error, :not_a_receipt, error_message}
-
-            %{"is_receipt" => false} ->
-              IO.puts("⚠️ La imagen no es un ticket válido")
-
-              {:error, :not_a_receipt,
-               gettext("The uploaded image does not appear to be a valid receipt.")}
-
-            _ ->
-              {:ok, json}
-          end
-
-        {:error, error} ->
-          IO.puts("❌ Error al parsear JSON:")
-          IO.inspect(error)
-          {:error, "El contenido no es JSON válido"}
-      end
-    else
-      error ->
-        IO.puts("❌ Error en el formato de respuesta:")
-        IO.inspect(error)
-        {:error, "Formato de respuesta inválido"}
-    end
-  end
-
   defp make_openrouter_request(uploaded_file) do
     api_key = Application.get_env(:ticket_splitter, :openrouter_api_key)
     model = Application.get_env(:ticket_splitter, :openrouter_model)
-    main_prompt = read_prompt_from_file()
-
-    # Prompt de validación para obtener solo el total
-    validation_prompt = """
-    Analiza la imagen y devuelve ÚNICAMENTE un objeto JSON con el total a pagar del ticket.
-    Formato: {"total_amount": <numero>}.
-    Si hay multiples tickets, suma los totales.
-    Ejemplo: {"total_amount": 24.50}
-    NO incluyas texto extra, solo el JSON.
-    """
+    main_prompt = Prompt.main_prompt()
+    validation_prompt = Prompt.validation_prompt()
 
     IO.puts(
       "🔑 API Key configurada: #{if api_key, do: "Sí (***#{String.slice(api_key, -4..-1)})", else: "No"}"
@@ -449,7 +387,7 @@ defmodule TicketSplitterWeb.HomeLive do
       {:error, "API key no configurada"}
     else
       # Iniciar bucle de validación
-      process_with_validation_loop(
+      Validator.validate_with_retry(
         uploaded_file,
         api_key,
         model,
@@ -457,263 +395,6 @@ defmodule TicketSplitterWeb.HomeLive do
         validation_prompt,
         @max_retries
       )
-    end
-  end
-
-  # Bucle de reintentos con validación paralela
-  defp process_with_validation_loop(
-         uploaded_file,
-         api_key,
-         model,
-         main_prompt,
-         val_prompt,
-         attempts_left
-       ) do
-    IO.puts("\n🔄 Intento ##{4 - attempts_left} de #{@max_retries}...")
-
-    # Lanzar tareas en paralelo
-    main_task =
-      Task.async(fn ->
-        IO.puts("🚀 Lanzando petición MAIN...")
-        call_openrouter_api(model, uploaded_file, api_key, main_prompt)
-      end)
-
-    val_task =
-      Task.async(fn ->
-        IO.puts("🚀 Lanzando petición VALIDATION...")
-        call_openrouter_api(model, uploaded_file, api_key, val_prompt)
-      end)
-
-    # Esperar resultados (Timeout generoso de 30s)
-    result_main = Task.await(main_task, 30_000)
-    result_val = Task.await(val_task, 30_000)
-
-    case {result_main, result_val} do
-      {{:ok, body_main}, {:ok, body_val}} ->
-        IO.puts("📥 Ambas peticiones respondieron. Verificando validez y totales...")
-
-        # Primero verificar si la imagen es un ticket válido
-        case check_if_receipt(body_main) do
-          {:error, :not_a_receipt, error_message} ->
-            IO.puts("⚠️ Imagen no es un ticket válido, deteniendo procesamiento")
-            {:error, :not_a_receipt, error_message}
-
-          :ok ->
-            # Extraer totales
-            total_main = extract_total_from_response(body_main)
-            total_val = extract_total_from_response(body_val)
-
-            IO.puts("💰 Total Main: #{inspect(total_main)}")
-            IO.puts("💰 Total Validation: #{inspect(total_val)}")
-
-            if totals_match?(total_main, total_val) do
-              IO.puts("✅ ¡TOTALES COINCIDEN! Validación exitosa.")
-              {:ok, body_main}
-            else
-              IO.puts("⚠️ DISCREPANCIA EN TOTALES.")
-
-              retry_or_fail(
-                "Totales no coinciden",
-                uploaded_file,
-                api_key,
-                model,
-                main_prompt,
-                val_prompt,
-                attempts_left
-              )
-            end
-        end
-
-      _ ->
-        IO.puts("⚠️ Error en alguna de las peticiones HTTP.")
-
-        retry_or_fail(
-          "Error en petición API",
-          uploaded_file,
-          api_key,
-          model,
-          main_prompt,
-          val_prompt,
-          attempts_left
-        )
-    end
-  end
-
-  # Verifica si la respuesta indica que la imagen es un ticket válido
-  defp check_if_receipt(response) do
-    with {:ok, content} <- extract_content(response),
-         {:ok, json} <- Jason.decode(sanitize_json_content(content)) do
-      case json do
-        %{"is_receipt" => false, "error_message" => error_message} ->
-          {:error, :not_a_receipt, error_message}
-
-        %{"is_receipt" => false} ->
-          {:error, :not_a_receipt,
-           gettext("The uploaded image does not appear to be a valid receipt.")}
-
-        _ ->
-          :ok
-      end
-    else
-      _ -> :ok
-    end
-  end
-
-  defp retry_or_fail(
-         reason,
-         uploaded_file,
-         api_key,
-         model,
-         main_prompt,
-         val_prompt,
-         attempts_left
-       ) do
-    if attempts_left > 1 do
-      IO.puts("🔄 Reintentando proceso...")
-
-      process_with_validation_loop(
-        uploaded_file,
-        api_key,
-        model,
-        main_prompt,
-        val_prompt,
-        attempts_left - 1
-      )
-    else
-      IO.puts("❌ Se agotaron los #{@max_retries} intentos. Fallo definitivo.")
-      {:error, :parsing_failed}
-    end
-  end
-
-  # Helper para comparar totales con tolerancia pequeña
-  defp totals_match?(nil, _), do: false
-  defp totals_match?(_, nil), do: false
-
-  defp totals_match?(val1, val2) do
-    # Convertir a Decimal para comparación segura
-    d1 = Decimal.new(to_string(val1))
-    d2 = Decimal.new(to_string(val2))
-
-    # Permitir diferencia pequeña por errores de redondeo (0.05)
-    diff = Decimal.sub(d1, d2) |> Decimal.abs()
-    Decimal.compare(diff, Decimal.new("0.05")) in [:lt, :eq]
-  rescue
-    _ -> false
-  end
-
-  # Extrae el total_amount de un body de OpenRouter
-  defp extract_total_from_response(body) do
-    with {:ok, content} <- extract_content(body),
-         {:ok, json} <- Jason.decode(sanitize_json_content(content)) do
-      case json do
-        %{"total_amount" => amount} when is_number(amount) ->
-          amount
-
-        %{"total_amount" => amount} when is_binary(amount) ->
-          case Float.parse(amount) do
-            {val, _} -> val
-            _ -> nil
-          end
-
-        _ ->
-          nil
-      end
-    else
-      _ -> nil
-    end
-  end
-
-  defp extract_content(response) do
-    with {:ok, choices} <- Map.fetch(response, "choices"),
-         [first_choice | _] <- choices,
-         {:ok, message} <- Map.fetch(first_choice, "message"),
-         {:ok, content} <- Map.fetch(message, "content") do
-      {:ok, content}
-    else
-      _ -> :error
-    end
-  end
-
-  defp sanitize_json_content(content) do
-    content
-    |> String.replace(~r/^```json\s*/m, "")
-    |> String.replace(~r/```\s*$/m, "")
-    |> String.trim()
-  end
-
-  # Hace la llamada real a la API de OpenRouter
-  defp call_openrouter_api(model, uploaded_file, api_key, prompt) do
-    payload = %{
-      "model" => model,
-      "messages" => [
-        %{
-          "role" => "user",
-          "content" => [
-            %{
-              "type" => "text",
-              "text" => prompt
-            },
-            %{
-              "type" => "image_url",
-              "image_url" => %{
-                "url" => "data:#{uploaded_file.content_type};base64,#{uploaded_file.base64}"
-              }
-            }
-          ]
-        }
-      ],
-      "max_tokens" => 10000
-    }
-
-    headers = [
-      {"Authorization", "Bearer #{api_key}"},
-      {"Content-Type", "application/json"},
-      {"HTTP-Referer", "https://ticket-splitter.com"},
-      {"X-Title", "Ticket Splitter"}
-    ]
-
-    IO.puts("🌐 Enviando petición a OpenRouter con modelo #{model}...")
-
-    # Usar Task con timeout para garantizar máximo 15 segundos por modelo
-    # NOTA: Como la llamada ya está envuelta en Task.async desde process_with_validation_loop,
-    # esta espera es interna de la tarea.
-    task =
-      Task.async(fn ->
-        Req.post("https://openrouter.ai/api/v1/chat/completions",
-          json: payload,
-          headers: headers,
-          receive_timeout: 60_000
-        )
-      end)
-
-    case Task.yield(task, 60_000) || Task.shutdown(task, :brutal_kill) do
-      {:ok, {:ok, %{status: 200, body: body}}} ->
-        IO.puts("✅ Respuesta HTTP 200 recibida")
-        # IO.puts("📦 Body completo de OpenRouter:")
-        # IO.inspect(body, pretty: true, limit: :infinity)
-        {:ok, body}
-
-      {:ok, {:ok, %{status: status, body: body}}} ->
-        IO.puts("⚠️ Respuesta HTTP #{status}: #{inspect(body)}")
-        {:error, "HTTP #{status}: #{inspect(body)}"}
-
-      {:ok, {:error, error}} ->
-        IO.puts("❌ Error de red: #{inspect(error)}")
-        {:error, error}
-
-      nil ->
-        IO.puts("⏱️ Timeout después de 60 segundos para modelo #{model}")
-        {:error, :timeout}
-    end
-  end
-
-  # Helper functions
-  defp read_prompt_from_file do
-    prompt_path = Application.app_dir(:ticket_splitter, "priv/openrouter_prompt.txt")
-
-    case File.read(prompt_path) do
-      {:ok, content} -> String.trim(content)
-      {:error, _} -> "Analiza esta imagen y describe lo que ves."
     end
   end
 end
