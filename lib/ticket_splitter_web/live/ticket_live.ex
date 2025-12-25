@@ -3,7 +3,16 @@ defmodule TicketSplitterWeb.TicketLive do
 
   alias TicketSplitter.Tickets
   alias TicketSplitter.Tickets.{TicketColorManager, TicketBroadcaster}
-  alias TicketSplitterWeb.TicketLive.{Helpers, SliderActions, ParticipantActions, ProductActions, MultiplierActions, ActingAsActions, ModalActions, ConfirmationActions, ParticipantsCountActions, ToggleActions, ParticipantSelectorActions, SocketStateActions, SliderInfoActions, ParticipantsUpdateActions, MountActions, TicketUpdateInfoActions, SliderEventActions, TerminateActions}
+  alias TicketSplitterWeb.TicketLive.{Helpers, SliderActions, ParticipantActions, ProductActions, MultiplierActions, ActingAsActions, ModalActions, ConfirmationActions, ToggleActions, ParticipantSelectorActions, SocketStateActions, MountActions, TicketUpdateInfoActions, TerminateActions}
+
+  # Import components for use in templates
+  import TicketSplitterWeb.TicketLive.Components.DashboardHeader
+  import TicketSplitterWeb.TicketLive.Components.InstructionsSection
+  import TicketSplitterWeb.TicketLive.Components.ProductHeader
+  import TicketSplitterWeb.TicketLive.Components.CommonUnitsCard
+  import TicketSplitterWeb.TicketLive.Components.SplitCard
+  import TicketSplitterWeb.TicketLive.Components.IndividualCard
+  import TicketSplitterWeb.TicketLive.Components.CommonProductCard
 
   @impl true
   def mount(%{"id" => ticket_id}, _session, socket) do
@@ -301,19 +310,19 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("increment_participants", _params, socket) do
-    new_count = ParticipantsCountActions.calculate_increment(socket.assigns.ticket.total_participants)
+    new_count = ParticipantActions.calculate_increment(socket.assigns.ticket.total_participants)
     update_participants_count(new_count, socket)
   end
 
   @impl true
   def handle_event("decrement_participants", _params, socket) do
-    new_count = ParticipantsCountActions.calculate_decrement(socket.assigns.ticket.total_participants, socket.assigns.min_participants)
+    new_count = ParticipantActions.calculate_decrement(socket.assigns.ticket.total_participants, socket.assigns.min_participants)
     update_participants_count(new_count, socket)
   end
 
   @impl true
   def handle_event("update_total_participants", %{"value" => value}, socket) do
-    case ParticipantsCountActions.parse_and_validate_value(value, socket.assigns.min_participants) do
+    case ParticipantActions.parse_and_validate_value(value, socket.assigns.min_participants) do
       {:ok, num} ->
         update_participants_count(num, socket)
 
@@ -386,7 +395,7 @@ defmodule TicketSplitterWeb.TicketLive do
     {active_participant, _color} = get_active_participant(socket)
 
     if SliderActions.has_lock?(socket.assigns.locked_sliders, group_id, active_participant) do
-      case SliderEventActions.execute_split_percentage_update(
+      case SliderActions.execute_split_percentage_update(
              socket.assigns.ticket.id,
              group_id,
              p1_percentage,
@@ -394,7 +403,7 @@ defmodule TicketSplitterWeb.TicketLive do
            ) do
         {:ok, ticket} ->
           acting_as_assigns =
-            SliderEventActions.build_acting_as_total_assigns(
+            SliderActions.build_acting_as_total_assigns(
               socket.assigns.ticket.id,
               socket.assigns.acting_as_participant
             )
@@ -460,11 +469,11 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("save_percentages", %{"assignments" => assignments_map}, socket) do
-    case SliderEventActions.execute_save_percentages(socket.assigns.ticket.id, assignments_map) do
+    case SliderActions.execute_save_percentages(socket.assigns.ticket.id, assignments_map) do
       {:ok, ticket} ->
         socket =
           socket
-          |> assign(SliderEventActions.build_save_percentages_assigns(ticket))
+          |> assign(SliderActions.build_save_percentages_assigns(ticket))
           |> calculate_my_total()
           |> update_main_saldos()
 
@@ -680,7 +689,7 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_info({:slider_locked, group_id, locked_by}, socket) do
     socket =
       socket
-      |> assign(SliderInfoActions.slider_locked_assigns(socket.assigns.locked_sliders, group_id, locked_by))
+      |> assign(SliderActions.slider_locked_assigns(socket.assigns.locked_sliders, group_id, locked_by))
       |> push_event("slider_locked", %{group_id: group_id, locked_by: locked_by})
 
     {:noreply, socket}
@@ -690,7 +699,7 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_info({:slider_unlocked, group_id}, socket) do
     socket =
       socket
-      |> assign(SliderInfoActions.slider_unlocked_assigns(socket.assigns.locked_sliders, group_id))
+      |> assign(SliderActions.slider_unlocked_assigns(socket.assigns.locked_sliders, group_id))
       |> push_event("slider_unlocked", %{group_id: group_id})
 
     {:noreply, socket}
@@ -759,14 +768,14 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   defp update_participants_count(new_count, socket) do
-    case ParticipantsUpdateActions.execute_update_and_broadcast(socket.assigns.ticket, new_count) do
+    case ParticipantActions.execute_update_and_broadcast(socket.assigns.ticket, new_count) do
       {:ok, ticket} ->
         socket =
           if socket.assigns.show_summary_modal do
             participants = get_all_participants(socket.assigns)
 
             summary_assigns =
-              ParticipantsUpdateActions.build_summary_modal_assigns(
+              ParticipantActions.build_summary_modal_assigns(
                 socket.assigns.products,
                 new_count,
                 socket.assigns.ticket.id,
@@ -780,7 +789,7 @@ defmodule TicketSplitterWeb.TicketLive do
             |> update_main_saldos()
           else
             socket
-            |> assign(ParticipantsUpdateActions.build_basic_assigns(ticket))
+            |> assign(ParticipantActions.build_basic_assigns(ticket))
             |> calculate_my_total()
             |> update_main_saldos()
           end
@@ -800,8 +809,6 @@ defmodule TicketSplitterWeb.TicketLive do
       SocketStateActions.get_active_participant_color(socket)
     }
   end
-
-  defp format_decimal(decimal), do: Helpers.format_decimal(decimal)
 
   defp group_assignments_by_group_id(assignments), do: Helpers.group_assignments_by_group_id(assignments)
 

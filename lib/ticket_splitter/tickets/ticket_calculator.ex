@@ -1,7 +1,7 @@
 defmodule TicketSplitter.Tickets.TicketCalculator do
   @moduledoc """
   Calculations for ticket totals and participant splits.
-  Extracted from TicketLive for better separation of concerns.
+  Extracted from TicketLive and Tickets context for better separation of concerns.
   """
 
   alias TicketSplitter.Tickets
@@ -103,5 +103,116 @@ defmodule TicketSplitter.Tickets.TicketCalculator do
     total = Tickets.calculate_participant_total_with_multiplier(ticket_id, participant.name)
     multiplier = Tickets.get_participant_multiplier(ticket_id, participant.name)
     %{name: participant.name, color: participant.color, total: total, multiplier: multiplier}
+  end
+
+  @doc """
+  Parses date from JSON format (YYYY-MM-DD string) to Date.
+  Returns nil if the date is invalid or nil.
+  """
+  def parse_ticket_date(nil), do: nil
+
+  def parse_ticket_date(date_string) when is_binary(date_string) do
+    case Date.from_iso8601(date_string) do
+      {:ok, date} -> date
+      {:error, _} -> nil
+    end
+  end
+
+  def parse_ticket_date(_), do: nil
+
+  @doc """
+  Calculates the common cost for a product divided among participants.
+  Supports both legacy is_common and new common_units.
+  Uses whichever is greater for backward compatibility.
+  """
+  def calculate_common_cost(product, total_participants) do
+    # Legacy is_common support
+    legacy_common =
+      if product.is_common do
+        Decimal.div(product.total_price, Decimal.new(total_participants))
+      else
+        Decimal.new("0")
+      end
+
+    # New common_units support
+    common_units = product.common_units || Decimal.new("0")
+
+    new_common =
+      if Decimal.compare(common_units, Decimal.new("0")) == :gt do
+        unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+        common_total_cost = Decimal.mult(unit_cost, common_units)
+        Decimal.div(common_total_cost, Decimal.new(total_participants))
+      else
+        Decimal.new("0")
+      end
+
+    # Use whichever is greater (for backward compatibility during transition)
+    if Decimal.compare(legacy_common, new_common) == :gt do
+      legacy_common
+    else
+      new_common
+    end
+  end
+
+  @doc """
+  Calculates the personal cost for a participant on a product.
+  Returns 0 if the participant has no assignments.
+  """
+  def calculate_personal_cost(product, participant_name) do
+    assignment =
+      Enum.find(product.participant_assignments, fn pa ->
+        pa.participant_name == participant_name
+      end)
+
+    if assignment do
+      # Calculate based on units_assigned and percentage for shared groups
+      # Each unit costs: total_price / total_units
+      unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+      units = assignment.units_assigned || Decimal.new("0")
+      share = Decimal.mult(unit_cost, units)
+
+      # Apply percentage for shared groups
+      percentage =
+        Decimal.div(assignment.percentage || Decimal.new("100"), Decimal.new("100"))
+
+      Decimal.mult(share, percentage)
+    else
+      Decimal.new("0")
+    end
+  end
+
+  @doc """
+  Calculates the common cost with multiplier support.
+  Used when participants have different multipliers.
+  """
+  def calculate_common_cost_with_multiplier(product, effective_participants, multiplier) do
+    # Legacy is_common support
+    legacy_common =
+      if product.is_common do
+        per_share = Decimal.div(product.total_price, Decimal.new(effective_participants))
+        Decimal.mult(per_share, Decimal.new(multiplier))
+      else
+        Decimal.new("0")
+      end
+
+    # New common_units support
+    common_units = product.common_units || Decimal.new("0")
+
+    new_common =
+      if Decimal.compare(common_units, Decimal.new("0")) == :gt do
+        unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
+        common_total_cost = Decimal.mult(unit_cost, common_units)
+        per_share = Decimal.div(common_total_cost, Decimal.new(effective_participants))
+        Decimal.mult(per_share, Decimal.new(multiplier))
+      else
+        Decimal.new("0")
+      end
+
+    # Use whichever is greater (for backward compatibility)
+    if Decimal.compare(legacy_common, new_common) == :gt do
+      legacy_common
+    else
+      new_common
+    end
   end
 end

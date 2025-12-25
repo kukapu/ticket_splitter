@@ -1,10 +1,92 @@
 defmodule TicketSplitterWeb.TicketLive.ParticipantActions do
   @moduledoc """
-  Módulo que contiene funciones puras para gestionar acciones relacionadas con participantes.
+  Módulo consolidado que contiene todas las funciones para gestionar participantes.
+  Incluye cálculos de conteo, actualizaciones, gestión de colores, assigns, etc.
   """
 
   alias TicketSplitter.Tickets
+  alias TicketSplitter.Tickets.TicketBroadcaster
   alias TicketSplitter.Tickets.TicketColorManager
+  alias TicketSplitterWeb.TicketLive.CalculationActions
+
+  # ============================================================================
+  # Funciones de cálculo de conteo (de ParticipantsCountActions)
+  # ============================================================================
+
+  @doc """
+  Calcula el nuevo conteo al incrementar.
+  """
+  def calculate_increment(current_count) do
+    current_count + 1
+  end
+
+  @doc """
+  Calcula el nuevo conteo al decrementar (respetando el mínimo).
+  """
+  def calculate_decrement(current_count, min_count) do
+    max(current_count - 1, min_count)
+  end
+
+  @doc """
+  Parsea y valida un valor de conteo de participantes.
+  """
+  def parse_and_validate_value(value, _min_count) do
+    case Integer.parse(value) do
+      {num, _} when num > 0 ->
+        {:ok, num}
+
+      _ ->
+        :error
+    end
+  end
+
+  # ============================================================================
+  # Funciones de actualización y broadcast (de ParticipantsUpdateActions)
+  # ============================================================================
+
+  @doc """
+  Ejecuta la actualización del ticket y broadcast el update.
+  """
+  def execute_update_and_broadcast(ticket, new_count) do
+    case TicketSplitter.Tickets.update_ticket(ticket, %{total_participants: new_count}) do
+      {:ok, updated_ticket} ->
+        TicketBroadcaster.broadcast_ticket_update(updated_ticket.id)
+        {:ok, updated_ticket}
+
+      {:error, _} ->
+        :error
+    end
+  end
+
+  @doc """
+  Construye assigns para actualizar el resumen modal cuando está abierto.
+  """
+  def build_summary_modal_assigns(products, new_count, ticket_id, participants, updated_ticket) do
+    {total_ticket, total_assigned, pending} =
+      CalculationActions.calculate_summary_totals(products, new_count)
+
+    participant_summaries =
+      CalculationActions.calculate_participant_summaries(ticket_id, participants)
+
+    [
+      ticket: updated_ticket,
+      participants_for_summary: participant_summaries,
+      total_ticket_for_summary: total_ticket,
+      total_assigned_for_summary: total_assigned,
+      pending_for_summary: pending
+    ]
+  end
+
+  @doc """
+  Construye assigns básicos cuando no está abierto el modal de resumen.
+  """
+  def build_basic_assigns(ticket) do
+    [ticket: ticket]
+  end
+
+  # ============================================================================
+  # Funciones originales de ParticipantActions
+  # ============================================================================
 
   @doc """
   Obtiene el color para un participante, reutilizando el existente si está disponible.
