@@ -84,8 +84,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.SplitCard do
                   </p>
                 </div>
               </div>
-
-              <!-- Overlay to prevent text overlap -->
+              
+    <!-- Overlay to prevent text overlap -->
               <%= if index == 0 do %>
                 <div
                   class="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-transparent to-transparent pointer-events-none"
@@ -101,8 +101,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.SplitCard do
               <% end %>
             </div>
           <% end %>
-
-          <!-- Interactive Divider Bar -->
+          
+    <!-- Interactive Divider Bar -->
           <%= if @has_me or Enum.any?(@group.participants, fn p -> p.name == @active_participant_name end) do %>
             <% # Get original alphabetical order (same as database)
             original_order = Enum.map(@group.participants, & &1.name) %>

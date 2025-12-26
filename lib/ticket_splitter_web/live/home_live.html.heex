@@ -20,8 +20,8 @@
           class="hidden"
         />
       </div>
-
-      <!-- Ticket History Section (only visible when NOT processing) -->
+      
+<!-- Ticket History Section (only visible when NOT processing) -->
       <%= if !@processing do %>
         <div
           id="ticket-history-container"
@@ -64,8 +64,8 @@
                 />
               </div>
             </button>
-
-            <!-- Expandable History List -->
+            
+<!-- Expandable History List -->
             <%= if @show_history do %>
               <div class="absolute top-full left-0 right-0 mt-2 bg-base-200 border border-base-300 rounded-3xl home-card-shadow z-20 animate-[fadeIn_0.2s_ease-in-out]">
                 <div class="max-h-[400px] overflow-y-auto p-3 space-y-2">
@@ -139,8 +139,8 @@
           </div>
         </div>
       <% end %>
-
-      <!-- Processing Loader -->
+      
+<!-- Processing Loader -->
       <%= if @processing do %>
         <div class="text-center py-12">
           <div class="inline-block w-16 h-16 border-4 border-base-300 border-t-primary rounded-full animate-spin mb-6">
@@ -167,8 +167,8 @@
                   {gettext("JPG, PNG or WEBP (max. 10MB)")}
                 </p>
               </div>
-
-              <!-- Upload Buttons -->
+              
+<!-- Upload Buttons -->
               <div class="space-y-3">
                 <button
                   type="button"
@@ -177,8 +177,8 @@
                 >
                   <.icon name="hero-photo" class="w-5 h-5 inline mr-2" /> {gettext("Select image")}
                 </button>
-
-                <!-- Camera Button (Mobile) -->
+                
+<!-- Camera Button (Mobile) -->
                 <button
                   type="button"
                   class="w-full px-6 py-4 bg-base-300 text-base-content font-semibold rounded-xl hover:bg-base-300/80 transition-all duration-200 shadow-lg sm:hidden"
@@ -191,8 +191,8 @@
           </div>
         </div>
       <% end %>
-
-      <!-- Error Display -->
+      
+<!-- Error Display -->
       <%= if @error do %>
         <div class="mt-6 bg-error/20 border border-error rounded-xl p-6 text-center">
           <div class="mx-auto w-12 h-12 bg-error rounded-full flex items-center justify-center mb-3">

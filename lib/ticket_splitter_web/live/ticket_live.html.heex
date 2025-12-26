@@ -25,21 +25,21 @@
         <%= for product <- @products do %>
           <%= if !product.is_common do %>
             <% available_units = Tickets.get_available_units(product.id) %>
-
-            <!-- Product Container - agrupa header y asignaciones -->
+            
+<!-- Product Container - agrupa header y asignaciones -->
             <div class="bg-base-200 border border-base-300 rounded-xl p-1.5 sm:p-1.5 space-y-1">
               <!-- Product Header -->
               <.product_header product={product} available_units={available_units} />
-
-              <!-- Common Units Card -->
+              
+<!-- Common Units Card -->
               <% common_units = product.common_units || Decimal.new("0") %>
               <.common_units_card
                 product={product}
                 common_units={common_units}
                 total_participants={@ticket.total_participants}
               />
-
-              <!-- Participant Colored Cards -->
+              
+<!-- Participant Colored Cards -->
               <%= if length(product.participant_assignments) > 0 do %>
                 <div class="cards-stack space-y-0.5">
                   <%= for group <- group_assignments_by_group_id(product.participant_assignments) do %>
@@ -78,13 +78,13 @@
           <% end %>
         <% end %>
       </div>
-
+      
 <!-- Collapsible Instructions -->
       <.instructions_section show_instructions={@show_instructions} />
     </div>
   </div>
-
-  <!-- Participant Selector Component -->
+  
+<!-- Participant Selector Component -->
   <%= if @show_participant_selector do %>
     <.live_component
       module={TicketSplitterWeb.TicketLive.ParticipantSelector}
@@ -92,8 +92,8 @@
       existing_participants={@existing_participants_for_selector}
     />
   <% end %>
-
-  <!-- Summary Modal Component -->
+  
+<!-- Summary Modal Component -->
   <%= if @show_summary_modal do %>
     <.live_component
       module={TicketSplitterWeb.TicketLive.SummaryModal}
@@ -168,8 +168,8 @@
       </button>
     </div>
   </.modal>
-
-  <!-- Share Modal Component -->
+  
+<!-- Share Modal Component -->
   <%= if @show_share_modal do %>
     <.live_component
       module={TicketSplitterWeb.TicketLive.ShareModal}
@@ -178,8 +178,8 @@
       locale={@locale}
     />
   <% end %>
-
-  <!-- Image Viewer Modal -->
+  
+<!-- Image Viewer Modal -->
   <.modal
     :if={@show_image_modal && @ticket.image_url}
     id="image-viewer-modal"
@@ -196,7 +196,7 @@
         <.icon name="hero-x-mark" class="w-5 h-5 text-base-content" />
       </button>
       
-      <!-- Image container with zoom support -->
+<!-- Image container with zoom support -->
       <div
         class="w-full flex items-center justify-center overflow-hidden bg-base-300 rounded-lg min-h-[50vh]"
         id="image-zoom-container"

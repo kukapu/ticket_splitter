@@ -43,7 +43,12 @@ defmodule TicketSplitterWeb.TicketLive.ToggleActions do
   @doc """
   Actualiza el total de participantes si se añadió uno nuevo.
   """
-  def update_total_if_new_participant(_socket, participant_count_before, real_participants_count, ticket) do
+  def update_total_if_new_participant(
+        _socket,
+        participant_count_before,
+        real_participants_count,
+        ticket
+      ) do
     if new_participant_added?(participant_count_before, real_participants_count) do
       new_total = ticket.total_participants + 1
 

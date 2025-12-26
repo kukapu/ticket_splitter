@@ -1,5 +1,5 @@
 defmodule TicketSplitter.OpenRouter.ValidatorTest do
-  use TicketSplitter.DataCase
+  use TicketSplitter.DataCase, async: true
 
   alias TicketSplitter.OpenRouter.Validator
 
@@ -28,6 +28,26 @@ defmodule TicketSplitter.OpenRouter.ValidatorTest do
       assert Validator.totals_match?("10.50", "10.52")
       assert Validator.totals_match?(10.50, "10.52")
       assert Validator.totals_match?("10.50", 10.52)
+    end
+
+    test "tolerance is 0.05" do
+      assert Validator.totals_match?(100.00, 100.05)
+      refute Validator.totals_match?(100.00, 100.06)
+    end
+
+    test "handles negative differences" do
+      assert Validator.totals_match?(100.00, 99.95)
+      refute Validator.totals_match?(100.00, 99.94)
+    end
+
+    test "handles large values" do
+      assert Validator.totals_match?(1000.00, 1000.05)
+      refute Validator.totals_match?(1000.00, 1000.06)
+    end
+
+    test "handles very small differences" do
+      assert Validator.totals_match?(10.00, 10.001)
+      assert Validator.totals_match?(10.00, 10.01)
     end
   end
 end

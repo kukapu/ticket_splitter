@@ -41,6 +41,7 @@ npm-debug.log
 
 # MDs
 *.md
+!TESTING_PLAN*.md
 !README.md
 !DEPLOYMENT.md
 

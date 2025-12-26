@@ -66,7 +66,8 @@ defmodule TicketSplitter.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:tidewave, "~> 0.5", only: :dev},
+      {:mox, "~> 1.1", only: [:test]},
+      {:tidewave, "~> 0.5", only: [:dev, :dev_docker]},
 
       # S3/MinIO integration
       {:ex_aws, "~> 2.5"},

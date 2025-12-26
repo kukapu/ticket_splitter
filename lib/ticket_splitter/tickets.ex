@@ -13,7 +13,6 @@ defmodule TicketSplitter.Tickets do
     ParticipantConfigOperations
   }
 
-
   # ============================================================================
   # Ticket Operations
   # ============================================================================
@@ -49,20 +48,37 @@ defmodule TicketSplitter.Tickets do
   # ============================================================================
 
   defdelegate list_assignments_by_product(product_id), to: AssignmentOperations
-  defdelegate get_participant_assignments_by_ticket(ticket_id, participant_name), to: AssignmentOperations
+
+  defdelegate get_participant_assignments_by_ticket(ticket_id, participant_name),
+    to: AssignmentOperations
+
   defdelegate get_participant_assignment!(id), to: AssignmentOperations
   defdelegate create_participant_assignment(attrs \\ %{}), to: AssignmentOperations
   defdelegate update_participant_assignment(assignment, attrs), to: AssignmentOperations
   defdelegate delete_participant_assignment(assignment), to: AssignmentOperations
   defdelegate add_participant_unit(product_id, participant_name, color), to: AssignmentOperations
-  defdelegate join_assignment_group(assignment_group_id, participant_name, color), to: AssignmentOperations
-  defdelegate remove_from_assignment_group(assignment_group_id, participant_name), to: AssignmentOperations
-  defdelegate remove_participant_unit(product_id, participant_name, target_group_id \\ nil), to: AssignmentOperations
+
+  defdelegate join_assignment_group(assignment_group_id, participant_name, color),
+    to: AssignmentOperations
+
+  defdelegate remove_from_assignment_group(assignment_group_id, participant_name),
+    to: AssignmentOperations
+
+  defdelegate remove_participant_unit(product_id, participant_name, target_group_id \\ nil),
+    to: AssignmentOperations
+
   defdelegate recalculate_group_percentages(assignment_group_id), to: AssignmentOperations
   defdelegate get_total_assigned_units(product_id), to: AssignmentOperations
   defdelegate recalculate_percentages(product_id), to: AssignmentOperations
   defdelegate update_custom_percentages(updates), to: AssignmentOperations
-  defdelegate update_split_percentages(group_id, participant1_percentage, participant2_percentage), to: AssignmentOperations
+
+  defdelegate update_split_percentages(
+                group_id,
+                participant1_percentage,
+                participant2_percentage
+              ),
+              to: AssignmentOperations
+
   defdelegate get_ticket_participants(ticket_id), to: AssignmentOperations
   defdelegate update_participant_name(ticket_id, old_name, new_name), to: AssignmentOperations
   defdelegate participant_name_exists?(ticket_id, participant_name), to: AssignmentOperations
@@ -73,11 +89,22 @@ defmodule TicketSplitter.Tickets do
   # ============================================================================
 
   defdelegate get_participant_config(ticket_id, participant_name), to: ParticipantConfigOperations
-  defdelegate get_or_create_participant_config(ticket_id, participant_name), to: ParticipantConfigOperations
-  defdelegate update_participant_multiplier(ticket_id, participant_name, multiplier), to: ParticipantConfigOperations
-  defdelegate get_participant_multiplier(ticket_id, participant_name), to: ParticipantConfigOperations
+
+  defdelegate get_or_create_participant_config(ticket_id, participant_name),
+    to: ParticipantConfigOperations
+
+  defdelegate update_participant_multiplier(ticket_id, participant_name, multiplier),
+    to: ParticipantConfigOperations
+
+  defdelegate get_participant_multiplier(ticket_id, participant_name),
+    to: ParticipantConfigOperations
+
   defdelegate list_participant_configs(ticket_id), to: ParticipantConfigOperations
   defdelegate get_effective_participants_count(ticket_id), to: ParticipantConfigOperations
-  defdelegate calculate_participant_total(ticket_id, participant_name), to: ParticipantConfigOperations
-  defdelegate calculate_participant_total_with_multiplier(ticket_id, participant_name), to: ParticipantConfigOperations
+
+  defdelegate calculate_participant_total(ticket_id, participant_name),
+    to: ParticipantConfigOperations
+
+  defdelegate calculate_participant_total_with_multiplier(ticket_id, participant_name),
+    to: ParticipantConfigOperations
 end

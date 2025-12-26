@@ -10,7 +10,12 @@ defmodule TicketSplitterWeb.TicketLive.SocketStateActions do
   """
   def calculate_my_total_assigns(ticket_id, participant_name) do
     if participant_name do
-      total = TicketSplitter.Tickets.calculate_participant_total_with_multiplier(ticket_id, participant_name)
+      total =
+        TicketSplitter.Tickets.calculate_participant_total_with_multiplier(
+          ticket_id,
+          participant_name
+        )
+
       multiplier = TicketSplitter.Tickets.get_participant_multiplier(ticket_id, participant_name)
 
       [

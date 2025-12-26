@@ -50,8 +50,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.DashboardHeader do
           <% end %>
         </div>
       <% end %>
-
-      <!-- Compact Actions Bar -->
+      
+    <!-- Compact Actions Bar -->
       <div class="relative flex items-center justify-between">
         <!-- Mi Parte (simplified) -->
         <div class={[
@@ -99,8 +99,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.DashboardHeader do
             </button>
           <% end %>
         </div>
-
-        <!-- Participants Counter (perfectly centered) -->
+        
+    <!-- Participants Counter (perfectly centered) -->
         <div class="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-base-200 rounded-md px-1.5 py-1 border border-base-300">
           <button
             phx-click="decrement_participants"
@@ -124,8 +124,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.DashboardHeader do
             <span class="text-xs font-extrabold leading-none">+</span>
           </button>
         </div>
-
-        <!-- Action Buttons -->
+        
+    <!-- Action Buttons -->
         <div class="flex gap-1">
           <button
             phx-click="open_share_modal"

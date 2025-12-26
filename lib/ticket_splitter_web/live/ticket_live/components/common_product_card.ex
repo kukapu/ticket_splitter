@@ -31,9 +31,7 @@ defmodule TicketSplitterWeb.TicketLive.Components.CommonProductCard do
         <div class="flex items-center gap-2 flex-shrink-0">
           <div class="text-right">
             <span class="px-2 sm:px-3 py-1 bg-primary text-base-content text-xs sm:text-sm font-semibold rounded-full whitespace-nowrap">
-              <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> {gettext(
-                "COMMON"
-              )}
+              <.icon name="hero-users" class="w-3 sm:w-4 h-3 sm:h-4 inline mr-1" /> {gettext("COMMON")}
             </span>
             <p class="text-xs sm:text-sm font-bold text-base-content mt-1">
               €{format_decimal(@product.total_price)}

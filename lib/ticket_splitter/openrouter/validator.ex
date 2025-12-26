@@ -13,7 +13,14 @@ defmodule TicketSplitter.OpenRouter.Validator do
   Makes two parallel requests: one for main analysis and one for total validation.
   Retries up to max_retries times if totals don't match.
   """
-  def validate_with_retry(uploaded_file, api_key, model, main_prompt, validation_prompt, max_retries \\ @default_max_retries) do
+  def validate_with_retry(
+        uploaded_file,
+        api_key,
+        model,
+        main_prompt,
+        validation_prompt,
+        max_retries \\ @default_max_retries
+      ) do
     IO.puts("\n🔄 Intento ##{1} de #{max_retries}...")
 
     # Lanzar tareas en paralelo
@@ -59,7 +66,15 @@ defmodule TicketSplitter.OpenRouter.Validator do
 
               if max_retries > 1 do
                 IO.puts("🔄 Reintentando proceso...")
-                validate_with_retry(uploaded_file, api_key, model, main_prompt, validation_prompt, max_retries - 1)
+
+                validate_with_retry(
+                  uploaded_file,
+                  api_key,
+                  model,
+                  main_prompt,
+                  validation_prompt,
+                  max_retries - 1
+                )
               else
                 IO.puts("❌ Se agotaron los #{max_retries} intentos. Fallo definitivo.")
                 {:error, :parsing_failed}
@@ -72,7 +87,15 @@ defmodule TicketSplitter.OpenRouter.Validator do
 
         if max_retries > 1 do
           IO.puts("🔄 Reintentando proceso...")
-          validate_with_retry(uploaded_file, api_key, model, main_prompt, validation_prompt, max_retries - 1)
+
+          validate_with_retry(
+            uploaded_file,
+            api_key,
+            model,
+            main_prompt,
+            validation_prompt,
+            max_retries - 1
+          )
         else
           IO.puts("❌ Se agotaron los #{max_retries} intentos. Fallo definitivo.")
           {:error, :parsing_failed}

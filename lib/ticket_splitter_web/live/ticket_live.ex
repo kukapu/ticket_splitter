@@ -3,7 +3,23 @@ defmodule TicketSplitterWeb.TicketLive do
 
   alias TicketSplitter.Tickets
   alias TicketSplitter.Tickets.{TicketColorManager, TicketBroadcaster}
-  alias TicketSplitterWeb.TicketLive.{Helpers, SliderActions, ParticipantActions, ProductActions, MultiplierActions, ActingAsActions, ModalActions, ConfirmationActions, ToggleActions, ParticipantSelectorActions, SocketStateActions, MountActions, TicketUpdateInfoActions, TerminateActions}
+
+  alias TicketSplitterWeb.TicketLive.{
+    Helpers,
+    SliderActions,
+    ParticipantActions,
+    ProductActions,
+    MultiplierActions,
+    ActingAsActions,
+    ModalActions,
+    ConfirmationActions,
+    ToggleActions,
+    ParticipantSelectorActions,
+    SocketStateActions,
+    MountActions,
+    TicketUpdateInfoActions,
+    TerminateActions
+  }
 
   # Import components for use in templates
   import TicketSplitterWeb.TicketLive.Components.DashboardHeader
@@ -36,14 +52,16 @@ defmodule TicketSplitterWeb.TicketLive do
 
     socket =
       socket
-      |> assign(MountActions.build_initial_socket_assigns(
-        ticket,
-        total_ticket,
-        total_assigned,
-        pending,
-        min_participants,
-        page_metadata
-      ))
+      |> assign(
+        MountActions.build_initial_socket_assigns(
+          ticket,
+          total_ticket,
+          total_assigned,
+          pending,
+          min_participants,
+          page_metadata
+        )
+      )
 
     # Save ticket to history when visiting (only when connected to prevent double-save)
     socket =
@@ -63,8 +81,15 @@ defmodule TicketSplitterWeb.TicketLive do
     name = String.trim(name)
     existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
 
-    color = ParticipantActions.get_participant_color(socket.assigns.ticket.id, name, existing_participants)
-    final_participants_count = ParticipantActions.calculate_new_participants_count(existing_participants, name)
+    color =
+      ParticipantActions.get_participant_color(
+        socket.assigns.ticket.id,
+        name,
+        existing_participants
+      )
+
+    final_participants_count =
+      ParticipantActions.calculate_new_participants_count(existing_participants, name)
 
     ticket =
       case ParticipantActions.should_update_participants_count?(
@@ -72,7 +97,9 @@ defmodule TicketSplitterWeb.TicketLive do
              final_participants_count
            ) do
         {:should_update, new_count} ->
-          {:ok, updated_ticket} = Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count})
+          {:ok, updated_ticket} =
+            Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count})
+
           TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
           updated_ticket
 
@@ -113,13 +140,20 @@ defmodule TicketSplitterWeb.TicketLive do
     else
       existing_participants = Tickets.get_ticket_participants(ticket_id)
 
-      case ParticipantActions.determine_name_change_action(ticket_id, old_name, new_name, existing_participants) do
+      case ParticipantActions.determine_name_change_action(
+             ticket_id,
+             old_name,
+             new_name,
+             existing_participants
+           ) do
         {:error, :name_conflict} ->
           socket =
             socket
             |> put_flash(
               :error,
-              gettext("This name is already being used by another participant with assigned items")
+              gettext(
+                "This name is already being used by another participant with assigned items"
+              )
             )
             |> push_event("name_change_error", %{})
 
@@ -316,7 +350,12 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("decrement_participants", _params, socket) do
-    new_count = ParticipantActions.calculate_decrement(socket.assigns.ticket.total_participants, socket.assigns.min_participants)
+    new_count =
+      ParticipantActions.calculate_decrement(
+        socket.assigns.ticket.total_participants,
+        socket.assigns.min_participants
+      )
+
     update_participants_count(new_count, socket)
   end
 
@@ -359,7 +398,11 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("toggle_instructions", _params, socket) do
-    {:noreply, assign(socket, ModalActions.toggle_modal_assigns(:show_instructions, socket.assigns.show_instructions))}
+    {:noreply,
+     assign(
+       socket,
+       ModalActions.toggle_modal_assigns(:show_instructions, socket.assigns.show_instructions)
+     )}
   end
 
   @impl true
@@ -430,10 +473,21 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_event("lock_slider", %{"group_id" => group_id}, socket) do
     {active_participant, _color} = get_active_participant(socket)
 
-    case SliderActions.can_acquire_lock?(socket.assigns.locked_sliders, group_id, active_participant) do
+    case SliderActions.can_acquire_lock?(
+           socket.assigns.locked_sliders,
+           group_id,
+           active_participant
+         ) do
       true ->
-        locked_sliders = SliderActions.acquire_lock(socket.assigns.locked_sliders, group_id, active_participant)
-        TicketBroadcaster.broadcast_slider_lock(socket.assigns.ticket.id, group_id, active_participant)
+        locked_sliders =
+          SliderActions.acquire_lock(socket.assigns.locked_sliders, group_id, active_participant)
+
+        TicketBroadcaster.broadcast_slider_lock(
+          socket.assigns.ticket.id,
+          group_id,
+          active_participant
+        )
+
         {:noreply, assign(socket, :locked_sliders, locked_sliders)}
 
       :already_locked ->
@@ -447,7 +501,9 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("unlock_slider", %{"group_id" => group_id}, socket) do
     {active_participant, _color} = get_active_participant(socket)
-    locked_sliders = SliderActions.release_lock(socket.assigns.locked_sliders, group_id, active_participant)
+
+    locked_sliders =
+      SliderActions.release_lock(socket.assigns.locked_sliders, group_id, active_participant)
 
     if locked_sliders != socket.assigns.locked_sliders do
       TicketBroadcaster.broadcast_slider_unlock(socket.assigns.ticket.id, group_id)
@@ -492,7 +548,10 @@ defmodule TicketSplitterWeb.TicketLive do
         {:noreply, push_event(socket, "open_user_settings_modal", %{})}
       else
         participants_with_colors =
-          ParticipantActions.prepare_participants_for_selector(socket.assigns.ticket.id, existing_participants)
+          ParticipantActions.prepare_participants_for_selector(
+            socket.assigns.ticket.id,
+            existing_participants
+          )
 
         {:noreply,
          socket
@@ -547,7 +606,9 @@ defmodule TicketSplitterWeb.TicketLive do
                 MultiplierActions.calculate_new_total_participants(socket, multiplier_diff)
 
               {:ok, updated_ticket} =
-                Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_total_participants})
+                Tickets.update_ticket(socket.assigns.ticket, %{
+                  total_participants: new_total_participants
+                })
 
               TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
 
@@ -689,7 +750,9 @@ defmodule TicketSplitterWeb.TicketLive do
   def handle_info({:slider_locked, group_id, locked_by}, socket) do
     socket =
       socket
-      |> assign(SliderActions.slider_locked_assigns(socket.assigns.locked_sliders, group_id, locked_by))
+      |> assign(
+        SliderActions.slider_locked_assigns(socket.assigns.locked_sliders, group_id, locked_by)
+      )
       |> push_event("slider_locked", %{group_id: group_id, locked_by: locked_by})
 
     {:noreply, socket}
@@ -732,7 +795,9 @@ defmodule TicketSplitterWeb.TicketLive do
         TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
-        real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+        real_participants_count =
+          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+
         min_participants = max(real_participants_count, 1)
 
         socket =
@@ -744,13 +809,23 @@ defmodule TicketSplitterWeb.TicketLive do
           |> update_main_saldos()
 
         # Update total_participants if new participant added
-        case ToggleActions.update_total_if_new_participant(socket, participant_count_before, real_participants_count, ticket) do
+        case ToggleActions.update_total_if_new_participant(
+               socket,
+               participant_count_before,
+               real_participants_count,
+               ticket
+             ) do
           {:ok, updated_ticket} ->
             socket = assign(socket, :ticket, updated_ticket)
 
             socket =
               if socket.assigns.acting_as_participant do
-                acting_as_total = ToggleActions.recalculate_acting_as_total(socket.assigns.ticket.id, socket.assigns.acting_as_participant)
+                acting_as_total =
+                  ToggleActions.recalculate_acting_as_total(
+                    socket.assigns.ticket.id,
+                    socket.assigns.acting_as_participant
+                  )
+
                 assign(socket, :acting_as_total, acting_as_total)
               else
                 socket
@@ -810,7 +885,8 @@ defmodule TicketSplitterWeb.TicketLive do
     }
   end
 
-  defp group_assignments_by_group_id(assignments), do: Helpers.group_assignments_by_group_id(assignments)
+  defp group_assignments_by_group_id(assignments),
+    do: Helpers.group_assignments_by_group_id(assignments)
 
   defp get_all_participants(%{assigns: assigns}) do
     Helpers.get_all_participants_from_db(assigns.ticket.id)
@@ -821,12 +897,22 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   defp calculate_my_total(socket) do
-    assigns = SocketStateActions.calculate_my_total_assigns(socket.assigns.ticket.id, socket.assigns.participant_name)
+    assigns =
+      SocketStateActions.calculate_my_total_assigns(
+        socket.assigns.ticket.id,
+        socket.assigns.participant_name
+      )
+
     assign(socket, assigns)
   end
 
   defp update_main_saldos(socket) do
-    assigns = SocketStateActions.calculate_main_saldos_assigns(socket.assigns.products, socket.assigns.ticket.total_participants)
+    assigns =
+      SocketStateActions.calculate_main_saldos_assigns(
+        socket.assigns.products,
+        socket.assigns.ticket.total_participants
+      )
+
     assign(socket, assigns)
   end
 end

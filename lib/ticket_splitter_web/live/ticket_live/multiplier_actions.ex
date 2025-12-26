@@ -47,7 +47,8 @@ defmodule TicketSplitterWeb.TicketLive.MultiplierActions do
   Construye los assigns después de actualizar el multiplicador de acting_as.
   """
   def build_acting_as_assigns(ticket_id, acting_as_participant, new_multiplier) do
-    acting_as_total = Tickets.calculate_participant_total_with_multiplier(ticket_id, acting_as_participant)
+    acting_as_total =
+      Tickets.calculate_participant_total_with_multiplier(ticket_id, acting_as_participant)
 
     [
       acting_as_total: acting_as_total,

@@ -45,7 +45,14 @@ defmodule TicketSplitterWeb.TicketLive.MountActions do
   @doc """
   Construye todos los assigns iniciales del socket.
   """
-  def build_initial_socket_assigns(ticket, total_ticket, total_assigned, pending, min_participants, page_metadata) do
+  def build_initial_socket_assigns(
+        ticket,
+        total_ticket,
+        total_assigned,
+        pending,
+        min_participants,
+        page_metadata
+      ) do
     [
       ticket: ticket,
       products: ticket.products,

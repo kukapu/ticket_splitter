@@ -66,7 +66,8 @@ defmodule TicketSplitterWeb.HomeLive.UploadActions do
     Logger.info("🔄 Processing image and creating ticket...")
 
     with {:ok, processed_binary, processed_content_type} <- process_image(binary_data),
-         {:ok, image_url} <- upload_to_storage(processed_binary, filename, processed_content_type),
+         {:ok, image_url} <-
+           upload_to_storage(processed_binary, filename, processed_content_type),
          {:ok, uploaded_file} <- prepare_uploaded_file(binary_data, original_content_type),
          {:ok, api_key} <- get_api_key(),
          model <- get_model(),

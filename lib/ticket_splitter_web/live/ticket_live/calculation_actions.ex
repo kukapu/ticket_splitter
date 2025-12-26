@@ -50,7 +50,14 @@ defmodule TicketSplitterWeb.TicketLive.CalculationActions do
   @doc """
   Añade el resumen de "Rest of participants" si es necesario.
   """
-  def maybe_add_rest_summary(summaries, products, total_participants, active_multipliers_sum, pending, rest_label) do
+  def maybe_add_rest_summary(
+        summaries,
+        products,
+        total_participants,
+        active_multipliers_sum,
+        pending,
+        rest_label
+      ) do
     if total_participants > active_multipliers_sum do
       rest_count = total_participants - active_multipliers_sum
 
@@ -90,7 +97,15 @@ defmodule TicketSplitterWeb.TicketLive.CalculationActions do
   @doc """
   Calcula los datos completos del resumen para el modal.
   """
-  def calculate_summary_data(ticket_id, participants, products, total_participants, current_participant_name, pending, rest_label) do
+  def calculate_summary_data(
+        ticket_id,
+        participants,
+        products,
+        total_participants,
+        current_participant_name,
+        pending,
+        rest_label
+      ) do
     participant_summaries = calculate_participant_summaries(ticket_id, participants)
     sorted_summaries = sort_participant_summaries(participant_summaries, current_participant_name)
 

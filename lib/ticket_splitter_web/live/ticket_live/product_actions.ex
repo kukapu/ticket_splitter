@@ -48,7 +48,9 @@ defmodule TicketSplitterWeb.TicketLive.ProductActions do
   Añade unidades al pool común.
   """
   def add_common_units(ticket_id, product_id, count \\ 1) do
-    execute_product_action(ticket_id, product_id, fn pid -> Tickets.add_common_units(pid, count) end)
+    execute_product_action(ticket_id, product_id, fn pid ->
+      Tickets.add_common_units(pid, count)
+    end)
   end
 
   @doc """
@@ -62,7 +64,9 @@ defmodule TicketSplitterWeb.TicketLive.ProductActions do
   Elimina unidades del pool común.
   """
   def remove_common_units(ticket_id, product_id, count \\ 1) do
-    execute_product_action(ticket_id, product_id, fn pid -> Tickets.remove_common_units(pid, count) end)
+    execute_product_action(ticket_id, product_id, fn pid ->
+      Tickets.remove_common_units(pid, count)
+    end)
   end
 
   @doc """

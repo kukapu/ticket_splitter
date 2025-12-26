@@ -29,10 +29,10 @@ defmodule TicketSplitterWeb.HomeLive.HistorySection do
                     href={~p"/#{@locale}/tickets/#{ticket["id"]}"}
                     class="flex-1 text-sm font-medium hover:text-primary"
                   >
-                    <%= ticket["merchant_name"] || gettext("Ticket") %> #<%= String.slice(
+                    {ticket["merchant_name"] || gettext("Ticket")} #{String.slice(
                       ticket["id"],
                       0..7
-                    ) %>
+                    )}
                   </a>
 
                   <button
@@ -60,7 +60,11 @@ defmodule TicketSplitterWeb.HomeLive.HistorySection do
                 <button phx-click="cancel_delete" class="btn">
                   {gettext("Cancel")}
                 </button>
-                <button phx-click="delete_ticket" phx-value-id={@ticket_to_delete} class="btn btn-error">
+                <button
+                  phx-click="delete_ticket"
+                  phx-value-id={@ticket_to_delete}
+                  class="btn btn-error"
+                >
                   {gettext("Delete")}
                 </button>
               </div>
@@ -76,7 +80,7 @@ defmodule TicketSplitterWeb.HomeLive.HistorySection do
           >
             📋 {gettext("Show recent tickets")}
             <%= if length(@ticket_history) > 0 do %>
-              (<%= length(@ticket_history) %>)
+              ({length(@ticket_history)})
             <% end %>
           </button>
         <% end %>

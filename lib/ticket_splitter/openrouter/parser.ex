@@ -38,6 +38,7 @@ defmodule TicketSplitter.OpenRouter.Parser do
 
             %{"is_receipt" => false} ->
               IO.puts("⚠️ La imagen no es un ticket válido")
+
               {:error, :not_a_receipt,
                "The uploaded image does not appear to be a valid receipt."}
 
@@ -120,8 +121,7 @@ defmodule TicketSplitter.OpenRouter.Parser do
           {:error, :not_a_receipt, error_message}
 
         %{"is_receipt" => false} ->
-          {:error, :not_a_receipt,
-           "The uploaded image does not appear to be a valid receipt."}
+          {:error, :not_a_receipt, "The uploaded image does not appear to be a valid receipt."}
 
         _ ->
           :ok

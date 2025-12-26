@@ -37,8 +37,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.ProductHeader do
               @product.total_price
             )}
           </p>
-
-          <!-- Available Units Info -->
+          
+    <!-- Available Units Info -->
           <div class="mt-0.5 flex gap-2 text-xs flex-wrap">
             <% available = Tickets.get_available_units(@product.id) %>
             <% common_units = @product.common_units || Decimal.new("0") %>
@@ -61,8 +61,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.ProductHeader do
             <% end %>
           </div>
         </div>
-
-        <!-- Action Buttons -->
+        
+    <!-- Action Buttons -->
         <div class="flex flex-row gap-1 flex-shrink-0">
           <button
             phx-click="toggle_product"

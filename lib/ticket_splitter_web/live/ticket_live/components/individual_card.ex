@@ -71,8 +71,8 @@ defmodule TicketSplitterWeb.TicketLive.Components.IndividualCard do
                 {format_decimal(@group.units_assigned)}u
               </p>
             </div>
-
-            <!-- Participants indicators -->
+            
+    <!-- Participants indicators -->
             <div class="flex gap-0.5 flex-shrink-0">
               <%= for participant <- @group.participants do %>
                 <div

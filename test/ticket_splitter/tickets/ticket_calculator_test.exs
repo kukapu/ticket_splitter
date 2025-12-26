@@ -129,4 +129,165 @@ defmodule TicketSplitter.Tickets.TicketCalculatorTest do
       assert TicketCalculator.calculate_total_common(products) == Decimal.new("0")
     end
   end
+
+  describe "calculate_common_cost/2" do
+    test "divides legacy is_common product among participants" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: true,
+        common_units: Decimal.new("0")
+      }
+
+      result = TicketCalculator.calculate_common_cost(product, 2)
+
+      assert Decimal.equal?(result, Decimal.new("5.00"))
+    end
+
+    test "divides new common_units among participants" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: false,
+        common_units: Decimal.new("5")
+      }
+
+      result = TicketCalculator.calculate_common_cost(product, 2)
+
+      # 5 units * (10.00 / 10 units per unit) = 5.00 total / 2 participants = 2.50
+      assert Decimal.equal?(result, Decimal.new("2.50"))
+    end
+
+    test "returns 0 when product is not common" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: false,
+        common_units: Decimal.new("0")
+      }
+
+      result = TicketCalculator.calculate_common_cost(product, 2)
+
+      assert Decimal.equal?(result, Decimal.new("0"))
+    end
+
+    test "uses whichever is greater (legacy or new)" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: true,
+        common_units: Decimal.new("8")
+      }
+
+      result = TicketCalculator.calculate_common_cost(product, 2)
+
+      # Legacy: 10.00 / 2 = 5.00
+      # New: 8 * (10.00 / 10) / 2 = 4.00
+      # Should use legacy (5.00 > 4.00)
+      assert Decimal.equal?(result, Decimal.new("5.00"))
+    end
+  end
+
+  describe "calculate_personal_cost/2" do
+    test "calculates cost for participant with assignment" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        participant_assignments: [
+          %{
+            participant_name: "Alice",
+            units_assigned: Decimal.new("3"),
+            percentage: Decimal.new("100")
+          }
+        ]
+      }
+
+      result = TicketCalculator.calculate_personal_cost(product, "Alice")
+
+      # 3 units * (10.00 / 10 units per unit) = 3.00
+      assert Decimal.equal?(result, Decimal.new("3.00"))
+    end
+
+    test "applies percentage for shared groups" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        participant_assignments: [
+          %{
+            participant_name: "Alice",
+            units_assigned: Decimal.new("3"),
+            percentage: Decimal.new("50")
+          }
+        ]
+      }
+
+      result = TicketCalculator.calculate_personal_cost(product, "Alice")
+
+      # 3 units * (10.00 / 10) = 3.00 * 50% = 1.50
+      assert Decimal.equal?(result, Decimal.new("1.50"))
+    end
+
+    test "returns 0 when participant has no assignment" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        participant_assignments: [
+          %{
+            participant_name: "Bob",
+            units_assigned: Decimal.new("3"),
+            percentage: Decimal.new("100")
+          }
+        ]
+      }
+
+      result = TicketCalculator.calculate_personal_cost(product, "Alice")
+
+      assert Decimal.equal?(result, Decimal.new("0"))
+    end
+  end
+
+  describe "calculate_common_cost_with_multiplier/3" do
+    test "multiplies common share by multiplier for legacy is_common" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: true,
+        common_units: Decimal.new("0")
+      }
+
+      result = TicketCalculator.calculate_common_cost_with_multiplier(product, 2, 3)
+
+      # Base: 10.00 / 2 = 5.00
+      # With multiplier 3: 5.00 * 3 = 15.00
+      assert Decimal.equal?(result, Decimal.new("15.00"))
+    end
+
+    test "multiplies common share by multiplier for new common_units" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: false,
+        common_units: Decimal.new("5")
+      }
+
+      result = TicketCalculator.calculate_common_cost_with_multiplier(product, 2, 3)
+
+      # Base: (5 * 1.00) / 2 = 2.50
+      # With multiplier 3: 2.50 * 3 = 7.50
+      assert Decimal.equal?(result, Decimal.new("7.50"))
+    end
+
+    test "returns 0 when product is not common" do
+      product = %{
+        total_price: Decimal.new("10.00"),
+        units: 10,
+        is_common: false,
+        common_units: Decimal.new("0")
+      }
+
+      result = TicketCalculator.calculate_common_cost_with_multiplier(product, 2, 3)
+
+      assert Decimal.equal?(result, Decimal.new("0"))
+    end
+  end
 end
