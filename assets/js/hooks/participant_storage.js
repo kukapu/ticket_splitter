@@ -1,8 +1,7 @@
 // ParticipantStorage Hook - Manages participant name in localStorage
 export const ParticipantStorage = {
   mounted() {
-    const name = localStorage.getItem('participant_name')
-    this.pushEvent("participant_name_from_storage", { name: name || "" })
+    this.sendParticipantName()
 
     this.handleEvent("save_participant_name", ({ name }) => {
       localStorage.setItem('participant_name', name || "")
@@ -56,11 +55,23 @@ export const ParticipantStorage = {
     })
   },
 
+  // Reconnected callback - called when LiveView reconnects after disconnect
+  reconnected() {
+    console.log('🔄 LiveView reconnected, restoring participant name...')
+    this.sendParticipantName()
+  },
+
   destroyed() {
     // Clean up event listener
     if (this.handleUserNameChange) {
       document.removeEventListener('user-name-change-request', this.handleUserNameChange)
     }
+  },
+
+  sendParticipantName() {
+    const name = localStorage.getItem('participant_name')
+    console.log('📤 Sending participant_name_from_storage:', name || "(empty)")
+    this.pushEvent("participant_name_from_storage", { name: name || "" })
   },
 
   saveTicketToHistory(ticket) {

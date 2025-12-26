@@ -571,25 +571,31 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("participant_name_from_storage", %{"name" => name}, socket) do
-    if name && name != "" do
-      handle_event("set_participant_name", %{"name" => name}, socket)
-    else
-      existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
-
-      if Enum.empty?(existing_participants) do
-        {:noreply, push_event(socket, "open_user_settings_modal", %{})}
+    # Guard: if socket doesn't have ticket (e.g., after error/redirect), ignore this event
+    if Map.has_key?(socket.assigns, :ticket) && socket.assigns.ticket do
+      if name && name != "" do
+        handle_event("set_participant_name", %{"name" => name}, socket)
       else
-        participants_with_colors =
-          ParticipantActions.prepare_participants_for_selector(
-            socket.assigns.ticket.id,
-            existing_participants
-          )
+        existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
 
-        {:noreply,
-         socket
-         |> assign(:show_participant_selector, true)
-         |> assign(:existing_participants_for_selector, participants_with_colors)}
+        if Enum.empty?(existing_participants) do
+          {:noreply, push_event(socket, "open_user_settings_modal", %{})}
+        else
+          participants_with_colors =
+            ParticipantActions.prepare_participants_for_selector(
+              socket.assigns.ticket.id,
+              existing_participants
+            )
+
+          {:noreply,
+           socket
+           |> assign(:show_participant_selector, true)
+           |> assign(:existing_participants_for_selector, participants_with_colors)}
+        end
       end
+    else
+      # Socket doesn't have ticket loaded, ignore the event
+      {:noreply, socket}
     end
   end
 
