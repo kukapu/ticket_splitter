@@ -100,7 +100,6 @@ defmodule TicketSplitter.Tickets do
     to: ParticipantConfigOperations
 
   defdelegate list_participant_configs(ticket_id), to: ParticipantConfigOperations
-  defdelegate get_effective_participants_count(ticket_id), to: ParticipantConfigOperations
 
   defdelegate calculate_participant_total(ticket_id, participant_name),
     to: ParticipantConfigOperations

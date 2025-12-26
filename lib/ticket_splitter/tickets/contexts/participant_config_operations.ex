@@ -79,34 +79,6 @@ defmodule TicketSplitter.Tickets.Contexts.ParticipantConfigOperations do
   end
 
   @doc """
-  Calculates the effective number of participants for common cost division.
-  This is the sum of all multipliers for participants who have made assignments,
-  plus (total_participants - actual_participants) for the "rest of participants".
-  """
-  def get_effective_participants_count(ticket_id) do
-    # Use main context for cross-context calls
-    ticket = TicketSplitter.Tickets.get_ticket!(ticket_id)
-    active_participants = TicketSplitter.Tickets.get_ticket_participants(ticket_id)
-    configs = list_participant_configs(ticket_id)
-
-    # Sum multipliers for active participants
-    active_multipliers_sum =
-      Enum.reduce(active_participants, 0, fn participant, acc ->
-        multiplier =
-          Enum.find_value(configs, 1, fn config ->
-            if config.participant_name == participant.name, do: config.multiplier, else: nil
-          end)
-
-        acc + multiplier
-      end)
-
-    # Add remaining (non-active) participants with multiplier of 1 each
-    rest_count = max(ticket.total_participants - length(active_participants), 0)
-
-    active_multipliers_sum + rest_count
-  end
-
-  @doc """
   Calculates the total amount a participant owes on a ticket.
   Uses units_assigned to calculate the cost.
   """
@@ -139,16 +111,15 @@ defmodule TicketSplitter.Tickets.Contexts.ParticipantConfigOperations do
 
     # Use main context for cross-context calls
     ticket = TicketSplitter.Tickets.get_ticket_with_products!(ticket_id)
-    effective_participants = get_effective_participants_count(ticket_id)
     multiplier = get_participant_multiplier(ticket_id, participant_name)
 
     ticket.products
     |> Enum.reduce(Decimal.new("0"), fn product, acc ->
-      # Calculate common share based on effective participants and multiplier
+      # Calculate common share based on total participants (physical persons) and multiplier
       common_cost =
         TicketCalculator.calculate_common_cost_with_multiplier(
           product,
-          effective_participants,
+          ticket.total_participants,
           multiplier
         )
 
