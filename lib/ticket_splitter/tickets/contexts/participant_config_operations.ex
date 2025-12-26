@@ -158,4 +158,78 @@ defmodule TicketSplitter.Tickets.Contexts.ParticipantConfigOperations do
       Decimal.add(acc, Decimal.add(common_cost, personal_cost))
     end)
   end
+
+  @doc """
+  Calculates the sum of all multipliers for a ticket's participant configs.
+  Returns 0 if no configs exist.
+  """
+  def sum_of_multipliers(ticket_id) do
+    list_participant_configs(ticket_id)
+    |> Enum.reduce(0, fn config, acc -> acc + config.multiplier end)
+  end
+
+  @doc """
+  Ensures a participant config exists for a participant and updates total_participants if needed.
+  Returns {:ok, config, :created | :exists} to indicate if it was created or already existed.
+  """
+  def ensure_participant_and_update_total(ticket_id, participant_name) do
+    participant_name = String.trim(participant_name)
+
+    case get_participant_config(ticket_id, participant_name) do
+      nil ->
+        # Create new participant config
+        {:ok, config} =
+          %ParticipantConfig{}
+          |> ParticipantConfig.changeset(%{
+            ticket_id: ticket_id,
+            participant_name: participant_name,
+            multiplier: 1
+          })
+          |> Repo.insert()
+
+        # Increment total_participants by 1
+        ticket = TicketSplitter.Tickets.get_ticket!(ticket_id)
+
+        {:ok, _updated_ticket} =
+          TicketSplitter.Tickets.update_ticket(ticket, %{
+            total_participants: ticket.total_participants + 1
+          })
+
+        {:ok, config, :created}
+
+      config ->
+        {:ok, config, :exists}
+    end
+  end
+
+  @doc """
+  Updates a participant's multiplier and adjusts total_participants by the delta.
+  """
+  def update_multiplier_and_adjust_total(ticket_id, participant_name, new_multiplier) do
+    participant_name = String.trim(participant_name)
+
+    # Get or create config
+    {:ok, config} = get_or_create_participant_config(ticket_id, participant_name)
+
+    old_multiplier = config.multiplier
+    delta = new_multiplier - old_multiplier
+
+    # Update multiplier
+    {:ok, updated_config} =
+      config
+      |> ParticipantConfig.changeset(%{multiplier: new_multiplier})
+      |> Repo.update()
+
+    # Adjust total_participants by delta
+    if delta != 0 do
+      ticket = TicketSplitter.Tickets.get_ticket!(ticket_id)
+
+      {:ok, _updated_ticket} =
+        TicketSplitter.Tickets.update_ticket(ticket, %{
+          total_participants: ticket.total_participants + delta
+        })
+    end
+
+    {:ok, updated_config}
+  end
 end

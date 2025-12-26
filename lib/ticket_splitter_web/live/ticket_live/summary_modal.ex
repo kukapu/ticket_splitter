@@ -91,13 +91,23 @@ defmodule TicketSplitterWeb.TicketLive.SummaryModal do
             <h3 class="text-sm font-semibold text-base-content/60 mb-2">{gettext("Participants")}</h3>
             <div class="space-y-1.5 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-base-content/20 scrollbar-track-transparent">
               <%= for summary <- @participants_for_summary do %>
+                <% is_current_user = summary.name == (@acting_as_participant || @participant_name) %>
                 <div class="flex items-center justify-between p-2.5 bg-base-200 rounded-lg">
                   <div class="flex items-center gap-2 min-w-0 flex-1">
-                    <div
-                      class="w-3 h-3 rounded-full flex-shrink-0"
-                      style={"background-color: #{summary.color}"}
-                    >
-                    </div>
+                    <%= if is_current_user do %>
+                      <div
+                        class="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
+                        style={"background-color: #{summary.color}"}
+                      >
+                        <.icon name="hero-user-solid" class="w-3 h-3 text-white" />
+                      </div>
+                    <% else %>
+                      <div
+                        class="w-3 h-3 rounded-full flex-shrink-0"
+                        style={"background-color: #{summary.color}"}
+                      >
+                      </div>
+                    <% end %>
                     <span class="font-medium text-base-content text-sm truncate">
                       {summary.name}
                       <%= if Map.get(summary, :multiplier, 1) > 1 do %>

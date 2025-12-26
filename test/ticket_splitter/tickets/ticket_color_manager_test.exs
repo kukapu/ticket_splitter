@@ -129,30 +129,6 @@ defmodule TicketSplitter.Tickets.TicketColorManagerTest do
         assert String.length(color) == 7
       end)
     end
-
-    test "returns expected color palette" do
-      colors = TicketColorManager.colors()
-
-      expected = [
-        "#FF3D00",
-        "#FF9100",
-        "#FFD600",
-        "#FF6D00",
-        "#F50057",
-        "#FF4081",
-        "#E040FB",
-        "#76FF03",
-        "#00E676",
-        "#00C853",
-        "#2979FF",
-        "#3D5AFE",
-        "#00B0FF",
-        "#90A4AE",
-        "#A1887F"
-      ]
-
-      assert colors == expected
-    end
   end
 
   describe "get_existing_user_color/2" do

@@ -378,4 +378,5 @@ defmodule TicketSplitter.Tickets.Contexts.ProductOperationsTest do
       assert Decimal.equal?(available, Decimal.new("7"))
     end
   end
+
 end

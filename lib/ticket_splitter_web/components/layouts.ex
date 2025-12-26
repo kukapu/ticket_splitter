@@ -182,11 +182,13 @@ defmodule TicketSplitterWeb.Layouts do
         class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-md transition-opacity p-4"
         onclick="if(event.target === this) { event.preventDefault(); window.closeUserSettingsModal(); }"
       >
-        <div class="bg-base-300 border border-base-300 rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-5 transform transition-all animate-fade-in text-left">
+        <div id="user-settings-modal-content" class="bg-base-300 border border-base-300 rounded-2xl shadow-2xl w-full max-w-sm p-4 sm:p-5 transform transition-all animate-fade-in text-left">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base sm:text-lg font-bold text-base-content flex items-center gap-2">
-              <.icon name="hero-user-circle" class="size-5 text-primary" />
-              {gettext("Your name")}
+            <h3 id="user-settings-modal-title" class="text-base sm:text-lg font-bold text-base-content flex items-center gap-2">
+              <span id="user-settings-modal-icon" class="text-primary">
+                <.icon name="hero-user-circle" class="size-5" />
+              </span>
+              <span id="user-settings-modal-title-text">{gettext("Your name")}</span>
             </h3>
             <button
               onclick="window.closeUserSettingsModal()"
@@ -260,12 +262,43 @@ defmodule TicketSplitterWeb.Layouts do
           const display = document.getElementById('user-name-display');
           const input = document.getElementById('user-name-input');
 
-          // Load current name from localStorage
-          const currentName = localStorage.getItem('participant_name') || '';
+          // Check if we're in acting_as mode
+          const actingAs = window._actingAsParticipant;
+          let currentName;
+
+          if (actingAs) {
+            // Editing acting_as participant
+            currentName = actingAs.name;
+          } else {
+            // Editing own name from localStorage
+            currentName = localStorage.getItem('participant_name') || '';
+          }
+
           window._originalUserName = currentName;
 
           // Update display
           display.textContent = currentName || '-';
+
+          // Update modal styling based on acting_as mode
+          const modalContent = document.getElementById('user-settings-modal-content');
+          const modalIcon = document.getElementById('user-settings-modal-icon');
+          const modalTitleText = document.getElementById('user-settings-modal-title-text');
+
+          if (actingAs) {
+            // Acting as mode: orange border and "Editing: Name"
+            modalContent.classList.remove('border-base-300');
+            modalContent.classList.add('border-warning', 'border-2');
+            modalIcon.classList.remove('text-primary');
+            modalIcon.classList.add('text-warning');
+            modalTitleText.textContent = "<%= gettext("Editing participant") %>";
+          } else {
+            // Normal mode
+            modalContent.classList.remove('border-warning', 'border-2');
+            modalContent.classList.add('border-base-300');
+            modalIcon.classList.remove('text-warning');
+            modalIcon.classList.add('text-primary');
+            modalTitleText.textContent = "<%= gettext("Your name") %>";
+          }
 
           // Show modal and block scroll
           modal.classList.remove('hidden');
@@ -324,8 +357,18 @@ defmodule TicketSplitterWeb.Layouts do
           const editMode = document.getElementById('user-name-edit');
           const input = document.getElementById('user-name-input');
 
+          // Check if we're in acting_as mode
+          const actingAs = window._actingAsParticipant;
+          let currentName;
+
+          if (actingAs) {
+            currentName = actingAs.name;
+          } else {
+            currentName = localStorage.getItem('participant_name') || '';
+          }
+
           // Load current name into input
-          input.value = localStorage.getItem('participant_name') || '';
+          input.value = currentName;
 
           // Switch to edit mode
           viewMode.classList.add('hidden');
@@ -338,7 +381,10 @@ defmodule TicketSplitterWeb.Layouts do
         window.cancelEditingUserName = function() {
           const viewMode = document.getElementById('user-name-view');
           const editMode = document.getElementById('user-name-edit');
-          const currentName = localStorage.getItem('participant_name') || '';
+
+          // Check if we're in acting_as mode
+          const actingAs = window._actingAsParticipant;
+          const currentName = actingAs ? actingAs.name : (localStorage.getItem('participant_name') || '');
 
           // If there's no name, close modal instead
           if (!currentName) {
@@ -368,7 +414,8 @@ defmodule TicketSplitterWeb.Layouts do
             document.dispatchEvent(new CustomEvent('user-name-change-request', {
               detail: {
                 old_name: originalName,
-                new_name: newName
+                new_name: newName,
+                acting_as: window._actingAsParticipant ? true : false
               }
             }));
 

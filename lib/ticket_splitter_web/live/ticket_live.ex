@@ -79,33 +79,26 @@ defmodule TicketSplitterWeb.TicketLive do
   @impl true
   def handle_event("set_participant_name", %{"name" => name}, socket) do
     name = String.trim(name)
-    existing_participants = Tickets.get_ticket_participants(socket.assigns.ticket.id)
+    ticket_id = socket.assigns.ticket.id
+
+    # Ensure participant config exists (creates if new, increments total_participants if needed)
+    {:ok, _config, status} = Tickets.ensure_participant_and_update_total(ticket_id, name)
+
+    # Broadcast if a new participant was created
+    if status == :created do
+      TicketBroadcaster.broadcast_ticket_update(ticket_id)
+    end
+
+    # Get updated ticket with products preloaded and determine color
+    ticket = Tickets.get_ticket_with_products!(ticket_id)
+    existing_participants = Tickets.get_ticket_participants(ticket_id)
 
     color =
       ParticipantActions.get_participant_color(
-        socket.assigns.ticket.id,
+        ticket_id,
         name,
         existing_participants
       )
-
-    final_participants_count =
-      ParticipantActions.calculate_new_participants_count(existing_participants, name)
-
-    ticket =
-      case ParticipantActions.should_update_participants_count?(
-             socket.assigns.ticket.total_participants,
-             final_participants_count
-           ) do
-        {:should_update, new_count} ->
-          {:ok, updated_ticket} =
-            Tickets.update_ticket(socket.assigns.ticket, %{total_participants: new_count})
-
-          TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
-          updated_ticket
-
-        :no_update ->
-          socket.assigns.ticket
-      end
 
     socket =
       socket
@@ -165,14 +158,32 @@ defmodule TicketSplitterWeb.TicketLive do
               TicketBroadcaster.broadcast_ticket_update(ticket_id)
               ticket = Tickets.get_ticket_with_products!(ticket_id)
 
+              # Check if we're updating the acting_as participant or our own name
+              is_acting_as = socket.assigns.acting_as_participant == old_name
+
               socket =
-                socket
-                |> assign(:ticket, ticket)
-                |> assign(:participant_name, new_name)
-                |> push_event("save_participant_name", %{name: new_name})
-                |> push_event("name_change_success", %{})
-                |> calculate_my_total()
-                |> update_main_saldos()
+                if is_acting_as do
+                  # Updating acting_as participant - update acting_as_participant assign
+                  socket
+                  |> assign(:ticket, ticket)
+                  |> assign(:acting_as_participant, new_name)
+                  |> push_event("update_user_settings_button", %{
+                    acting_as: new_name,
+                    color: socket.assigns.acting_as_color
+                  })
+                  |> push_event("name_change_success", %{})
+                  |> calculate_my_total()
+                  |> update_main_saldos()
+                else
+                  # Updating own name - update participant_name and localStorage
+                  socket
+                  |> assign(:ticket, ticket)
+                  |> assign(:participant_name, new_name)
+                  |> push_event("save_participant_name", %{name: new_name})
+                  |> push_event("name_change_success", %{})
+                  |> calculate_my_total()
+                  |> update_main_saldos()
+                end
 
               {:noreply, socket}
 
@@ -393,7 +404,12 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("close_summary", _params, socket) do
-    {:noreply, assign(socket, ModalActions.close_modal_assigns(:show_summary_modal))}
+    socket =
+      socket
+      |> assign(ModalActions.close_modal_assigns(:show_summary_modal))
+      |> push_event("remove_body_overflow", %{})
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -412,7 +428,12 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("close_share_modal", _params, socket) do
-    {:noreply, assign(socket, ModalActions.close_modal_assigns(:show_share_modal))}
+    socket =
+      socket
+      |> assign(ModalActions.close_modal_assigns(:show_share_modal))
+      |> push_event("remove_body_overflow", %{})
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -593,25 +614,27 @@ defmodule TicketSplitterWeb.TicketLive do
     if target_participant do
       case Integer.parse(multiplier_str) do
         {new_multiplier, _} when new_multiplier > 0 and new_multiplier <= 10 ->
-          old_multiplier = MultiplierActions.get_current_multiplier(socket)
-          multiplier_diff = new_multiplier - old_multiplier
-
-          case Tickets.update_participant_multiplier(
+          # Update multiplier and adjust total_participants by delta
+          case Tickets.update_multiplier_and_adjust_total(
                  socket.assigns.ticket.id,
                  target_participant,
                  new_multiplier
                ) do
-            {:ok, _} ->
-              new_total_participants =
-                MultiplierActions.calculate_new_total_participants(socket, multiplier_diff)
-
-              {:ok, updated_ticket} =
-                Tickets.update_ticket(socket.assigns.ticket, %{
-                  total_participants: new_total_participants
-                })
+            {:ok, _config} ->
+              # Get updated ticket with products preloaded
+              updated_ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
               TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
 
+              # Important: calculate totals BEFORE setting multiplier assigns
+              # so they don't get overwritten
+              socket =
+                socket
+                |> assign(:ticket, updated_ticket)
+                |> calculate_my_total()
+                |> update_main_saldos()
+
+              # Now set the multiplier assigns (this will overwrite my_multiplier or acting_as_multiplier)
               assigns =
                 if socket.assigns.acting_as_participant do
                   MultiplierActions.build_acting_as_assigns(
@@ -623,13 +646,7 @@ defmodule TicketSplitterWeb.TicketLive do
                   MultiplierActions.build_self_assigns(new_multiplier)
                 end
 
-              socket
-              |> assign(:ticket, updated_ticket)
-              |> assign(assigns)
-              |> calculate_my_total()
-              |> update_main_saldos()
-
-              {:noreply, socket}
+              {:noreply, assign(socket, assigns)}
 
             {:error, _} ->
               {:noreply, socket}
@@ -675,7 +692,15 @@ defmodule TicketSplitterWeb.TicketLive do
       assigns =
         ActingAsActions.build_acting_as_assigns(socket.assigns.ticket.id, name, participant.color)
 
-      {:noreply, assign(socket, assigns)}
+      socket =
+        socket
+        |> assign(assigns)
+        |> push_event("update_user_settings_button", %{
+          acting_as: name,
+          color: participant.color
+        })
+
+      {:noreply, socket}
     else
       {:noreply, socket}
     end
@@ -683,7 +708,12 @@ defmodule TicketSplitterWeb.TicketLive do
 
   @impl true
   def handle_event("clear_acting_as", _params, socket) do
-    {:noreply, assign(socket, ActingAsActions.build_clear_acting_as_assigns())}
+    socket =
+      socket
+      |> assign(ActingAsActions.build_clear_acting_as_assigns())
+      |> push_event("update_user_settings_button", %{acting_as: nil})
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -795,10 +825,8 @@ defmodule TicketSplitterWeb.TicketLive do
         TicketBroadcaster.broadcast_ticket_update(socket.assigns.ticket.id)
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
-        real_participants_count =
-          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
-
-        min_participants = max(real_participants_count, 1)
+        min_participants = MountActions.calculate_min_participants(socket.assigns.ticket.id)
+        real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
 
         socket =
           socket

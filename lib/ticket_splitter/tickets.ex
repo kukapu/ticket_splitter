@@ -107,4 +107,12 @@ defmodule TicketSplitter.Tickets do
 
   defdelegate calculate_participant_total_with_multiplier(ticket_id, participant_name),
     to: ParticipantConfigOperations
+
+  defdelegate sum_of_multipliers(ticket_id), to: ParticipantConfigOperations
+
+  defdelegate ensure_participant_and_update_total(ticket_id, participant_name),
+    to: ParticipantConfigOperations
+
+  defdelegate update_multiplier_and_adjust_total(ticket_id, participant_name, new_multiplier),
+    to: ParticipantConfigOperations
 end

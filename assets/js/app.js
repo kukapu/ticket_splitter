@@ -46,6 +46,40 @@ window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 // Connect if there are any LiveViews on the page
 liveSocket.connect()
 
+// Handle modal body overflow removal
+window.addEventListener("phx:remove_body_overflow", () => {
+  document.body.classList.remove("overflow-hidden")
+})
+
+// Handle user settings button updates (acting_as mode)
+window.addEventListener("phx:update_user_settings_button", (e) => {
+  const btn = document.getElementById("user-settings-btn")
+  if (!btn) return
+
+  const { acting_as, color } = e.detail
+
+  if (acting_as) {
+    // In acting_as mode: add orange border
+    btn.classList.remove("border-base-300")
+    btn.classList.add("border-warning", "border-2")
+    btn.style.borderColor = "#f59e0b" // warning color
+
+    // Store acting_as info for modal
+    window._actingAsParticipant = {
+      name: acting_as,
+      color: color
+    }
+  } else {
+    // Normal mode: remove orange border
+    btn.classList.remove("border-warning", "border-2")
+    btn.classList.add("border-base-300")
+    btn.style.borderColor = ""
+
+    // Clear acting_as info
+    window._actingAsParticipant = null
+  }
+})
+
 // Expose liveSocket on window for web console debug logs and latency simulation:
 // >> liveSocket.enableDebug()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session

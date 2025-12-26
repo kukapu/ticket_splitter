@@ -33,8 +33,9 @@ defmodule TicketSplitterWeb.TicketLive.Components.CommonUnitsCard do
               <% unit_cost =
                 Decimal.div(@product.total_price, Decimal.new(@product.units)) %>
               <% total_common_cost = Decimal.mult(unit_cost, common_units) %>
+              <% safe_participants = max(@total_participants, 1) %>
               <% per_person_cost =
-                Decimal.div(total_common_cost, Decimal.new(@total_participants)) %>
+                Decimal.div(total_common_cost, Decimal.new(safe_participants)) %>
 
               <p class="text-xs font-bold text-base-content truncate">
                 €{format_decimal(total_common_cost)}

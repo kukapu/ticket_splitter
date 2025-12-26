@@ -126,10 +126,13 @@ defmodule TicketSplitter.Tickets.TicketCalculator do
   Uses whichever is greater for backward compatibility.
   """
   def calculate_common_cost(product, total_participants) do
+    # Avoid division by zero: use at least 1 participant
+    safe_participants = max(total_participants, 1)
+
     # Legacy is_common support
     legacy_common =
       if product.is_common do
-        Decimal.div(product.total_price, Decimal.new(total_participants))
+        Decimal.div(product.total_price, Decimal.new(safe_participants))
       else
         Decimal.new("0")
       end
@@ -141,7 +144,7 @@ defmodule TicketSplitter.Tickets.TicketCalculator do
       if Decimal.compare(common_units, Decimal.new("0")) == :gt do
         unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
         common_total_cost = Decimal.mult(unit_cost, common_units)
-        Decimal.div(common_total_cost, Decimal.new(total_participants))
+        Decimal.div(common_total_cost, Decimal.new(safe_participants))
       else
         Decimal.new("0")
       end
@@ -186,10 +189,13 @@ defmodule TicketSplitter.Tickets.TicketCalculator do
   Used when participants have different multipliers.
   """
   def calculate_common_cost_with_multiplier(product, effective_participants, multiplier) do
+    # Avoid division by zero: use at least 1 participant
+    safe_participants = max(effective_participants, 1)
+
     # Legacy is_common support
     legacy_common =
       if product.is_common do
-        per_share = Decimal.div(product.total_price, Decimal.new(effective_participants))
+        per_share = Decimal.div(product.total_price, Decimal.new(safe_participants))
         Decimal.mult(per_share, Decimal.new(multiplier))
       else
         Decimal.new("0")
@@ -202,7 +208,7 @@ defmodule TicketSplitter.Tickets.TicketCalculator do
       if Decimal.compare(common_units, Decimal.new("0")) == :gt do
         unit_cost = Decimal.div(product.total_price, Decimal.new(product.units))
         common_total_cost = Decimal.mult(unit_cost, common_units)
-        per_share = Decimal.div(common_total_cost, Decimal.new(effective_participants))
+        per_share = Decimal.div(common_total_cost, Decimal.new(safe_participants))
         Decimal.mult(per_share, Decimal.new(multiplier))
       else
         Decimal.new("0")

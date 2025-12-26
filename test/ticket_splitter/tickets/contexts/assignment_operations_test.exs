@@ -961,4 +961,237 @@ defmodule TicketSplitter.Tickets.Contexts.AssignmentOperationsTest do
       assert AssignmentOperations.participant_has_assignments?(ticket.id, "NonExistent") == false
     end
   end
+
+  describe "recalculate_percentages/1" do
+    test "distributes 100% equally among all assignments for a product" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      # Create 4 assignments with random percentages
+      a1 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("10")
+        })
+
+      a2 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Bob",
+          percentage: Decimal.new("20")
+        })
+
+      a3 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Charlie",
+          percentage: Decimal.new("30")
+        })
+
+      a4 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Diana",
+          percentage: Decimal.new("40")
+        })
+
+      # Recalculate percentages
+      assert :ok = AssignmentOperations.recalculate_percentages(product.id)
+
+      # Each should have 25% (100 / 4)
+      updated_a1 = Repo.get!(ParticipantAssignment, a1.id)
+      updated_a2 = Repo.get!(ParticipantAssignment, a2.id)
+      updated_a3 = Repo.get!(ParticipantAssignment, a3.id)
+      updated_a4 = Repo.get!(ParticipantAssignment, a4.id)
+
+      assert Decimal.equal?(updated_a1.percentage, Decimal.new("25"))
+      assert Decimal.equal?(updated_a2.percentage, Decimal.new("25"))
+      assert Decimal.equal?(updated_a3.percentage, Decimal.new("25"))
+      assert Decimal.equal?(updated_a4.percentage, Decimal.new("25"))
+    end
+
+    test "handles product with single assignment (100%)" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      assignment =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("50")
+        })
+
+      assert :ok = AssignmentOperations.recalculate_percentages(product.id)
+
+      updated = Repo.get!(ParticipantAssignment, assignment.id)
+      assert Decimal.equal?(updated.percentage, Decimal.new("100"))
+    end
+
+    test "handles product with no assignments gracefully" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      assert :ok = AssignmentOperations.recalculate_percentages(product.id)
+    end
+
+    test "handles 3 assignments (33.33% each)" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      a1 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("0")
+        })
+
+      a2 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Bob",
+          percentage: Decimal.new("0")
+        })
+
+      a3 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Charlie",
+          percentage: Decimal.new("0")
+        })
+
+      assert :ok = AssignmentOperations.recalculate_percentages(product.id)
+
+      updated_a1 = Repo.get!(ParticipantAssignment, a1.id)
+      updated_a2 = Repo.get!(ParticipantAssignment, a2.id)
+      updated_a3 = Repo.get!(ParticipantAssignment, a3.id)
+
+      # All three should have the same percentage
+      assert Decimal.equal?(updated_a1.percentage, updated_a2.percentage)
+      assert Decimal.equal?(updated_a2.percentage, updated_a3.percentage)
+
+      # Each should be approximately 33.33% (100/3)
+      # The actual value might be truncated/rounded depending on DB precision
+      percentage_value = Decimal.to_float(updated_a1.percentage)
+      assert_in_delta percentage_value, 33.33, 0.01
+    end
+  end
+
+  describe "update_custom_percentages/1" do
+    test "updates multiple percentages atomically" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      a1 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("50")
+        })
+
+      a2 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Bob",
+          percentage: Decimal.new("50")
+        })
+
+      updates = [
+        {a1.id, Decimal.new("70")},
+        {a2.id, Decimal.new("30")}
+      ]
+
+      assert :ok = AssignmentOperations.update_custom_percentages(updates)
+
+      updated_a1 = Repo.get!(ParticipantAssignment, a1.id)
+      updated_a2 = Repo.get!(ParticipantAssignment, a2.id)
+
+      assert Decimal.equal?(updated_a1.percentage, Decimal.new("70"))
+      assert Decimal.equal?(updated_a2.percentage, Decimal.new("30"))
+    end
+
+    test "updates single percentage" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      assignment =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("100")
+        })
+
+      updates = [{assignment.id, Decimal.new("80")}]
+
+      assert :ok = AssignmentOperations.update_custom_percentages(updates)
+
+      updated = Repo.get!(ParticipantAssignment, assignment.id)
+      assert Decimal.equal?(updated.percentage, Decimal.new("80"))
+    end
+
+    test "handles empty updates list" do
+      updates = []
+
+      assert :ok = AssignmentOperations.update_custom_percentages(updates)
+    end
+
+    test "updates percentages for 3+ assignments" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      a1 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          percentage: Decimal.new("33.33")
+        })
+
+      a2 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Bob",
+          percentage: Decimal.new("33.33")
+        })
+
+      a3 =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Charlie",
+          percentage: Decimal.new("33.34")
+        })
+
+      updates = [
+        {a1.id, Decimal.new("40")},
+        {a2.id, Decimal.new("35")},
+        {a3.id, Decimal.new("25")}
+      ]
+
+      assert :ok = AssignmentOperations.update_custom_percentages(updates)
+
+      updated_a1 = Repo.get!(ParticipantAssignment, a1.id)
+      updated_a2 = Repo.get!(ParticipantAssignment, a2.id)
+      updated_a3 = Repo.get!(ParticipantAssignment, a3.id)
+
+      assert Decimal.equal?(updated_a1.percentage, Decimal.new("40"))
+      assert Decimal.equal?(updated_a2.percentage, Decimal.new("35"))
+      assert Decimal.equal?(updated_a3.percentage, Decimal.new("25"))
+    end
+
+    test "preserves other assignment fields when updating percentage" do
+      product = TicketsFixtures.product_fixture(%{units: 10})
+
+      assignment =
+        TicketsFixtures.participant_assignment_fixture(%{
+          product_id: product.id,
+          participant_name: "Alice",
+          units_assigned: Decimal.new("5"),
+          percentage: Decimal.new("100"),
+          assigned_color: "#FF0000"
+        })
+
+      updates = [{assignment.id, Decimal.new("75")}]
+
+      assert :ok = AssignmentOperations.update_custom_percentages(updates)
+
+      updated = Repo.get!(ParticipantAssignment, assignment.id)
+
+      assert Decimal.equal?(updated.percentage, Decimal.new("75"))
+      assert updated.participant_name == "Alice"
+      assert Decimal.equal?(updated.units_assigned, Decimal.new("5"))
+      assert updated.assigned_color == "#FF0000"
+    end
+  end
 end

@@ -82,7 +82,7 @@ defmodule TicketSplitter.Tickets.Contexts.TicketOperationsTest do
 
     test "returns error with invalid attrs" do
       assert {:error, _changeset} =
-               TicketOperations.create_ticket(%{total_participants: 0})
+               TicketOperations.create_ticket(%{total_participants: -1})
     end
   end
 
@@ -100,7 +100,7 @@ defmodule TicketSplitter.Tickets.Contexts.TicketOperationsTest do
       ticket = TicketsFixtures.ticket_fixture()
 
       assert {:error, _changeset} =
-               TicketOperations.update_ticket(ticket, %{total_participants: 0})
+               TicketOperations.update_ticket(ticket, %{total_participants: -1})
     end
   end
 
@@ -313,6 +313,81 @@ defmodule TicketSplitter.Tickets.Contexts.TicketOperationsTest do
 
       assert {:ok, ticket} = result
       assert is_struct(ticket, Tickets.Ticket)
+    end
+  end
+
+  describe "create_ticket_from_json/2 - transaction behavior" do
+    test "successfully creates ticket and all products" do
+      initial_ticket_count = Repo.aggregate(Tickets.Ticket, :count)
+      initial_product_count = Repo.aggregate(Tickets.Product, :count)
+
+      products_json = %{
+        "merchant_name" => "Valid Merchant",
+        "products" => [
+          %{"name" => "P1", "units" => 1, "unit_price" => "1.00", "total_price" => "1.00"},
+          %{"name" => "P2", "units" => 2, "unit_price" => "2.00", "total_price" => "4.00"},
+          %{"name" => "P3", "units" => 3, "unit_price" => "3.00", "total_price" => "9.00"}
+        ]
+      }
+
+      assert {:ok, ticket} = TicketOperations.create_ticket_from_json(products_json)
+
+      # Verify counts increased correctly
+      assert Repo.aggregate(Tickets.Ticket, :count) == initial_ticket_count + 1
+      assert Repo.aggregate(Tickets.Product, :count) == initial_product_count + 3
+
+      # Verify products are associated with ticket
+      products = TicketOperations.get_ticket_with_products!(ticket.id).products
+      assert length(products) == 3
+    end
+
+    test "rolls back entire transaction when product has invalid category" do
+      initial_ticket_count = Repo.aggregate(Tickets.Ticket, :count)
+      initial_product_count = Repo.aggregate(Tickets.Product, :count)
+
+      # products_json with invalid category
+      products_json = %{
+        "merchant_name" => "Test Merchant",
+        "products" => [
+          %{
+            "name" => "Valid Name",
+            "units" => 1,
+            "unit_price" => "5.00",
+            "total_price" => "5.00",
+            "category" => "INVALID_CATEGORY"
+          }
+        ]
+      }
+
+      # Should fail entire transaction due to invalid product
+      result = TicketOperations.create_ticket_from_json(products_json)
+
+      assert {:error, changeset} = result
+      assert "is invalid" in errors_on(changeset).category
+
+      # Neither ticket nor product should be created (transaction rollback)
+      assert Repo.aggregate(Tickets.Ticket, :count) == initial_ticket_count
+      assert Repo.aggregate(Tickets.Product, :count) == initial_product_count
+    end
+
+    test "maintains data integrity of existing tickets" do
+      # Create an existing ticket to ensure isolation
+      existing_ticket = TicketsFixtures.ticket_fixture()
+      TicketsFixtures.product_fixture(ticket_id: existing_ticket.id)
+
+      initial_existing_products =
+        Tickets.list_products_by_ticket(existing_ticket.id) |> length()
+
+      # Try to create a new ticket (even if it fails, existing data should be intact)
+      _result =
+        TicketOperations.create_ticket_from_json(%{
+          "merchant_name" => "New Merchant",
+          "products" => []
+        })
+
+      # Verify existing ticket was not affected
+      existing_products = Tickets.list_products_by_ticket(existing_ticket.id) |> length()
+      assert existing_products == initial_existing_products
     end
   end
 end

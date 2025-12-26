@@ -7,7 +7,7 @@ defmodule TicketSplitter.Tickets.Ticket do
   schema "tickets" do
     field :image_url, :string
     field :products_json, :map
-    field :total_participants, :integer, default: 1
+    field :total_participants, :integer, default: 0
     field :merchant_name, :string
     field :date, :date
     field :currency, :string, default: "EUR"
@@ -31,7 +31,7 @@ defmodule TicketSplitter.Tickets.Ticket do
       :total_amount
     ])
     |> validate_required([:total_participants])
-    |> validate_number(:total_participants, greater_than: 0)
+    |> validate_number(:total_participants, greater_than_or_equal_to: 0)
     |> validate_number(:total_amount, greater_than_or_equal_to: 0)
   end
 end

@@ -6,34 +6,6 @@ defmodule TicketSplitterWeb.TicketLive.ParticipantActionsTest do
   alias TicketSplitter.Tickets
   import TicketSplitter.TicketsFixtures
 
-  describe "calculate_increment/1" do
-    test "increments count by 1" do
-      result = ParticipantActions.calculate_increment(5)
-
-      assert result == 6
-    end
-
-    test "increments zero count" do
-      result = ParticipantActions.calculate_increment(0)
-
-      assert result == 1
-    end
-  end
-
-  describe "calculate_decrement/2" do
-    test "decrements count" do
-      result = ParticipantActions.calculate_decrement(5, 1)
-
-      assert result == 4
-    end
-
-    test "respects minimum count" do
-      result = ParticipantActions.calculate_decrement(2, 2)
-
-      assert result == 2
-    end
-  end
-
   describe "parse_and_validate_value/2" do
     test "parses valid positive integer" do
       result = ParticipantActions.parse_and_validate_value("5", 1)

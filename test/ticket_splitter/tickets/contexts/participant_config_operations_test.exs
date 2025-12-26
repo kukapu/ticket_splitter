@@ -419,4 +419,256 @@ defmodule TicketSplitter.Tickets.Contexts.ParticipantConfigOperationsTest do
       assert Decimal.equal?(total, Decimal.new("21.00"))
     end
   end
+
+  describe "calculate_participant_total/2" do
+    test "calculates total without multiplier for participant with personal assignment" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 2)
+
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("100.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("6"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      # 6 units * 10.00 per unit = 60.00
+      assert Decimal.equal?(total, Decimal.new("60.00"))
+    end
+
+    test "includes common products in total" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 3)
+
+      # Common product (legacy is_common: true)
+      product1 =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          total_price: Decimal.new("30.00"),
+          is_common: true
+        )
+
+      # Personal product
+      product2 =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("50.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product2.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("5"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      # Common: 30/3 = 10.00
+      # Personal: 5 * 5.00 = 25.00
+      # Total: 35.00
+      assert Decimal.equal?(total, Decimal.new("35.00"))
+    end
+
+    test "includes new common_units products in total" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 4)
+
+      # Product with common_units (new system)
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("40.00"),
+          is_common: false,
+          common_units: Decimal.new("4")
+        )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Bob")
+
+      # Common units: 4 * 4.00 per unit = 16.00, divided by 4 participants = 4.00
+      # Bob has no personal assignment, so total is just common share
+      assert Decimal.equal?(total, Decimal.new("4.00"))
+    end
+
+    test "calculates correctly with both personal and common assignments" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 2)
+
+      # Product with both personal and common
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("100.00"),
+          is_common: false,
+          common_units: Decimal.new("2")
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("3"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      # Personal: 3 units * 10.00 per unit = 30.00
+      # Common: (2 units * 10.00 per unit) / 2 participants = 10.00
+      # Total: 40.00
+      assert Decimal.equal?(total, Decimal.new("40.00"))
+    end
+
+    test "returns zero for participant with no assignments and no common products" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 3)
+
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("50.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Bob",
+        units_assigned: Decimal.new("5"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Charlie")
+
+      # Charlie has no assignments and there are no common products
+      assert Decimal.equal?(total, Decimal.new("0"))
+    end
+
+    test "calculates correctly with multiple products" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 2)
+
+      # Product 1: Personal assignment
+      product1 =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 5,
+          total_price: Decimal.new("25.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product1.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("2"),
+        percentage: Decimal.new("100")
+      )
+
+      # Product 2: Common
+      product2 =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          total_price: Decimal.new("20.00"),
+          is_common: true
+        )
+
+      # Product 3: Another personal
+      product3 =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("50.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product3.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("3"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      # Product 1: 2 * 5.00 = 10.00
+      # Product 2: 20.00 / 2 = 10.00
+      # Product 3: 3 * 5.00 = 15.00
+      # Total: 35.00
+      assert Decimal.equal?(total, Decimal.new("35.00"))
+    end
+
+    test "handles shared assignments (percentage < 100)" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 2)
+
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("100.00"),
+          is_common: false
+        )
+
+      # Alice and Bob share 5 units (50/50)
+      group_id = Ecto.UUID.generate()
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("5"),
+        percentage: Decimal.new("50"),
+        assignment_group_id: group_id
+      )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Bob",
+        units_assigned: Decimal.new("5"),
+        percentage: Decimal.new("50"),
+        assignment_group_id: group_id
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      # 5 units * 10.00 per unit * 50% = 25.00
+      assert Decimal.equal?(total, Decimal.new("25.00"))
+    end
+
+    test "trims whitespace from participant name" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 2)
+
+      product =
+        TicketsFixtures.product_fixture(
+          ticket_id: ticket.id,
+          units: 10,
+          total_price: Decimal.new("100.00"),
+          is_common: false
+        )
+
+      TicketsFixtures.participant_assignment_fixture(
+        product_id: product.id,
+        participant_name: "Alice",
+        units_assigned: Decimal.new("4"),
+        percentage: Decimal.new("100")
+      )
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "  Alice  ")
+
+      assert Decimal.equal?(total, Decimal.new("40.00"))
+    end
+
+    test "returns zero for ticket with no products" do
+      ticket = TicketsFixtures.ticket_fixture(total_participants: 3)
+
+      total = ParticipantConfigOperations.calculate_participant_total(ticket.id, "Alice")
+
+      assert Decimal.equal?(total, Decimal.new("0"))
+    end
+  end
 end

@@ -21,10 +21,27 @@ defmodule TicketSplitterWeb.TicketLive.MountActions do
 
   @doc """
   Calcula el conteo mínimo de participantes permitido.
+  Es el máximo entre:
+  - Número de participantes activos
+  - Suma de multiplicadores de todos los participantes activos
   """
   def calculate_min_participants(ticket_id) do
-    real_participants_count = length(Tickets.get_ticket_participants(ticket_id))
-    max(real_participants_count, 1)
+    active_participants = Tickets.get_ticket_participants(ticket_id)
+    configs = Tickets.list_participant_configs(ticket_id)
+
+    # Suma de multiplicadores de participantes activos (default 1 si no tienen config)
+    sum_multipliers =
+      Enum.reduce(active_participants, 0, fn participant, acc ->
+        multiplier =
+          Enum.find_value(configs, 1, fn config ->
+            if config.participant_name == participant.name, do: config.multiplier, else: nil
+          end)
+
+        acc + multiplier
+      end)
+
+    # El mínimo es la suma de multiplicadores, o 1 si no hay participantes
+    max(sum_multipliers, 1)
   end
 
   @doc """

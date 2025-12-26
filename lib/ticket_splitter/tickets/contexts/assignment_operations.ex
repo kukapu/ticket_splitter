@@ -40,8 +40,22 @@ defmodule TicketSplitter.Tickets.Contexts.AssignmentOperations do
 
   @doc """
   Creates a participant assignment.
+  Ensures a ParticipantConfig exists and increments total_participants if it's a new participant.
   """
   def create_participant_assignment(attrs \\ %{}) do
+    # Ensure participant config exists and increment if new
+    # This handles the case where someone assigns a product to a NEW participant in assign view
+    if attrs[:participant_name] && attrs[:product_id] do
+      # Get ticket_id from product
+      product = TicketSplitter.Tickets.get_product!(attrs[:product_id])
+
+      # Ensure config exists and increment total_participants if new participant
+      TicketSplitter.Tickets.ensure_participant_and_update_total(
+        product.ticket_id,
+        attrs[:participant_name]
+      )
+    end
+
     %ParticipantAssignment{}
     |> ParticipantAssignment.changeset(attrs)
     |> Repo.insert()

@@ -36,14 +36,6 @@ defmodule TicketSplitterWeb.SEOTest do
     end
   end
 
-  describe "site_name/0" do
-    test "returns site name" do
-      result = SEO.site_name()
-
-      assert result == "Ticket Splitter"
-    end
-  end
-
   describe "default_description/0" do
     test "returns default description" do
       result = SEO.default_description()

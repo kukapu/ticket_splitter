@@ -42,26 +42,17 @@ defmodule TicketSplitterWeb.TicketLive.ToggleActions do
 
   @doc """
   Actualiza el total de participantes si se añadió uno nuevo.
+  DEPRECATED: Now handled by ParticipantConfig system. This is a no-op.
   """
   def update_total_if_new_participant(
         _socket,
-        participant_count_before,
-        real_participants_count,
+        _participant_count_before,
+        _real_participants_count,
         ticket
       ) do
-    if new_participant_added?(participant_count_before, real_participants_count) do
-      new_total = ticket.total_participants + 1
-
-      case Tickets.update_ticket(ticket, %{total_participants: new_total}) do
-        {:ok, updated_ticket} ->
-          {:ok, updated_ticket}
-
-        _ ->
-          {:ok, ticket}
-      end
-    else
-      {:ok, ticket}
-    end
+    # No-op: total_participants now managed via ParticipantConfig
+    # Participants added via set_participant_name, not product assignments
+    {:ok, ticket}
   end
 
   @doc """

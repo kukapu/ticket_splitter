@@ -63,13 +63,9 @@ defmodule TicketSplitterWeb.TicketLive.CalculationActions do
 
       total_common = TicketCalculator.calculate_total_common(products)
 
-      rest_common_share =
-        if total_participants > 0 do
-          share_per_person = Decimal.div(total_common, Decimal.new(total_participants))
-          Decimal.mult(share_per_person, Decimal.new(rest_count))
-        else
-          Decimal.new("0")
-        end
+      safe_participants = max(total_participants, 1)
+      share_per_person = Decimal.div(total_common, Decimal.new(safe_participants))
+      rest_common_share = Decimal.mult(share_per_person, Decimal.new(rest_count))
 
       rest_total = Decimal.add(rest_common_share, pending)
 
