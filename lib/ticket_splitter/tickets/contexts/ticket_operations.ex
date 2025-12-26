@@ -22,6 +22,28 @@ defmodule TicketSplitter.Tickets.Contexts.TicketOperations do
 
   @doc """
   Gets a single ticket with preloaded products and participant assignments.
+  Returns {:ok, ticket} if found, {:error, :not_found} otherwise.
+  """
+  def get_ticket_with_products(id) do
+    case Repo.get(Ticket, id) do
+      nil ->
+        {:error, :not_found}
+
+      ticket ->
+        preloaded_ticket =
+          ticket
+          |> Repo.preload(
+            products:
+              from(p in Product, order_by: [asc: p.position], preload: [:participant_assignments])
+          )
+
+        {:ok, preloaded_ticket}
+    end
+  end
+
+  @doc """
+  Gets a single ticket with preloaded products and participant assignments.
+  Raises `Ecto.NoResultsError` if the Ticket does not exist.
   """
   def get_ticket_with_products!(id) do
     Ticket

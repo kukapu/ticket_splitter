@@ -37,43 +37,54 @@ defmodule TicketSplitterWeb.TicketLive do
       Phoenix.PubSub.subscribe(TicketSplitter.PubSub, "ticket:#{ticket_id}")
     end
 
-    ticket = Tickets.get_ticket_with_products!(ticket_id)
+    # Use safe version that returns {:ok, ticket} or {:error, :not_found}
+    case Tickets.get_ticket_with_products(ticket_id) do
+      {:ok, ticket} ->
+        # Calcular saldos iniciales
+        {total_ticket, total_assigned, pending} =
+          MountActions.calculate_initial_saldos(ticket.products, ticket.total_participants)
 
-    # Calcular saldos iniciales
-    {total_ticket, total_assigned, pending} =
-      MountActions.calculate_initial_saldos(ticket.products, ticket.total_participants)
+        # Calcular el número mínimo de participantes
+        min_participants = MountActions.calculate_min_participants(ticket_id)
 
-    # Calcular el número mínimo de participantes
-    min_participants = MountActions.calculate_min_participants(ticket_id)
+        # Generar metadatos de página
+        page_metadata =
+          MountActions.build_page_metadata_assigns(ticket, total_ticket)
 
-    # Generar metadatos de página
-    page_metadata =
-      MountActions.build_page_metadata_assigns(ticket, total_ticket)
+        socket =
+          socket
+          |> assign(
+            MountActions.build_initial_socket_assigns(
+              ticket,
+              total_ticket,
+              total_assigned,
+              pending,
+              min_participants,
+              page_metadata
+            )
+          )
 
-    socket =
-      socket
-      |> assign(
-        MountActions.build_initial_socket_assigns(
-          ticket,
-          total_ticket,
-          total_assigned,
-          pending,
-          min_participants,
-          page_metadata
-        )
-      )
+        # Save ticket to history when visiting (only when connected to prevent double-save)
+        socket =
+          if connected?(socket) do
+            push_event(socket, "save_ticket_to_history", %{
+              ticket: MountActions.build_ticket_history_map(ticket)
+            })
+          else
+            socket
+          end
 
-    # Save ticket to history when visiting (only when connected to prevent double-save)
-    socket =
-      if connected?(socket) do
-        push_event(socket, "save_ticket_to_history", %{
-          ticket: MountActions.build_ticket_history_map(ticket)
-        })
-      else
-        socket
-      end
+        {:ok, socket}
 
-    {:ok, socket}
+      {:error, :not_found} ->
+        # Handle ticket not found - redirect to home with flash message
+        socket =
+          socket
+          |> put_flash(:error, gettext("Ticket not found or no longer available"))
+          |> redirect(to: ~p"/")
+
+        {:ok, socket}
+    end
   end
 
   @impl true

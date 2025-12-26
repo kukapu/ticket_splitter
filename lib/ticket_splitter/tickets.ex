@@ -19,6 +19,7 @@ defmodule TicketSplitter.Tickets do
 
   defdelegate list_tickets(), to: TicketOperations
   defdelegate get_ticket!(id), to: TicketOperations
+  defdelegate get_ticket_with_products(id), to: TicketOperations
   defdelegate get_ticket_with_products!(id), to: TicketOperations
   defdelegate create_ticket(attrs \\ %{}), to: TicketOperations
   defdelegate update_ticket(ticket, attrs), to: TicketOperations
