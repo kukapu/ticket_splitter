@@ -1,220 +1,161 @@
-// ImageZoom Hook - Zoom simple con pinch-to-zoom y drag
+// ImageZoom Hook - Enables pinch-to-zoom and scroll-to-zoom for images
 export const ImageZoom = {
   mounted() {
     const container = this.el
     const img = container.querySelector('img')
     if (!img) return
 
-    // Estado del zoom - PERSISTE entre gestos
-    let currentScale = 1
-    let currentTranslateX = 0
-    let currentTranslateY = 0
-
-    // Estado temporal durante el gesto
-    let gestureStartScale = 1
-    let gestureStartDistance = 0
-    let gestureStartX = 0
-    let gestureStartY = 0
-    let gestureStartTranslateX = 0
-    let gestureStartTranslateY = 0
-
-    // Control de modo
+    let scale = 1
+    let translateX = 0
+    let translateY = 0
+    let lastScale = 1
+    let lastTranslateX = 0
+    let lastTranslateY = 0
+    let initialDistance = 0
     let isPinching = false
     let isDragging = false
+    let startX = 0
+    let startY = 0
 
     const minScale = 1
     const maxScale = 4
 
-    // Aplicar transformación - esta es la función que actualiza visualmente la imagen
-    const applyTransform = () => {
-      img.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`
-      img.style.transformOrigin = 'center center'
-      img.style.transition = 'none'
+    const updateTransform = () => {
+      img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`
     }
 
-    // Calcular distancia entre dos puntos
+    // Wheel zoom (desktop)
+    const handleWheel = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const delta = e.deltaY > 0 ? -0.2 : 0.2
+      const newScale = Math.max(minScale, Math.min(maxScale, scale + delta))
+
+      // Zoom towards cursor position
+      const rect = container.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const centerX = rect.width / 2
+      const centerY = rect.height / 2
+
+      if (newScale > scale) {
+        // Zooming in: move towards cursor
+        translateX += (centerX - x) * 0.1
+        translateY += (centerY - y) * 0.1
+      } else if (newScale === minScale) {
+        // Reset position when fully zoomed out
+        translateX = 0
+        translateY = 0
+      }
+
+      scale = newScale
+      updateTransform()
+    }
+
+    // Touch handlers for pinch-to-zoom
     const getDistance = (touch1, touch2) => {
       const dx = touch1.clientX - touch2.clientX
       const dy = touch1.clientY - touch2.clientY
       return Math.sqrt(dx * dx + dy * dy)
     }
 
-    // Prevenir scroll del modal durante cualquier interacción con la imagen
-    const preventModalScroll = (e) => {
-      const modalScrollContainer = container.closest('[role="dialog"]')
-      if (modalScrollContainer && (isPinching || isDragging || e.touches.length > 0)) {
-        e.preventDefault()
-        e.stopPropagation()
-      }
-    }
-
-    // INICIO DE GESTO
     const handleTouchStart = (e) => {
       if (e.touches.length === 2) {
-        // MODO PINCH: Dos dedos = zoom
-        e.preventDefault()
-        e.stopPropagation()
-
+        // Pinch start
         isPinching = true
         isDragging = false
-
-        gestureStartDistance = getDistance(e.touches[0], e.touches[1])
-        gestureStartScale = currentScale // Guardar el scale actual al iniciar
-
-      } else if (e.touches.length === 1 && currentScale > 1) {
-        // MODO DRAG: Un dedo y hay zoom = mover imagen
-        e.preventDefault()
-        e.stopPropagation()
-
+        initialDistance = getDistance(e.touches[0], e.touches[1])
+        lastScale = scale
+      } else if (e.touches.length === 1 && scale > 1) {
+        // Pan start (only when zoomed in)
         isDragging = true
-        isPinching = false
-
-        gestureStartX = e.touches[0].clientX
-        gestureStartY = e.touches[0].clientY
-        gestureStartTranslateX = currentTranslateX
-        gestureStartTranslateY = currentTranslateY
+        startX = e.touches[0].clientX - translateX
+        startY = e.touches[0].clientY - translateY
+        lastTranslateX = translateX
+        lastTranslateY = translateY
       }
     }
 
-    // DURANTE EL GESTO
     const handleTouchMove = (e) => {
       if (isPinching && e.touches.length === 2) {
-        // PINCH ZOOM
         e.preventDefault()
-        e.stopPropagation()
-
         const currentDistance = getDistance(e.touches[0], e.touches[1])
-        const ratio = currentDistance / gestureStartDistance
-
-        // Calcular nuevo scale basado en el scale al inicio del gesto
-        let newScale = gestureStartScale * ratio
-        newScale = Math.max(minScale, Math.min(maxScale, newScale))
-
-        // ACTUALIZAR el scale actual
-        currentScale = newScale
-
-        // Si volvemos a scale 1, resetear posición
-        if (currentScale === minScale) {
-          currentTranslateX = 0
-          currentTranslateY = 0
-        }
-
-        applyTransform()
-
-      } else if (isDragging && e.touches.length === 1 && currentScale > 1) {
-        // DRAG/PAN
+        const delta = currentDistance / initialDistance
+        scale = Math.max(minScale, Math.min(maxScale, lastScale * delta))
+        updateTransform()
+      } else if (isDragging && e.touches.length === 1 && scale > 1) {
         e.preventDefault()
-        e.stopPropagation()
-
-        const deltaX = e.touches[0].clientX - gestureStartX
-        const deltaY = e.touches[0].clientY - gestureStartY
-
-        // ACTUALIZAR la posición actual
-        currentTranslateX = gestureStartTranslateX + deltaX
-        currentTranslateY = gestureStartTranslateY + deltaY
-
-        applyTransform()
+        translateX = e.touches[0].clientX - startX
+        translateY = e.touches[0].clientY - startY
+        updateTransform()
       }
     }
 
-    // FIN DEL GESTO
     const handleTouchEnd = (e) => {
-      // Cuando soltamos dedos, NO reseteamos currentScale, currentTranslateX, currentTranslateY
-      // Solo actualizamos los flags de modo
-
       if (e.touches.length < 2) {
         isPinching = false
+        lastScale = scale
       }
-
       if (e.touches.length === 0) {
         isDragging = false
 
-        // Solo resetear posición si no hay zoom
-        if (currentScale === minScale) {
-          currentTranslateX = 0
-          currentTranslateY = 0
-          applyTransform()
+        // Reset if scale is 1
+        if (scale === 1) {
+          translateX = 0
+          translateY = 0
+          updateTransform()
         }
       }
     }
 
-    // DOBLE TAP para zoom rápido
-    let lastTapTime = 0
+    // Double-tap to zoom
+    let lastTap = 0
     const handleDoubleTap = (e) => {
       const now = Date.now()
-      const timeSinceLastTap = now - lastTapTime
-
-      if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+      if (now - lastTap < 300) {
         e.preventDefault()
-        e.stopPropagation()
-
-        if (currentScale > 1) {
-          // Resetear zoom
-          currentScale = 1
-          currentTranslateX = 0
-          currentTranslateY = 0
+        if (scale > 1) {
+          // Reset zoom
+          scale = 1
+          translateX = 0
+          translateY = 0
         } else {
-          // Zoom 2x
-          currentScale = 2
-          currentTranslateX = 0
-          currentTranslateY = 0
+          // Zoom in to 2x
+          scale = 2
         }
-
-        applyTransform()
+        updateTransform()
       }
-
-      lastTapTime = now
+      lastTap = now
     }
 
-    // Prevenir que el click cierre el modal
-    const preventClickPropagation = (e) => {
-      if (currentScale > 1 || isPinching || isDragging) {
-        e.stopPropagation()
-      }
+    // Prevent click propagation to close modal when interacting with image
+    const handleClick = (e) => {
+      e.stopPropagation()
     }
 
-    // Registrar listeners
-    // IMPORTANTE: passive: false permite que preventDefault funcione
+    // Add event listeners
+    container.addEventListener('wheel', handleWheel, { passive: false })
     container.addEventListener('touchstart', handleTouchStart, { passive: false })
     container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd, { passive: false })
-    container.addEventListener('touchmove', preventModalScroll, { passive: false })
-    container.addEventListener('click', preventClickPropagation, { passive: false })
-    img.addEventListener('touchend', handleDoubleTap, { passive: false })
-
-    // Prevenir scroll del contenedor del modal
-    const modalScrollContainer = container.closest('[role="dialog"]')
-    if (modalScrollContainer) {
-      const preventScroll = (e) => {
-        if (isPinching || isDragging || currentScale > 1) {
-          e.preventDefault()
-        }
-      }
-      modalScrollContainer.addEventListener('touchmove', preventScroll, { passive: false })
-
-      // Guardar referencia para cleanup
-      this.modalScrollContainer = modalScrollContainer
-      this.preventScroll = preventScroll
-    }
+    container.addEventListener('touchend', handleTouchEnd)
+    container.addEventListener('click', handleClick)
+    img.addEventListener('touchend', handleDoubleTap)
 
     // Cleanup
-    this.cleanup = () => {
+    this.handleDestroy = () => {
+      container.removeEventListener('wheel', handleWheel)
       container.removeEventListener('touchstart', handleTouchStart)
       container.removeEventListener('touchmove', handleTouchMove)
       container.removeEventListener('touchend', handleTouchEnd)
-      container.removeEventListener('touchmove', preventModalScroll)
-      container.removeEventListener('click', preventClickPropagation)
+      container.removeEventListener('click', handleClick)
       img.removeEventListener('touchend', handleDoubleTap)
-
-      if (this.modalScrollContainer && this.preventScroll) {
-        this.modalScrollContainer.removeEventListener('touchmove', this.preventScroll)
-      }
     }
   },
 
   destroyed() {
-    if (this.cleanup) {
-      this.cleanup()
+    if (this.handleDestroy) {
+      this.handleDestroy()
     }
   }
 }
