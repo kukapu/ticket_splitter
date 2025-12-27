@@ -458,6 +458,12 @@ defmodule TicketSplitterWeb.TicketLive do
   end
 
   @impl true
+  def handle_event("stop_propagation", _params, socket) do
+    # Handler to stop click propagation - used to prevent modal from closing when clicking inside
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event(
         "adjust_split_percentage",
         %{
@@ -843,7 +849,9 @@ defmodule TicketSplitterWeb.TicketLive do
         ticket = Tickets.get_ticket_with_products!(socket.assigns.ticket.id)
 
         min_participants = MountActions.calculate_min_participants(socket.assigns.ticket.id)
-        real_participants_count = length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
+
+        real_participants_count =
+          length(Tickets.get_ticket_participants(socket.assigns.ticket.id))
 
         socket =
           socket

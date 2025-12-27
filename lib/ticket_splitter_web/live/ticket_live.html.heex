@@ -181,25 +181,29 @@
   
 <!-- Image Viewer Modal -->
   <%= if @show_image_modal && @ticket.image_url do %>
-    <!-- Backdrop -->
+    <!-- Backdrop with blur -->
     <div
-      class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center"
+      class="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 sm:p-6"
       phx-click="close_image_modal"
       id="image-viewer-modal-backdrop"
     >
-      <!-- Modal container -->
-      <div class="relative w-full h-full max-w-4xl mx-auto p-4 flex items-center justify-center">
-        <!-- Close button -->
+      <!-- Modal container - adapts to image size -->
+      <div
+        class="relative max-w-[95vw] max-h-[90vh] bg-base-300/90 rounded-2xl shadow-2xl border border-base-content/10 overflow-hidden"
+        phx-click="stop_propagation"
+        id="image-viewer-modal-container"
+      >
+        <!-- Close button - positioned at top-right of modal -->
         <button
           phx-click="close_image_modal"
-          class="absolute top-4 right-4 z-10 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+          class="absolute top-2 right-2 z-10 w-8 h-8 aspect-square bg-black/60 hover:bg-black/80 border border-black rounded-full flex items-center justify-center transition-colors"
         >
-          <.icon name="hero-x-mark" class="w-6 h-6 text-white" />
+          <.icon name="hero-x-mark" class="w-5 h-5 text-white" />
         </button>
 
         <!-- Image container with zoom support -->
         <div
-          class="w-full h-full flex items-center justify-center"
+          class="flex items-center justify-center p-2"
           id="image-zoom-container"
           phx-hook="ImageZoom"
           style="touch-action: none;"
@@ -207,7 +211,7 @@
           <img
             src={@ticket.image_url}
             alt={gettext("Ticket image")}
-            class="max-w-full max-h-full object-contain select-none"
+            class="max-w-[90vw] max-h-[85vh] object-contain select-none rounded-lg"
             draggable="false"
             style="touch-action: none;"
           />
