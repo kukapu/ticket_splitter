@@ -1091,43 +1091,48 @@ body.overflow-hidden {
    LiveView Connection Error Overlay Customization
    ============================================================================ */
 
-/* Hide LiveView error overlays completely during reconnections
-   This prevents the annoying flash of error messages when PWA reconnects */
+/* 
+ * PWA-optimized error handling:
+ * - Hide error overlays initially to allow quick reconnections without visual noise
+ * - Elements with phx-error, phx-client-error, phx-server-error classes are hidden
+ * - Our custom ConnectionManager handles recovery and shows user-friendly errors
+ */
+
+/* Hide Phoenix's default error overlays - we handle reconnection ourselves */
 .phx-error,
 .phx-client-error,
 .phx-server-error,
 .phx-disconnected {
-  display: none !important;
-}
-
-/* If you want to show errors but make them less intrusive, comment out the above
-   and uncomment the styles below instead:
-
-.phx-error,
-.phx-client-error,
-.phx-server-error {
+  /* Use visibility instead of display:none to maintain layout during transitions */
+  visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  transition: opacity 0.3s ease !important;
 }
 
-.phx-error {
-  animation: fadeInError 1s ease 0.5s forwards;
-}
-
-@keyframes fadeInError {
-  to {
-    opacity: 0.3 !important;
-  }
-}
-*/
-
-/* Ensure the phx-loading class doesn't interfere with UI */
+/* Ensure the phx-loading class doesn't interfere with UI during reconnection */
 .phx-loading {
+  opacity: 1 !important;
+  cursor: default !important;
+}
+
+/* Prevent any opacity changes during reconnection that could cause "black screen" */
+[data-phx-main] {
   opacity: 1 !important;
 }
 
 /* Hide the default LiveView connection status indicator */
 .phx-connection-status {
   display: none !important;
+}
+
+/* Smooth transition for main content during reconnection */
+main {
+  transition: opacity 0.15s ease-out;
+}
+
+/* Ensure content remains visible during phx-loading states */
+main.phx-loading,
+main [data-phx-component].phx-loading {
+  opacity: 1 !important;
+  visibility: visible !important;
 }

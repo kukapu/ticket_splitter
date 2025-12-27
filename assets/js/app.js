@@ -45,8 +45,8 @@ const liveSocket = new LiveSocket("/live", Socket,
   })
 )
 
-// Initialize connection state tracking
-initializeConnectionTracking()
+// Initialize connection state tracking with LiveSocket reference
+initializeConnectionTracking(liveSocket)
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })

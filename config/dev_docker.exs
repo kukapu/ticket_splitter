@@ -71,5 +71,5 @@ config :ex_aws,
   secret_access_key: "minioadmin"
 
 config :ticket_splitter, :storage,
-  bucket: "ticket-splitter",
-  public_url: "http://localhost:9000/ticket-splitter"
+  bucket: System.get_env("MINIO_BUCKET") || "ticket-splitter",
+  public_url: System.get_env("MINIO_PUBLIC_URL") || "http://localhost:9000/ticket-splitter"

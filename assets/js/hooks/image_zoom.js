@@ -1,285 +1,308 @@
-// ImageZoom Hook - Enables pinch-to-zoom and scroll-to-zoom for images
+/**
+ * ImageZoom Hook - Implementación manual de pinch-to-zoom y pan
+ * 
+ * Esta implementación NO usa Panzoom porque tiene bugs conocidos con pinch-to-zoom.
+ * En su lugar, manejamos los gestos manualmente para garantizar que:
+ * 1. El zoom persiste cuando sueltas los dedos
+ * 2. Puedes hacer pan después del zoom
+ * 3. Puedes hacer zoom incremental (zoom, soltar, zoom más)
+ */
+
 export const ImageZoom = {
+  // Estado del zoom/pan
+  scale: 1,
+  translateX: 0,
+  translateY: 0,
+
+  // Estado del gesto actual
+  initialDistance: 0,
+  initialScale: 1,
+  initialX: 0,
+  initialY: 0,
+  initialTranslateX: 0,
+  initialTranslateY: 0,
+
+  // Flags
+  isPinching: false,
+  isPanning: false,
+
+  // Configuración
+  minScale: 1,
+  maxScale: 8,
+
+  // Referencias DOM
+  img: null,
+  container: null,
+
+  // Double tap tracking
+  lastTap: 0,
+
   mounted() {
-    const container = this.el
-    const img = container.querySelector('img')
+    const img = this.el.querySelector('img')
     if (!img) return
 
-    // State variables
-    let scale = 1
-    let translateX = 0
-    let translateY = 0
+    this.img = img
+    this.container = this.el
 
-    // Pinch state
-    let initialDistance = 0
-    let initialScale = 1
-    let initialMidX = 0
-    let initialMidY = 0
-    let initialTranslateX = 0
-    let initialTranslateY = 0
-
-    // Drag state
-    let isDragging = false
-    let dragStartX = 0
-    let dragStartY = 0
-    let dragStartTranslateX = 0
-    let dragStartTranslateY = 0
-
-    const minScale = 1
-    const maxScale = 4
-
-    const updateTransform = () => {
-      img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`
-    }
-
-    // Constrain translation to prevent image from going too far off-screen
-    const constrainTranslation = () => {
-      if (scale <= 1) {
-        translateX = 0
-        translateY = 0
-        return
-      }
-
-      const containerRect = container.getBoundingClientRect()
-      const imgRect = img.getBoundingClientRect()
-
-      // Calculate bounds - allow some overshoot but keep at least half the image visible
-      const maxTranslateX = Math.max(0, (imgRect.width - containerRect.width) / 2)
-      const maxTranslateY = Math.max(0, (imgRect.height - containerRect.height) / 2)
-
-      translateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX))
-      translateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY))
-    }
-
-    // Get distance between two touch points
-    const getDistance = (touch1, touch2) => {
-      const dx = touch1.clientX - touch2.clientX
-      const dy = touch1.clientY - touch2.clientY
-      return Math.sqrt(dx * dx + dy * dy)
-    }
-
-    // Get midpoint between two touch points
-    const getMidpoint = (touch1, touch2) => {
-      return {
-        x: (touch1.clientX + touch2.clientX) / 2,
-        y: (touch1.clientY + touch2.clientY) / 2
-      }
-    }
-
-    // Wheel zoom (desktop)
-    const handleWheel = (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-
-      const delta = e.deltaY > 0 ? -0.2 : 0.2
-      const newScale = Math.max(minScale, Math.min(maxScale, scale + delta))
-
-      // Get container position
-      const rect = container.getBoundingClientRect()
-      const cursorX = e.clientX - rect.left
-      const cursorY = e.clientY - rect.top
-      const centerX = rect.width / 2
-      const centerY = rect.height / 2
-
-      // Calculate the focal point relative to current transform
-      const focalX = (cursorX - centerX - translateX) / scale
-      const focalY = (cursorY - centerY - translateY) / scale
-
-      // Update scale
-      const oldScale = scale
-      scale = newScale
-
-      // Adjust translation to keep focal point stationary
-      translateX = cursorX - centerX - focalX * scale
-      translateY = cursorY - centerY - focalY * scale
-
-      // Reset if zoomed out completely
-      if (scale <= 1) {
-        scale = 1
-        translateX = 0
-        translateY = 0
-      }
-
-      constrainTranslation()
-      updateTransform()
-    }
-
-    // Touch handlers for pinch-to-zoom
-    const handleTouchStart = (e) => {
-      if (e.touches.length === 2) {
-        // Pinch start - save initial state
-        e.preventDefault()
-
-        initialDistance = getDistance(e.touches[0], e.touches[1])
-        initialScale = scale
-        initialTranslateX = translateX
-        initialTranslateY = translateY
-
-        // Get the midpoint in container coordinates
-        const mid = getMidpoint(e.touches[0], e.touches[1])
-        const rect = container.getBoundingClientRect()
-        initialMidX = mid.x - rect.left
-        initialMidY = mid.y - rect.top
-
-        isDragging = false
-      } else if (e.touches.length === 1 && scale > 1) {
-        // Pan start (only when zoomed in)
-        isDragging = true
-        dragStartX = e.touches[0].clientX
-        dragStartY = e.touches[0].clientY
-        dragStartTranslateX = translateX
-        dragStartTranslateY = translateY
-      }
-    }
-
-    const handleTouchMove = (e) => {
-      if (e.touches.length === 2) {
-        // Pinch move
-        e.preventDefault()
-
-        const currentDistance = getDistance(e.touches[0], e.touches[1])
-        const scaleFactor = currentDistance / initialDistance
-        const newScale = Math.max(minScale, Math.min(maxScale, initialScale * scaleFactor))
-
-        // Get the current midpoint
-        const mid = getMidpoint(e.touches[0], e.touches[1])
-        const rect = container.getBoundingClientRect()
-        const currentMidX = mid.x - rect.left
-        const currentMidY = mid.y - rect.top
-        const centerX = rect.width / 2
-        const centerY = rect.height / 2
-
-        // Calculate the focal point in the original image space
-        const focalX = (initialMidX - centerX - initialTranslateX) / initialScale
-        const focalY = (initialMidY - centerY - initialTranslateY) / initialScale
-
-        // Calculate new translation to keep the focal point at the current mid position
-        // and also account for any panning (movement of the midpoint)
-        scale = newScale
-        translateX = currentMidX - centerX - focalX * scale
-        translateY = currentMidY - centerY - focalY * scale
-
-        updateTransform()
-      } else if (isDragging && e.touches.length === 1 && scale > 1) {
-        // Pan move
-        e.preventDefault()
-
-        const deltaX = e.touches[0].clientX - dragStartX
-        const deltaY = e.touches[0].clientY - dragStartY
-
-        translateX = dragStartTranslateX + deltaX
-        translateY = dragStartTranslateY + deltaY
-
-        updateTransform()
-      }
-    }
-
-    const handleTouchEnd = (e) => {
-      if (e.touches.length < 2) {
-        // Pinch ended - constrain and apply final position
-        constrainTranslation()
-
-        // Reset to 1 if very close to 1
-        if (scale < 1.05) {
-          scale = 1
-          translateX = 0
-          translateY = 0
-        }
-
-        updateTransform()
-
-        // If one finger remains and we're zoomed in, prepare for panning
-        if (e.touches.length === 1 && scale > 1) {
-          isDragging = true
-          dragStartX = e.touches[0].clientX
-          dragStartY = e.touches[0].clientY
-          dragStartTranslateX = translateX
-          dragStartTranslateY = translateY
-        }
-      }
-
-      if (e.touches.length === 0) {
-        isDragging = false
-        constrainTranslation()
-        updateTransform()
-      }
-    }
-
-    // Double-tap to zoom
-    let lastTap = 0
-    let lastTapX = 0
-    let lastTapY = 0
-
-    const handleDoubleTap = (e) => {
-      const now = Date.now()
-      const touch = e.changedTouches[0]
-
-      if (now - lastTap < 300) {
-        e.preventDefault()
-
-        const rect = container.getBoundingClientRect()
-        const tapX = touch.clientX - rect.left
-        const tapY = touch.clientY - rect.top
-        const centerX = rect.width / 2
-        const centerY = rect.height / 2
-
-        if (scale > 1) {
-          // Reset zoom
-          scale = 1
-          translateX = 0
-          translateY = 0
-        } else {
-          // Zoom in to 2x towards tap position
-          const focalX = (tapX - centerX) / scale
-          const focalY = (tapY - centerY) / scale
-
-          scale = 2
-          translateX = tapX - centerX - focalX * scale
-          translateY = tapY - centerY - focalY * scale
-
-          constrainTranslation()
-        }
-
-        // Smooth animation for double-tap
-        img.style.transition = 'transform 0.2s ease-out'
-        updateTransform()
-        setTimeout(() => {
-          img.style.transition = ''
-        }, 200)
-      }
-
-      lastTap = now
-      lastTapX = touch.clientX
-      lastTapY = touch.clientY
-    }
-
-    // Prevent click propagation to close modal when interacting with image
-    const handleClick = (e) => {
-      e.stopPropagation()
-    }
-
-    // Add event listeners
-    container.addEventListener('wheel', handleWheel, { passive: false })
-    container.addEventListener('touchstart', handleTouchStart, { passive: false })
-    container.addEventListener('touchmove', handleTouchMove, { passive: false })
-    container.addEventListener('touchend', handleTouchEnd)
-    container.addEventListener('click', handleClick)
-    img.addEventListener('touchend', handleDoubleTap)
-
-    // Cleanup
-    this.handleDestroy = () => {
-      container.removeEventListener('wheel', handleWheel)
-      container.removeEventListener('touchstart', handleTouchStart)
-      container.removeEventListener('touchmove', handleTouchMove)
-      container.removeEventListener('touchend', handleTouchEnd)
-      container.removeEventListener('click', handleClick)
-      img.removeEventListener('touchend', handleDoubleTap)
+    // Esperar a que la imagen cargue
+    if (img.complete) {
+      this.init()
+    } else {
+      img.addEventListener('load', () => this.init(), { once: true })
     }
   },
 
-  destroyed() {
-    if (this.handleDestroy) {
-      this.handleDestroy()
+  init() {
+    const img = this.img
+    const container = this.container
+
+    // Configurar estilos iniciales
+    img.style.touchAction = 'none'
+    img.style.userSelect = 'none'
+    img.style.webkitUserSelect = 'none'
+    img.style.transformOrigin = 'center center'
+    img.style.transition = 'none'
+
+    container.style.touchAction = 'none'
+    container.style.userSelect = 'none'
+    container.style.overflow = 'hidden'
+
+    // Aplicar transform inicial
+    this.applyTransform(false)
+
+    // ========== TOUCH EVENTS ==========
+
+    this.handleTouchStart = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const touches = e.touches
+
+      if (touches.length === 2) {
+        // Inicio de pinch zoom
+        this.isPinching = true
+        this.isPanning = false
+
+        this.initialDistance = this.getDistance(touches[0], touches[1])
+        this.initialScale = this.scale
+
+        // Guardar punto medio inicial para pan durante pinch
+        const midpoint = this.getMidpoint(touches[0], touches[1])
+        this.initialX = midpoint.x
+        this.initialY = midpoint.y
+        this.initialTranslateX = this.translateX
+        this.initialTranslateY = this.translateY
+
+      } else if (touches.length === 1) {
+        // Inicio de pan (solo si ya hay zoom)
+        if (this.scale > 1) {
+          this.isPanning = true
+          this.initialX = touches[0].clientX
+          this.initialY = touches[0].clientY
+          this.initialTranslateX = this.translateX
+          this.initialTranslateY = this.translateY
+        }
+
+        // Detectar double tap
+        const now = Date.now()
+        if (now - this.lastTap < 300) {
+          this.handleDoubleTap(touches[0])
+          this.lastTap = 0
+        } else {
+          this.lastTap = now
+        }
+      }
     }
+
+    this.handleTouchMove = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const touches = e.touches
+
+      if (this.isPinching && touches.length === 2) {
+        // Calcular nuevo zoom
+        const currentDistance = this.getDistance(touches[0], touches[1])
+        const distanceRatio = currentDistance / this.initialDistance
+
+        let newScale = this.initialScale * distanceRatio
+
+        // Limitar escala
+        newScale = Math.max(this.minScale, Math.min(this.maxScale, newScale))
+
+        // Calcular pan durante pinch (hacia el punto medio)
+        const currentMidpoint = this.getMidpoint(touches[0], touches[1])
+        const deltaX = currentMidpoint.x - this.initialX
+        const deltaY = currentMidpoint.y - this.initialY
+
+        // Ajustar translation considerando el cambio de escala
+        this.translateX = this.initialTranslateX + deltaX
+        this.translateY = this.initialTranslateY + deltaY
+        this.scale = newScale
+
+        this.applyTransform(false)
+
+      } else if (this.isPanning && touches.length === 1) {
+        // Pan con un dedo (solo si hay zoom)
+        const deltaX = touches[0].clientX - this.initialX
+        const deltaY = touches[0].clientY - this.initialY
+
+        this.translateX = this.initialTranslateX + deltaX
+        this.translateY = this.initialTranslateY + deltaY
+
+        this.applyTransform(false)
+      }
+    }
+
+    this.handleTouchEnd = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const remainingTouches = e.touches.length
+
+      if (remainingTouches === 0) {
+        // Todos los dedos levantados
+        this.isPinching = false
+        this.isPanning = false
+
+        // Si el scale es menor que 1, resetear a 1
+        if (this.scale < 1) {
+          this.scale = 1
+          this.translateX = 0
+          this.translateY = 0
+          this.applyTransform(true)
+        }
+
+        // Guardar estado final
+        console.log('✅ Zoom state saved:', { scale: this.scale, x: this.translateX, y: this.translateY })
+
+      } else if (remainingTouches === 1 && this.isPinching) {
+        // Pasamos de pinch a pan con un dedo
+        this.isPinching = false
+
+        if (this.scale > 1) {
+          this.isPanning = true
+          this.initialX = e.touches[0].clientX
+          this.initialY = e.touches[0].clientY
+          this.initialTranslateX = this.translateX
+          this.initialTranslateY = this.translateY
+        }
+      }
+    }
+
+    // ========== MOUSE WHEEL ZOOM (Desktop) ==========
+
+    this.handleWheel = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      const delta = e.deltaY > 0 ? -0.1 : 0.1
+      let newScale = this.scale + delta
+
+      // Limitar escala
+      newScale = Math.max(this.minScale, Math.min(this.maxScale, newScale))
+
+      // Zoom hacia el punto del cursor
+      if (newScale !== this.scale) {
+        const rect = this.img.getBoundingClientRect()
+        const offsetX = e.clientX - rect.left - rect.width / 2
+        const offsetY = e.clientY - rect.top - rect.height / 2
+
+        const scaleRatio = newScale / this.scale
+        this.translateX = this.translateX * scaleRatio - offsetX * (scaleRatio - 1)
+        this.translateY = this.translateY * scaleRatio - offsetY * (scaleRatio - 1)
+        this.scale = newScale
+
+        this.applyTransform(false)
+      }
+    }
+
+    // ========== CLICK HANDLER ==========
+
+    this.handleClick = (e) => {
+      e.stopPropagation()
+    }
+
+    this.handleContextMenu = (e) => {
+      e.preventDefault()
+    }
+
+    // ========== REGISTRAR EVENT LISTENERS ==========
+
+    img.addEventListener('touchstart', this.handleTouchStart, { passive: false })
+    img.addEventListener('touchmove', this.handleTouchMove, { passive: false })
+    img.addEventListener('touchend', this.handleTouchEnd, { passive: false })
+    img.addEventListener('touchcancel', this.handleTouchEnd, { passive: false })
+
+    container.addEventListener('wheel', this.handleWheel, { passive: false })
+    container.addEventListener('click', this.handleClick)
+    img.addEventListener('contextmenu', this.handleContextMenu)
+
+    console.log('✅ ImageZoom initialized (custom implementation)')
+  },
+
+  // ========== MÉTODOS HELPER ==========
+
+  getDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX
+    const dy = touch2.clientY - touch1.clientY
+    return Math.sqrt(dx * dx + dy * dy)
+  },
+
+  getMidpoint(touch1, touch2) {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    }
+  },
+
+  applyTransform(animate = false) {
+    if (!this.img) return
+
+    if (animate) {
+      this.img.style.transition = 'transform 0.3s ease-out'
+      setTimeout(() => {
+        this.img.style.transition = 'none'
+      }, 300)
+    }
+
+    this.img.style.transform = `translate(${this.translateX}px, ${this.translateY}px) scale(${this.scale})`
+  },
+
+  handleDoubleTap(touch) {
+    if (this.scale > 1.1) {
+      // Reset zoom
+      this.scale = 1
+      this.translateX = 0
+      this.translateY = 0
+    } else {
+      // Zoom in to 2.5x centered on tap point
+      const rect = this.img.getBoundingClientRect()
+      const offsetX = touch.clientX - rect.left - rect.width / 2
+      const offsetY = touch.clientY - rect.top - rect.height / 2
+
+      this.scale = 2.5
+      this.translateX = -offsetX * 1.5
+      this.translateY = -offsetY * 1.5
+    }
+
+    this.applyTransform(true)
+  },
+
+  destroyed() {
+    if (this.img) {
+      this.img.removeEventListener('touchstart', this.handleTouchStart)
+      this.img.removeEventListener('touchmove', this.handleTouchMove)
+      this.img.removeEventListener('touchend', this.handleTouchEnd)
+      this.img.removeEventListener('touchcancel', this.handleTouchEnd)
+      this.img.removeEventListener('contextmenu', this.handleContextMenu)
+    }
+
+    if (this.container) {
+      this.container.removeEventListener('wheel', this.handleWheel)
+      this.container.removeEventListener('click', this.handleClick)
+    }
+
+    console.log('🧹 ImageZoom destroyed')
   }
 }

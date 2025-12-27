@@ -58,7 +58,23 @@ export const ParticipantStorage = {
   // Reconnected callback - called when LiveView reconnects after disconnect
   reconnected() {
     console.log('🔄 LiveView reconnected, restoring participant name...')
-    this.sendParticipantName()
+    // Small delay to ensure LiveView is fully ready to receive events
+    // This helps prevent race conditions after reconnection
+    this.sendParticipantNameWithRetry()
+  },
+
+  // Send participant name with retry logic for robustness
+  sendParticipantNameWithRetry(retries = 3, delay = 100) {
+    setTimeout(() => {
+      try {
+        this.sendParticipantName()
+      } catch (e) {
+        console.warn('⚠️ Failed to send participant name, retrying...', e)
+        if (retries > 0) {
+          this.sendParticipantNameWithRetry(retries - 1, delay * 2)
+        }
+      }
+    }, delay)
   },
 
   destroyed() {

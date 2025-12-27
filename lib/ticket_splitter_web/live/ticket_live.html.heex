@@ -189,29 +189,30 @@
     >
       <!-- Modal container - adapts to image size -->
       <div
-        class="relative max-w-[95vw] max-h-[90vh] bg-base-300/90 rounded-2xl shadow-2xl border border-base-content/10 overflow-hidden"
+        class="relative w-[95vw] h-[80vh] sm:w-[90vw] sm:h-[90vh] bg-base-300 rounded-2xl shadow-2xl border border-base-content/10 overflow-hidden flex flex-col"
         phx-click="stop_propagation"
         id="image-viewer-modal-container"
       >
-        <!-- Close button - positioned at top-right of modal -->
+        <!-- Close button -->
         <button
           phx-click="close_image_modal"
-          class="absolute top-2 right-2 z-10 w-8 h-8 aspect-square bg-black/60 hover:bg-black/80 border border-black rounded-full flex items-center justify-center transition-colors"
+          class="absolute top-4 right-4 z-20 w-10 h-10 bg-black/50 hover:bg-black/70 border border-white/20 rounded-full flex items-center justify-center transition-colors backdrop-blur-sm"
         >
-          <.icon name="hero-x-mark" class="w-5 h-5 text-white" />
+          <.icon name="hero-x-mark" class="w-6 h-6 text-white" />
         </button>
 
-        <!-- Image container with zoom support -->
+        <!-- Image container with zoom support (custom implementation) -->
         <div
-          class="flex items-center justify-center p-2"
+          class="w-full h-full overflow-hidden bg-black/5 relative flex items-center justify-center"
           id="image-zoom-container"
           phx-hook="ImageZoom"
+          phx-update="ignore"
           style="touch-action: none;"
         >
           <img
             src={@ticket.image_url}
             alt={gettext("Ticket image")}
-            class="max-w-[90vw] max-h-[85vh] object-contain select-none rounded-lg"
+            class="max-w-full max-h-full object-contain"
             draggable="false"
             style="touch-action: none;"
           />
