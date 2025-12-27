@@ -26,17 +26,27 @@ import topbar from "../vendor/topbar"
 import { hooks } from "./hooks"
 import { registerServiceWorker } from "./pwa/register_service_worker"
 import { initKeyboardDetection } from "./utils/keyboard_detection"
+import {
+  getOptimizedLiveSocketConfig,
+  initializeConnectionTracking
+} from "./liveview/connection_manager"
 
 // Initialize keyboard detection for mobile
 initKeyboardDetection()
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
-const liveSocket = new LiveSocket("/live", Socket, {
-  longPollFallbackMs: 2500,
-  params: { _csrf_token: csrfToken },
-  hooks: hooks,
-})
+// Create LiveSocket with optimized configuration for PWA reconnections
+const liveSocket = new LiveSocket("/live", Socket,
+  getOptimizedLiveSocketConfig({
+    longPollFallbackMs: 2500,
+    params: { _csrf_token: csrfToken },
+    hooks: hooks,
+  })
+)
+
+// Initialize connection state tracking
+initializeConnectionTracking()
 
 // Show progress bar on live navigation and form submits
 topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" })

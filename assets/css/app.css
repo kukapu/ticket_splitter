@@ -1086,3 +1086,48 @@ body.overflow-hidden {
 #user-settings-modal>div {
   transition: transform 0.25s ease-out;
 }
+
+/* ============================================================================
+   LiveView Connection Error Overlay Customization
+   ============================================================================ */
+
+/* Hide LiveView error overlays completely during reconnections
+   This prevents the annoying flash of error messages when PWA reconnects */
+.phx-error,
+.phx-client-error,
+.phx-server-error,
+.phx-disconnected {
+  display: none !important;
+}
+
+/* If you want to show errors but make them less intrusive, comment out the above
+   and uncomment the styles below instead:
+
+.phx-error,
+.phx-client-error,
+.phx-server-error {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.phx-error {
+  animation: fadeInError 1s ease 0.5s forwards;
+}
+
+@keyframes fadeInError {
+  to {
+    opacity: 0.3 !important;
+  }
+}
+*/
+
+/* Ensure the phx-loading class doesn't interfere with UI */
+.phx-loading {
+  opacity: 1 !important;
+}
+
+/* Hide the default LiveView connection status indicator */
+.phx-connection-status {
+  display: none !important;
+}
